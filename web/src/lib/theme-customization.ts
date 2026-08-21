@@ -80,6 +80,7 @@ export const THEME_PRESETS = [
 ] as const
 
 export type ThemePreset = (typeof THEME_PRESETS)[number]['value']
+export const THEME_BASE_PRESET: ThemePreset = 'default'
 export type ThemeRadius = 'default' | 'none' | 'sm' | 'md' | 'lg' | 'xl'
 export type ThemeScale = 'default' | 'sm' | 'lg' | 'xl'
 export type ContentLayout = 'full' | 'centered'
@@ -116,7 +117,7 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
-  preset: 'default',
+  preset: 'lavender-dream',
   font: 'default',
   radius: 'default',
   scale: 'default',
@@ -168,10 +169,10 @@ export const THEME_COOKIE_KEYS = {
  *
  * Co-located with the preset registry so a preset's signature typography
  * is declared in one place. Presets not listed here fall back to the
- * `resolveThemeFont` default of `sans`. The shipped `default` preset
- * opts into serif so the editorial Lora voice is the out-of-the-box
- * experience; vivid color presets stay on the humanist sans so their
- * accents read clearly without competing with the body type.
+ * `resolveThemeFont` default of `sans`. The shipped lavender-dream preset
+ * stays on the humanist sans so its palette reads cleanly; vivid color
+ * presets stay on the humanist sans so their accents read clearly without
+ * competing with the body type.
  */
 export const PRESET_DEFAULT_FONT: Partial<
   Record<ThemePreset, ResolvedThemeFont>

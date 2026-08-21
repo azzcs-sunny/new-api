@@ -2427,6 +2427,7 @@
     "Japanese": "日本語",
     "Jimeng": "Jimeng",
     "Jina": "Jina",
+    "Join QQ Group": "QQグループに参加",
     "JSON": "JSON",
     "JSON array of group identifiers. When enabled below, new tokens rotate through this list.": "グループ識別子のJSON配列。以下で有効にすると、新しいトークンはこのリストをローテーションします。",
     "JSON Editor": "JSON編集",

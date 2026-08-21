@@ -54,6 +54,7 @@ import { useThemeCustomization } from '@/context/theme-customization-provider'
 import { useTheme } from '@/context/theme-provider'
 import {
   type ContentLayout,
+  THEME_BASE_PRESET,
   THEME_PRESETS,
   type ThemeFont,
   type ThemePreset,
@@ -279,7 +280,7 @@ function PresetConfig() {
                 className='absolute inset-0 rounded-md'
                 style={{
                   background:
-                    preset.value === 'default'
+                    preset.value === THEME_BASE_PRESET
                       ? 'linear-gradient(135deg, oklch(0.68 0.2 25) 0%, oklch(0.8 0.17 85) 25%, oklch(0.72 0.18 155) 50%, oklch(0.66 0.19 245) 75%, oklch(0.68 0.2 315) 100%)'
                       : `linear-gradient(135deg, ${preset.swatches[0]} 0%, ${preset.swatches[1] ?? preset.swatches[0]} 100%)`,
                 }}

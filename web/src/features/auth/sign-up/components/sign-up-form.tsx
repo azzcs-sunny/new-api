@@ -41,7 +41,12 @@ import { Label } from '@/components/ui/label'
 import { register, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
-import { registerFormSchema } from '@/features/auth/constants'
+import {
+  AUTH_BUTTON_CLASSNAME,
+  AUTH_INPUT_CLASSNAME,
+  AUTH_PASSWORD_INPUT_CLASSNAME,
+  registerFormSchema,
+} from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useEmailVerification } from '@/features/auth/hooks/use-email-verification'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
@@ -255,7 +260,11 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>{t('Username')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('Enter your username')} {...field} />
+                <Input
+                  placeholder={t('Enter your username')}
+                  className={AUTH_INPUT_CLASSNAME}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -272,6 +281,8 @@ export function SignUpForm({
               <FormControl>
                 <PasswordInput
                   placeholder={t('Enter password (8-20 characters)')}
+                  className={AUTH_PASSWORD_INPUT_CLASSNAME}
+                  inputClassName={AUTH_INPUT_CLASSNAME}
                   {...field}
                 />
               </FormControl>
@@ -288,7 +299,12 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>{t('Confirm password')}</FormLabel>
               <FormControl>
-                <PasswordInput placeholder={t('Confirm password')} {...field} />
+                <PasswordInput
+                  placeholder={t('Confirm password')}
+                  className={AUTH_PASSWORD_INPUT_CLASSNAME}
+                  inputClassName={AUTH_INPUT_CLASSNAME}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -311,6 +327,7 @@ export function SignUpForm({
                     <Input
                       placeholder={t('name@example.com')}
                       type='email'
+                      className={AUTH_INPUT_CLASSNAME}
                       {...field}
                     />
                   </FormControl>
@@ -324,6 +341,7 @@ export function SignUpForm({
               <div className='flex-1'>
                 <Input
                   placeholder={t('Verification code')}
+                  className={AUTH_INPUT_CLASSNAME}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                 />
@@ -331,6 +349,7 @@ export function SignUpForm({
               <Button
                 variant='outline'
                 type='button'
+                className={AUTH_BUTTON_CLASSNAME}
                 disabled={
                   isLoading ||
                   isSendingCode ||
@@ -367,7 +386,10 @@ export function SignUpForm({
         {/* Submit Button */}
         <Button
           type='submit'
-          className='mt-2 w-full justify-center gap-2'
+          className={cn(
+            AUTH_BUTTON_CLASSNAME,
+            'mt-2 w-full justify-center gap-2'
+          )}
           disabled={
             isLoading ||
             (requiresLegalConsent && !agreedToLegal) ||
@@ -408,6 +430,7 @@ export function SignUpForm({
                 variant='outline'
                 onClick={() => handleWeChatDialogChange(false)}
                 disabled={isWeChatSubmitting}
+                className={AUTH_BUTTON_CLASSNAME}
               >
                 {t('Cancel')}
               </Button>
@@ -419,7 +442,7 @@ export function SignUpForm({
                   !wechatCode.trim() ||
                   (requiresLegalConsent && !agreedToLegal)
                 }
-                className='gap-2'
+                className={cn(AUTH_BUTTON_CLASSNAME, 'gap-2')}
               >
                 {isWeChatSubmitting ? (
                   <Loader2 className='h-4 w-4 animate-spin' />
@@ -447,6 +470,7 @@ export function SignUpForm({
             <Input
               id='wechat-code'
               placeholder={t('Enter the verification code')}
+              className={AUTH_INPUT_CLASSNAME}
               value={wechatCode}
               onChange={(event) => setWeChatCode(event.target.value)}
               autoComplete='one-time-code'

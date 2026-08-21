@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
 import axios from 'axios'
 import { Loader2, LogIn, KeyRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -43,7 +42,12 @@ import { Label } from '@/components/ui/label'
 import { login, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
-import { loginFormSchema } from '@/features/auth/constants'
+import {
+  AUTH_BUTTON_CLASSNAME,
+  AUTH_INPUT_CLASSNAME,
+  AUTH_PASSWORD_INPUT_CLASSNAME,
+  loginFormSchema,
+} from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
@@ -320,7 +324,7 @@ export function UserAuthForm({
             variant='outline'
             disabled={passkeyButtonDisabled}
             onClick={handlePasskeyLogin}
-            className='h-11 w-full justify-center gap-2 rounded-lg'
+            className={cn(AUTH_BUTTON_CLASSNAME, 'w-full justify-center gap-2')}
           >
             {isPasskeyLoading ? (
               <Loader2 className='h-4 w-4 animate-spin' />
@@ -352,7 +356,7 @@ export function UserAuthForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('grid gap-4', className)}
+        className={cn('grid gap-5', className)}
         {...props}
       >
         {hasAlternativeLogin && alternativeLoginMethods}
@@ -369,6 +373,7 @@ export function UserAuthForm({
                   <FormControl>
                     <Input
                       placeholder={t('Enter your username or email')}
+                      className={AUTH_INPUT_CLASSNAME}
                       {...field}
                     />
                   </FormControl>
@@ -382,21 +387,17 @@ export function UserAuthForm({
               control={form.control}
               name='password'
               render={({ field }) => (
-                <FormItem className='relative'>
+                <FormItem>
                   <FormLabel>{t('Password')}</FormLabel>
                   <FormControl>
                     <PasswordInput
                       placeholder={t('Enter password')}
+                      className={AUTH_PASSWORD_INPUT_CLASSNAME}
+                      inputClassName={AUTH_INPUT_CLASSNAME}
                       {...field}
                     />
                   </FormControl>
                   <FormMessage />
-                  <Link
-                    to='/forgot-password'
-                    className='text-muted-foreground absolute end-0 -top-0.5 z-10 text-sm font-medium hover:opacity-75'
-                  >
-                    {t('Forgot password?')}
-                  </Link>
                 </FormItem>
               )}
             />
@@ -404,7 +405,10 @@ export function UserAuthForm({
             {/* Submit Button */}
             <Button
               type='submit'
-              className='mt-2 w-full justify-center gap-2'
+              className={cn(
+                AUTH_BUTTON_CLASSNAME,
+                'mt-2 w-full justify-center gap-2'
+              )}
               disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             >
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
@@ -454,6 +458,7 @@ export function UserAuthForm({
                 variant='outline'
                 onClick={() => handleWeChatDialogChange(false)}
                 disabled={isWeChatSubmitting}
+                className={AUTH_BUTTON_CLASSNAME}
               >
                 {t('Cancel')}
               </Button>
@@ -465,7 +470,7 @@ export function UserAuthForm({
                   !wechatCode.trim() ||
                   (requiresLegalConsent && !agreedToLegal)
                 }
-                className='gap-2'
+                className={cn(AUTH_BUTTON_CLASSNAME, 'gap-2')}
               >
                 {isWeChatSubmitting ? (
                   <Loader2 className='h-4 w-4 animate-spin' />
@@ -493,6 +498,7 @@ export function UserAuthForm({
             <Input
               id='wechat-code'
               placeholder={t('Enter the verification code')}
+              className={AUTH_INPUT_CLASSNAME}
               value={wechatCode}
               onChange={(event) => setWeChatCode(event.target.value)}
               autoComplete='one-time-code'

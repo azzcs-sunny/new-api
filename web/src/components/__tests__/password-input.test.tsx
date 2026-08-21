@@ -16,16 +16,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, test } from 'vitest'
 
-import { useAuthStore } from '@/stores/auth-store'
+import { PasswordInput } from '../password-input'
 
-export const Route = createFileRoute('/')({
-  beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
-    throw redirect({
-      to: auth.user ? '/dashboard' : '/sign-in',
-      replace: true,
-    })
-  },
+describe('PasswordInput', () => {
+  test('applies an explicit height to the inner password field', () => {
+    render(
+      <PasswordInput
+        aria-label='Password'
+        className='h-12'
+        inputClassName='h-12 px-4'
+      />
+    )
+
+    const input = screen.getByLabelText('Password')
+    expect(input).toHaveClass('h-12', 'px-4')
+    expect(input.parentElement).toHaveClass('h-12')
+  })
 })

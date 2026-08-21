@@ -33,8 +33,6 @@ import {
 import {
   Popover,
   PopoverContent,
-  PopoverHeader,
-  PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -44,7 +42,7 @@ import { getAnnouncementColorClass } from '@/lib/colors'
 import { formatDateTimeObject } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
-interface AnnouncementItem {
+export interface AnnouncementItem {
   id?: number | string
   type?: string
   content?: string
@@ -62,6 +60,16 @@ interface NotificationPopoverProps {
   announcements: AnnouncementItem[]
   loading: boolean
   className?: string
+}
+
+export interface NotificationPanelProps {
+  activeTab: 'notice' | 'announcements'
+  onTabChange: (tab: 'notice' | 'announcements') => void
+  notice: string
+  announcements: AnnouncementItem[]
+  loading: boolean
+  showHeader?: boolean
+  contentClassName?: string
 }
 
 /**
@@ -163,7 +171,7 @@ function EmptyState({
   description?: string
 }) {
   return (
-    <Empty className='min-h-48 border-0 p-4'>
+    <Empty className='h-full min-h-0 border-0 p-4'>
       <EmptyHeader>
         <EmptyMedia variant='icon'>{icon}</EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
@@ -204,7 +212,7 @@ function NoticeContent({
   }
 
   return (
-    <ScrollArea className='h-[min(52vh,28rem)] pr-3'>
+    <ScrollArea className='h-full pr-3'>
       <RichContent breaks content={notice} />
     </ScrollArea>
   )
@@ -239,7 +247,7 @@ function AnnouncementsContent({
   }
 
   return (
-    <ScrollArea className='h-[min(52vh,28rem)] pr-3'>
+    <ScrollArea className='h-full pr-3'>
       <div className='flex flex-col'>
         {announcements.map((item, idx) => {
           const announcementKey = getAnnouncementRenderKey(item)
@@ -288,6 +296,73 @@ function AnnouncementsContent({
 }
 
 /**
+ * Shared notification content used by the header popover and the mandatory
+ * first-entry dialog.
+ */
+export function NotificationPanel({
+  activeTab,
+  onTabChange,
+  notice,
+  announcements,
+  loading,
+  showHeader = true,
+  contentClassName = 'h-[min(52vh,28rem)]',
+}: NotificationPanelProps) {
+  const { t } = useTranslation()
+  return (
+    <>
+      {showHeader ? (
+        <div className='flex flex-col gap-1'>
+          <h2 className='text-base leading-none font-medium'>
+            {t('System Announcements')}
+          </h2>
+          <p className='text-muted-foreground text-xs'>
+            {t('Latest platform updates and notices')}
+          </p>
+        </div>
+      ) : null}
+
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) =>
+          onTabChange(value as 'notice' | 'announcements')
+        }
+        className='gap-3'
+      >
+        <TabsList className='grid w-full grid-cols-2'>
+          <TabsTrigger value='notice' className='gap-1.5'>
+            <Bell className='size-3.5' />
+            {t('Notice')}
+          </TabsTrigger>
+          <TabsTrigger value='announcements' className='gap-1.5'>
+            <Megaphone className='size-3.5' />
+            {t('Timeline')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent
+          value='notice'
+          className={cn('overflow-hidden', contentClassName)}
+        >
+          <NoticeContent notice={notice} loading={loading} t={t} />
+        </TabsContent>
+
+        <TabsContent
+          value='announcements'
+          className={cn('overflow-hidden', contentClassName)}
+        >
+          <AnnouncementsContent
+            announcements={announcements}
+            loading={loading}
+            t={t}
+          />
+        </TabsContent>
+      </Tabs>
+    </>
+  )
+}
+
+/**
  * Notification popover with Notice and Announcements tabs
  */
 export function NotificationPopover({
@@ -330,40 +405,13 @@ export function NotificationPopover({
         sideOffset={8}
         className='w-[min(26rem,calc(100vw-1rem))] gap-3 p-3'
       >
-        <PopoverHeader className='gap-1 px-1'>
-          <PopoverTitle>{t('System Announcements')}</PopoverTitle>
-          <p className='text-muted-foreground text-xs'>
-            {t('Latest platform updates and notices')}
-          </p>
-        </PopoverHeader>
-
-        <Tabs
-          value={activeTab}
-          onValueChange={onTabChange as (value: string) => void}
-        >
-          <TabsList className='grid w-full grid-cols-2'>
-            <TabsTrigger value='notice' className='gap-1.5'>
-              <Bell className='size-3.5' />
-              {t('Notice')}
-            </TabsTrigger>
-            <TabsTrigger value='announcements' className='gap-1.5'>
-              <Megaphone className='size-3.5' />
-              {t('Timeline')}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value='notice' className='mt-2'>
-            <NoticeContent notice={notice} loading={loading} t={t} />
-          </TabsContent>
-
-          <TabsContent value='announcements' className='mt-2'>
-            <AnnouncementsContent
-              announcements={announcements}
-              loading={loading}
-              t={t}
-            />
-          </TabsContent>
-        </Tabs>
+        <NotificationPanel
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          notice={notice}
+          announcements={announcements}
+          loading={loading}
+        />
 
         <div className='flex justify-end'>
           <Button size='sm' onClick={() => onOpenChange(false)}>

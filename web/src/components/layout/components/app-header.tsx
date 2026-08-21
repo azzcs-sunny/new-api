@@ -18,14 +18,16 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { ConfigDrawer } from '@/components/config-drawer'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { NotificationDialog } from '@/components/notification-dialog'
 import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
+import { QqGroupButton } from '@/components/qq-group-button'
 import { Search } from '@/components/search'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 
 import { defaultTopNavLinks } from '../config/top-nav.config'
-import { type TopNavLink } from '../types'
+import type { TopNavLink } from '../types'
 import { Header } from './header'
 import { SystemBrand } from './system-brand'
 import { TopNav } from './top-nav'
@@ -108,7 +110,7 @@ export function AppHeader({
   const links = dynamicLinks.length > 0 ? dynamicLinks : navLinks
 
   // Notifications hook
-  const notifications = useNotifications()
+  const notifications = useNotifications({ autoPrompt: true })
 
   return (
     <>
@@ -139,12 +141,22 @@ export function AppHeader({
                 loading={notifications.loading}
               />
             )}
+            <QqGroupButton />
             <LanguageSwitcher />
             {showConfigDrawer && <ConfigDrawer />}
             {showProfileDropdown && <ProfileDropdown />}
           </div>
         )}
       </Header>
+      <NotificationDialog
+        open={notifications.notificationDialogOpen}
+        onOpenChange={notifications.setNotificationDialogOpen}
+        activeTab={notifications.activeTab}
+        onTabChange={notifications.setActiveTab}
+        notice={notifications.notice}
+        announcements={notifications.announcements}
+        loading={notifications.loading}
+      />
     </>
   )
 }

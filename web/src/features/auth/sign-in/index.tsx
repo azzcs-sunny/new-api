@@ -20,6 +20,7 @@ import { Link, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
+import { cn } from '@/lib/utils'
 
 import { AuthLayout } from '../auth-layout'
 import { TermsFooter } from '../components/terms-footer'
@@ -29,30 +30,48 @@ export function SignIn() {
   const { t } = useTranslation()
   const { redirect } = useSearch({ from: '/(auth)/sign-in' })
   const { status } = useStatus()
+  const registrationEnabled =
+    (status?.register_enabled ?? status?.data?.register_enabled ?? true) !==
+    false
+  const passwordRegistrationEnabled =
+    (status?.password_register_enabled ??
+      status?.data?.password_register_enabled ??
+      true) !== false
+  const canSignUp = registrationEnabled && passwordRegistrationEnabled
 
   return (
     <AuthLayout>
-      <div className='w-full space-y-8'>
+      <div className='w-full space-y-6'>
         <div className='space-y-2'>
           <h2 className='text-center text-2xl font-semibold tracking-tight sm:text-left'>
             {t('Sign in')}
           </h2>
-          {!status?.self_use_mode_enabled &&
-            status?.register_enabled !== false && (
-              <p className='text-muted-foreground text-left text-sm sm:text-base'>
-                {t("Don't have an account?")}{' '}
-                <Link
-                  to='/sign-up'
-                  className='hover:text-primary font-medium underline underline-offset-4'
-                >
-                  {t('Sign up')}
-                </Link>
-                .
-              </p>
-            )}
         </div>
 
         <UserAuthForm redirectTo={redirect} />
+
+        <div
+          className={cn(
+            'grid gap-2',
+            canSignUp ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
+          )}
+        >
+          <Link
+            to='/forgot-password'
+            className='inline-flex h-12 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground'
+          >
+            {t('Forgot password?')}
+          </Link>
+
+          {canSignUp && (
+            <Link
+              to='/sign-up'
+              className='inline-flex h-12 items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/10'
+            >
+              {t('Sign up')}
+            </Link>
+          )}
+        </div>
 
         <TermsFooter
           variant='sign-in'

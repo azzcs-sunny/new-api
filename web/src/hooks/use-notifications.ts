@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useStatus } from '@/hooks/use-status'
 import { getNotice } from '@/lib/api'
@@ -62,8 +62,16 @@ function getAnnouncementKey(item: Record<string, unknown>): string {
  * Hook to manage notifications (Notice + Announcements)
  * Provides unread counts and read status management
  */
-export function useNotifications() {
+type UseNotificationsOptions = {
+  autoPrompt?: boolean
+}
+
+export function useNotifications({
+  autoPrompt = false,
+}: UseNotificationsOptions = {}) {
   const [popoverOpen, setPopoverOpen] = useState(false)
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
+  const autoPromptShown = useRef(false)
   const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
     'notice'
   )
@@ -82,10 +90,16 @@ export function useNotifications() {
   // Fetch Announcements from status
   const { status, loading: statusLoading } = useStatus()
   const announcementsEnabled = status?.announcements_enabled ?? false
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const announcements: Record<string, unknown>[] = announcementsEnabled
-    ? ((status?.announcements || []) as Record<string, unknown>[]).slice(0, 20)
-    : []
+  const announcements = useMemo<Record<string, unknown>[]>(
+    () =>
+      announcementsEnabled
+        ? ((status?.announcements || []) as Record<string, unknown>[]).slice(
+            0,
+            20
+          )
+        : [],
+    [announcementsEnabled, status?.announcements]
+  )
 
   // Notification store
   const {
@@ -127,6 +141,42 @@ export function useNotifications() {
       markAnnouncementsRead(allKeys)
     }
   }
+
+  const markAllAsRead = () => {
+    if (noticeContent) {
+      markNoticeRead(noticeContent)
+    }
+    markAnnouncementsAsRead()
+  }
+
+  const handleNotificationDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      markAllAsRead()
+    }
+    setNotificationDialogOpen(open)
+  }
+
+  useEffect(() => {
+    if (
+      !autoPrompt ||
+      autoPromptShown.current ||
+      noticeLoading ||
+      statusLoading ||
+      unreadCounts.total === 0
+    ) {
+      return
+    }
+
+    autoPromptShown.current = true
+    setActiveTab(unreadCounts.notice > 0 ? 'notice' : 'announcements')
+    setNotificationDialogOpen(true)
+  }, [
+    autoPrompt,
+    noticeLoading,
+    statusLoading,
+    unreadCounts.total,
+    unreadCounts.notice,
+  ])
 
   // Handle popover open
   const handleOpenPopover = (tab?: 'notice' | 'announcements') => {
@@ -182,6 +232,8 @@ export function useNotifications() {
     // Actions
     openPopover: handleOpenPopover,
     closePopover: () => setPopoverOpen(false),
+    notificationDialogOpen,
+    setNotificationDialogOpen: handleNotificationDialogOpenChange,
     refetchNotice,
   }
 }

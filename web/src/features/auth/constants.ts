@@ -64,6 +64,10 @@ export const BACKUP_CODE_LENGTH = 9 // XXXX-XXXX format
 export const BACKUP_CODE_REGEX = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/i
 export const OTP_REGEX = /^\d{6}$/
 
+export const AUTH_INPUT_CLASSNAME = 'h-12 rounded-lg px-4 text-base'
+export const AUTH_BUTTON_CLASSNAME = 'h-12 rounded-lg px-4 text-base'
+export const AUTH_PASSWORD_INPUT_CLASSNAME = 'h-12 rounded-lg'
+
 // ============================================================================
 // Countdown Constants
 // ============================================================================

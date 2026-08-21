@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { AuthLayout } from '../auth-layout'
@@ -36,17 +37,15 @@ export function ForgotPassword() {
               'Enter your registered email and we will send you a link to reset your password.'
             )}
           </p>
-          <p className='text-muted-foreground text-left text-sm sm:text-base'>
-            {t("Don't have an account?")}{' '}
-            <Link
-              to='/sign-up'
-              className='hover:text-primary font-medium underline underline-offset-4'
-            >
-              {t('Sign up')}
-            </Link>
-            .
-          </p>
         </div>
+
+        <Link
+          to='/sign-in'
+          className='inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground'
+        >
+          <ArrowLeft className='h-4 w-4' />
+          {t('Back to login')}
+        </Link>
 
         <ForgotPasswordForm className='space-y-0' />
       </div>

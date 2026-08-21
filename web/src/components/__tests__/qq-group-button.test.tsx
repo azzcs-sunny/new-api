@@ -16,16 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, test } from 'vitest'
 
-import { useAuthStore } from '@/stores/auth-store'
+import { QqGroupButton } from '../qq-group-button'
 
-export const Route = createFileRoute('/')({
-  beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
-    throw redirect({
-      to: auth.user ? '/dashboard' : '/sign-in',
-      replace: true,
-    })
-  },
+describe('QqGroupButton', () => {
+  test('renders the QQ group link as an external link', () => {
+    render(<QqGroupButton />)
+
+    const link = screen.getByRole('button', { name: 'Join QQ Group' })
+    expect(link).toHaveAttribute('href', 'https://qm.qq.com/q/sSUPo1zdDy')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
 })
