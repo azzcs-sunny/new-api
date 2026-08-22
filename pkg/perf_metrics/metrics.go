@@ -42,7 +42,7 @@ func RecordRelaySample(info *relaycommon.RelayInfo, success bool, outputTokens i
 	if generationMs <= 0 {
 		generationMs = latencyMs
 	}
-	Record(Sample{
+	sample := Sample{
 		Model:        info.OriginModelName,
 		Group:        info.UsingGroup,
 		LatencyMs:    latencyMs,
@@ -51,6 +51,16 @@ func RecordRelaySample(info *relaycommon.RelayInfo, success bool, outputTokens i
 		Success:      success,
 		OutputTokens: outputTokens,
 		GenerationMs: generationMs,
+		RecordedAtNs: now.UnixNano(),
+	}
+	Record(sample)
+	if info.IsChannelTest || info.ChannelMeta == nil {
+		return
+	}
+	RecordChannelStatusSample(ChannelSample{
+		ChannelId:   info.ChannelId,
+		ChannelType: info.ChannelType,
+		Sample:      sample,
 	})
 }
 

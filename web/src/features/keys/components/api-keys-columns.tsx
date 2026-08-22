@@ -37,7 +37,8 @@ import { cn } from '@/lib/utils'
 
 import { API_KEY_STATUSES } from '../constants'
 import type { ApiKey } from '../types'
-import { ApiKeyGroupCell } from './api-key-group-cell'
+import type { ApiKeyGroupOption } from './api-key-group-combobox'
+import { ApiKeyGroupTableCell } from './api-key-group-table-cell'
 import { ApiKeyTimestampCell } from './api-key-timestamp-cell'
 import {
   ApiKeyCell,
@@ -53,29 +54,43 @@ function getQuotaProgressColor(percentage: number): string {
   return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
 }
 
-function useGroupRatios(): Record<string, number | string> {
+type ApiKeyGroupData = {
+  options: ApiKeyGroupOption[]
+  ratios: Record<string, number | string>
+}
+
+const EMPTY_GROUP_DATA: ApiKeyGroupData = { options: [], ratios: {} }
+
+function useApiKeyGroupData(): ApiKeyGroupData {
   const { data } = useQuery({
     queryKey: ['user-groups'],
     queryFn: getUserGroups,
     staleTime: 0,
     select: (res) => {
-      if (!res.success || !res.data) return {}
+      if (!res.success || !res.data) return EMPTY_GROUP_DATA
       const ratios: Record<string, number | string> = {}
+      const options: ApiKeyGroupOption[] = []
       for (const [group, info] of Object.entries(res.data)) {
         if (typeof info.ratio === 'number' || typeof info.ratio === 'string') {
           ratios[group] = info.ratio
         }
+        options.push({
+          value: group,
+          label: group,
+          desc: info.desc || group,
+          ratio: info.ratio,
+        })
       }
-      return ratios
+      return { options, ratios }
     },
   })
 
-  return data ?? {}
+  return data ?? EMPTY_GROUP_DATA
 }
 
 export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   const { t, i18n } = useTranslation()
-  const groupRatios = useGroupRatios()
+  const groupData = useApiKeyGroupData()
   const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
@@ -114,6 +129,33 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       meta: { mobileTitle: true },
     },
     {
+      id: 'key',
+      accessorKey: 'key',
+      header: t('API Key'),
+      cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
+      enableSorting: false,
+      size: 260,
+    },
+    {
+      accessorKey: 'group',
+      header: t('Group'),
+      cell: ({ row }) => {
+        const apiKey = row.original
+        const group = row.getValue('group') as string
+        return (
+          <ApiKeyGroupTableCell
+            key={`${apiKey.id}:${group}`}
+            apiKey={apiKey}
+            options={groupData.options}
+            ratios={groupData.ratios}
+            shouldReduceMotion={shouldReduceMotion}
+          />
+        )
+      },
+      size: 220,
+      meta: { mobileHidden: true },
+    },
+    {
       accessorKey: 'status',
       header: t('Status'),
       cell: ({ row }) => {
@@ -131,14 +173,6 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       filterFn: (row, id, value) => value.includes(String(row.getValue(id))),
       size: 120,
       meta: { mobileBadge: true },
-    },
-    {
-      id: 'key',
-      accessorKey: 'key',
-      header: t('API Key'),
-      cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
-      enableSorting: false,
-      size: 260,
     },
     {
       id: 'quota',
@@ -189,24 +223,6 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         )
       },
       size: 170,
-    },
-    {
-      accessorKey: 'group',
-      header: t('Group'),
-      cell: ({ row }) => {
-        const apiKey = row.original
-        const group = row.getValue('group') as string
-        return (
-          <ApiKeyGroupCell
-            group={group}
-            ratio={groupRatios[group]}
-            crossGroupRetry={apiKey.cross_group_retry}
-            shouldReduceMotion={shouldReduceMotion}
-          />
-        )
-      },
-      size: 220,
-      meta: { mobileHidden: true },
     },
     {
       id: 'model_limits',

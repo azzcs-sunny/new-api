@@ -39,7 +39,6 @@ import { cn } from '@/lib/utils'
 
 import {
   formatCurrency,
-  getDiscountLabel,
   getPaymentIcon,
   getMinTopupAmount,
   calculatePresetPricing,
@@ -112,7 +111,7 @@ export function RechargeFormCard({
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
 }: RechargeFormCardProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
 
   useEffect(() => {
@@ -142,6 +141,7 @@ export function RechargeFormCard({
     Array.isArray(waffoPayMethods) && waffoPayMethods.length > 0
   const minTopup = getMinTopupAmount(topupInfo)
   const redemptionEnabled = topupInfo?.enable_redemption !== false
+  const useChineseDiscountLabel = i18n.resolvedLanguage === 'zhCN'
 
   if (loading) {
     return (
@@ -243,6 +243,16 @@ export function RechargeFormCard({
                         discount,
                         usdExchangeRate
                       )
+                      let discountLabel = ''
+                      if (hasDiscount) {
+                        discountLabel = useChineseDiscountLabel
+                          ? t('Pay {{discountRate}}/10 of the original price', {
+                              discountRate: formatNumber(discount * 10),
+                            })
+                          : t('{{discount}}% OFF', {
+                              discount: Math.round((1 - discount) * 100),
+                            })
+                      }
                       return (
                         <Button
                           key={preset.value}
@@ -261,16 +271,21 @@ export function RechargeFormCard({
                             </div>
                             {hasDiscount && (
                               <div className='text-xs font-medium text-green-600'>
-                                {getDiscountLabel(discount)}
+                                {discountLabel}
                               </div>
                             )}
                           </div>
                           <div className='text-muted-foreground mt-1.5 w-full text-xs sm:mt-2'>
-                            Pay {formatCurrency(actualPrice)}
+                            {t('Pay {{amount}}', {
+                              amount: formatCurrency(actualPrice),
+                            })}
                             {hasDiscount && savedAmount > 0 && (
                               <span className='text-green-600'>
                                 {' '}
-                                • Save {formatCurrency(savedAmount)}
+                                •{' '}
+                                {t('Save {{amount}}', {
+                                  amount: formatCurrency(savedAmount),
+                                })}
                               </span>
                             )}
                           </div>

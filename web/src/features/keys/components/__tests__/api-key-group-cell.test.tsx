@@ -16,8 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render } from '@testing-library/react'
-import { describe, expect, test } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, test, vi } from 'vitest'
+
+import type { ApiKeyGroupOption } from '../api-key-group-combobox'
 
 const { createInstance } = await import('i18next')
 const { I18nextProvider, initReactI18next } = await import('react-i18next')
@@ -33,6 +36,8 @@ await i18n.use(initReactI18next).init({
         Auto: 'Auto',
         'Cross-group': 'Cross-group',
         Ratio: 'Ratio',
+        Group: 'Group',
+        'User Group': 'User Group',
         'Automatically selects the best available group with circuit breaker mechanism':
           'Automatically selects the best available group with circuit breaker mechanism',
       },
@@ -44,6 +49,9 @@ function CellHarness(props: {
   group: string
   ratio?: number | string
   crossGroupRetry?: boolean
+  isUpdating?: boolean
+  onGroupChange?: (group: string) => void
+  options?: ApiKeyGroupOption[]
   shouldReduceMotion?: boolean
 }) {
   return (
@@ -53,6 +61,9 @@ function CellHarness(props: {
           group={props.group}
           ratio={props.ratio}
           crossGroupRetry={props.crossGroupRetry ?? false}
+          isUpdating={props.isUpdating}
+          onGroupChange={props.onGroupChange}
+          options={props.options}
           shouldReduceMotion={props.shouldReduceMotion ?? false}
         />
       </TooltipProvider>
@@ -149,5 +160,90 @@ describe('API key group table cell', () => {
 
     expect(container).toHaveTextContent('3x')
     expect(container.querySelector('[data-auto-group-frame]')).toBe(null)
+  })
+
+  test('opens a compact group selector and reports the selected group', async () => {
+    const user = userEvent.setup()
+    const onGroupChange = vi.fn()
+    const options: ApiKeyGroupOption[] = [
+      { value: 'default', label: 'default', ratio: 1 },
+      { value: 'vip', label: 'vip', desc: 'Priority group', ratio: 3 },
+    ]
+
+    render(
+      <CellHarness
+        group='default'
+        ratio={1}
+        options={options}
+        onGroupChange={onGroupChange}
+      />
+    )
+
+    const trigger = screen.getByRole('combobox', { name: 'Group' })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).toHaveClass('border-input', 'bg-muted/40', 'min-w-40')
+
+    await user.click(trigger)
+    const vipOption = await screen.findByRole('option', { name: /vip/i })
+    const popup = document.querySelector<HTMLElement>(
+      '[data-slot="select-content"]'
+    )
+    expect(popup).toHaveClass(
+      'max-h-[min(20rem,var(--available-height))]',
+      'w-[360px]',
+      'max-w-[calc(100vw-2rem)]',
+      'overflow-y-auto',
+      'overscroll-contain',
+      'p-1.5'
+    )
+    expect(vipOption).toHaveClass('whitespace-normal', 'py-2.5')
+    expect(screen.getByText('Priority group')).toHaveClass(
+      'w-full',
+      'break-words',
+      'whitespace-normal'
+    )
+    expect(screen.getByText('Priority group')).not.toHaveClass('truncate')
+    await user.click(vipOption)
+
+    expect(onGroupChange).toHaveBeenCalledOnce()
+    expect(onGroupChange).toHaveBeenCalledWith('vip')
+  })
+
+  test('disables the group selector while an update is pending', () => {
+    render(
+      <CellHarness
+        group='default'
+        isUpdating
+        options={[{ value: 'default', label: 'default', ratio: 1 }]}
+        onGroupChange={vi.fn()}
+      />
+    )
+
+    const trigger = screen.getByRole('combobox', { name: 'Group' })
+    expect(trigger).toBeDisabled()
+    expect(trigger).toHaveAttribute('aria-busy', 'true')
+  })
+
+  test('allows switching back to the empty user group value', async () => {
+    const user = userEvent.setup()
+    const onGroupChange = vi.fn()
+
+    render(
+      <CellHarness
+        group='vip'
+        options={[
+          { value: '', label: '', ratio: 1 },
+          { value: 'vip', label: 'vip', ratio: 3 },
+        ]}
+        onGroupChange={onGroupChange}
+      />
+    )
+
+    await user.click(screen.getByRole('combobox', { name: 'Group' }))
+    await user.click(
+      await screen.findByRole('option', { name: /User Group/i })
+    )
+
+    expect(onGroupChange).toHaveBeenCalledWith('')
   })
 })

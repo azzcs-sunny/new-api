@@ -85,6 +85,36 @@ export async function updateApiKey(
   return res.data
 }
 
+// Update only the selected group while preserving the token's latest settings.
+export async function updateApiKeyGroup(
+  id: number,
+  group: string
+): Promise<ApiResponse<ApiKey>> {
+  const current = await getApiKey(id)
+  if (!current.success || !current.data) return current
+
+  const apiKey = current.data
+  const remainsAuto = group === 'auto' && apiKey.group === 'auto'
+  let crossGroupRetry = false
+  if (group === 'auto') {
+    crossGroupRetry = remainsAuto ? apiKey.cross_group_retry : true
+  }
+
+  return updateApiKey({
+    id,
+    name: apiKey.name,
+    remain_quota: apiKey.remain_quota,
+    expired_time: apiKey.expired_time,
+    unlimited_quota: apiKey.unlimited_quota,
+    model_limits_enabled: apiKey.model_limits_enabled,
+    model_limits: apiKey.model_limits ?? '',
+    allow_ips: apiKey.allow_ips ?? '',
+    group,
+    auto_groups: remainsAuto ? (apiKey.auto_groups ?? []) : [],
+    cross_group_retry: crossGroupRetry,
+  })
+}
+
 // Delete a single API key
 export async function deleteApiKey(id: number): Promise<ApiResponse> {
   const res = await api.delete(`/api/token/${id}/`)
