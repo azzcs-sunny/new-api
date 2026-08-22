@@ -775,6 +775,7 @@
     "Channel Management": "Channel Management",
     "Channel models": "Channel models",
     "Channel name is required": "Channel name is required",
+    "Channel Status": "Channel Status",
     "Channel test completed": "Channel test completed",
     "Channel test concurrency": "Channel test concurrency",
     "Channel test concurrency must be between 1 and 32": "Channel test concurrency must be between 1 and 32",

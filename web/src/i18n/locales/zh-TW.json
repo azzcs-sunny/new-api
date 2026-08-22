@@ -775,6 +775,7 @@
     "Channel Management": "渠道管理",
     "Channel models": "渠道模型",
     "Channel name is required": "渠道名稱是必填的",
+    "Channel Status": "渠道狀態",
     "Channel test completed": "渠道測試完成",
     "Channel test concurrency": "渠道測試並行數",
     "Channel test concurrency must be between 1 and 32": "渠道測試並行數必須介於 1 到 32 之間",

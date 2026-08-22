@@ -775,6 +775,7 @@
     "Channel Management": "Quản lý kênh",
     "Channel models": "Mô hình kênh",
     "Channel name is required": "Tên kênh là bắt buộc",
+    "Channel Status": "Trạng thái kênh",
     "Channel test completed": "Kiểm tra kênh hoàn tất",
     "Channel test concurrency": "Mức đồng thời khi kiểm tra kênh",
     "Channel test concurrency must be between 1 and 32": "Mức đồng thời khi kiểm tra kênh phải từ 1 đến 32",

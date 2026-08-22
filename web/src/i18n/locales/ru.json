@@ -775,6 +775,7 @@
     "Channel Management": "Управление каналами",
     "Channel models": "Модели каналов",
     "Channel name is required": "Имя канала обязательно",
+    "Channel Status": "Состояние каналов",
     "Channel test completed": "Тест канала завершён",
     "Channel test concurrency": "Параллельность проверки каналов",
     "Channel test concurrency must be between 1 and 32": "Параллельность проверки каналов должна быть от 1 до 32",

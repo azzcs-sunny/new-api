@@ -775,6 +775,7 @@
     "Channel Management": "チャネル管理",
     "Channel models": "チャネルモデル",
     "Channel name is required": "チャネル名が必要です",
+    "Channel Status": "チャネル状態",
     "Channel test completed": "チャネルテストが完了しました",
     "Channel test concurrency": "チャンネルテストの同時実行数",
     "Channel test concurrency must be between 1 and 32": "チャンネルテストの同時実行数は1～32にしてください",

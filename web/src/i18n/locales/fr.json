@@ -775,6 +775,7 @@
     "Channel Management": "Gestion des canaux",
     "Channel models": "Modèles de canaux",
     "Channel name is required": "Le nom du canal est requis",
+    "Channel Status": "Statut des canaux",
     "Channel test completed": "Test du canal terminé",
     "Channel test concurrency": "Parallélisme des tests de canaux",
     "Channel test concurrency must be between 1 and 32": "Le parallélisme des tests de canaux doit être compris entre 1 et 32",
