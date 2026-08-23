@@ -51,17 +51,8 @@ func RecordRelaySample(info *relaycommon.RelayInfo, success bool, outputTokens i
 		Success:      success,
 		OutputTokens: outputTokens,
 		GenerationMs: generationMs,
-		RecordedAtNs: now.UnixNano(),
 	}
 	Record(sample)
-	if info.IsChannelTest || info.ChannelMeta == nil {
-		return
-	}
-	RecordChannelStatusSample(ChannelSample{
-		ChannelId:   info.ChannelId,
-		ChannelType: info.ChannelType,
-		Sample:      sample,
-	})
 }
 
 func Record(sample Sample) {

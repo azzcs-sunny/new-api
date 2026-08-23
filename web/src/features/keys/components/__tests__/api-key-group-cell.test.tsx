@@ -181,7 +181,7 @@ describe('API key group table cell', () => {
 
     const trigger = screen.getByRole('combobox', { name: 'Group' })
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    expect(trigger).toHaveClass('border-input', 'bg-muted/40', 'min-w-40')
+    expect(trigger).toHaveClass('border-input', 'bg-muted/40')
 
     await user.click(trigger)
     const vipOption = await screen.findByRole('option', { name: /vip/i })
@@ -207,6 +207,26 @@ describe('API key group table cell', () => {
 
     expect(onGroupChange).toHaveBeenCalledOnce()
     expect(onGroupChange).toHaveBeenCalledWith('vip')
+  })
+
+  test('uses the available group column width for the selected group label', () => {
+    render(
+      <CellHarness
+        group='GPT-PLUS'
+        ratio={0.14}
+        options={[
+          { value: 'default', label: 'default', ratio: 1 },
+          { value: 'GPT-PLUS', label: 'GPT-PLUS', ratio: 0.14 },
+        ]}
+        onGroupChange={vi.fn()}
+      />
+    )
+
+    const trigger = screen.getByRole('combobox', { name: 'Group' })
+    expect(trigger).toHaveClass('w-full', 'min-w-0')
+    expect(trigger).not.toHaveClass('w-fit', 'min-w-40')
+    expect(screen.getByText('GPT-PLUS')).toBeVisible()
+    expect(screen.getByText('0.14x')).toBeVisible()
   })
 
   test('disables the group selector while an update is pending', () => {

@@ -293,6 +293,21 @@ func (channel *Channel) GetModels() []string {
 	return strings.Split(strings.Trim(channel.Models, ","), ",")
 }
 
+func (channel *Channel) GetTestModel() string {
+	if channel.TestModel != nil {
+		if testModel := strings.TrimSpace(*channel.TestModel); testModel != "" {
+			return testModel
+		}
+	}
+	models := channel.GetModels()
+	if len(models) > 0 {
+		if modelName := strings.TrimSpace(models[0]); modelName != "" {
+			return modelName
+		}
+	}
+	return "gpt-4o-mini"
+}
+
 func (channel *Channel) GetGroups() []string {
 	if channel.Group == "" {
 		return []string{}

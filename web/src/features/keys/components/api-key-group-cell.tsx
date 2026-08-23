@@ -138,7 +138,7 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
         aria-label={t('Group')}
         aria-busy={props.isUpdating}
         disabled={props.isUpdating}
-        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 max-w-full min-w-40 px-2.5 shadow-xs data-popup-open:ring-[3px]'
+        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 w-full min-w-0 px-2.5 shadow-xs data-popup-open:ring-[3px]'
       >
         <SelectValue className='min-w-0'>
           <ApiKeyGroupDisplay {...props} />

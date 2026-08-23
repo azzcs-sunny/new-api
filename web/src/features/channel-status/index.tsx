@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { Refresh01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -31,7 +30,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Tooltip,
   TooltipContent,
@@ -45,69 +43,19 @@ const refreshIntervalMs = 60 * 1000
 
 export function ChannelStatus() {
   const { t } = useTranslation()
-  const [hours, setHours] = useState(24 * 7)
-  const [refreshInSeconds, setRefreshInSeconds] = useState(60)
   const statusQuery = useQuery({
-    queryKey: ['channel-status', hours],
-    queryFn: () => getChannelStatus(hours),
-    staleTime: 60 * 1000,
+    queryKey: ['channel-status'],
+    queryFn: getChannelStatus,
+    refetchInterval: refreshIntervalMs,
+    staleTime: refreshIntervalMs,
   })
-  const isFetchingRef = useRef(statusQuery.isFetching)
-  isFetchingRef.current = statusQuery.isFetching
-  const result = statusQuery.data?.data
-  const items = result?.items ?? []
-  const loading = statusQuery.isLoading
-  const hasData = loading || items.length > 0
-  const dataUpdatedAt = statusQuery.dataUpdatedAt
-  const refetch = statusQuery.refetch
-
-  useEffect(() => {
-    if (dataUpdatedAt === 0) return
-
-    let active = true
-    let refreshPending = false
-    let nextRefreshAt = Date.now() + refreshIntervalMs
-    setRefreshInSeconds(refreshIntervalMs / 1000)
-
-    const intervalId = window.setInterval(() => {
-      const remainingSeconds = Math.max(
-        0,
-        Math.ceil((nextRefreshAt - Date.now()) / 1000)
-      )
-      setRefreshInSeconds(remainingSeconds)
-      if (remainingSeconds > 0 || refreshPending || isFetchingRef.current) {
-        return
-      }
-
-      refreshPending = true
-      void refetch().finally(() => {
-        if (!active) return
-        refreshPending = false
-        nextRefreshAt = Date.now() + refreshIntervalMs
-        setRefreshInSeconds(refreshIntervalMs / 1000)
-      })
-    }, 1000)
-
-    return () => {
-      active = false
-      window.clearInterval(intervalId)
-    }
-  }, [dataUpdatedAt, hours, refetch])
+  const items = statusQuery.data?.data.items ?? []
+  const hasData = statusQuery.isLoading || items.length > 0
 
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Channel Status')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
-        <Tabs
-          value={String(hours)}
-          onValueChange={(value) => setHours(Number(value))}
-        >
-          <TabsList>
-            <TabsTrigger value='168'>{t('7 days')}</TabsTrigger>
-            <TabsTrigger value='360'>{t('15 days')}</TabsTrigger>
-            <TabsTrigger value='720'>{t('30 days')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
         <Tooltip>
           <TooltipTrigger
             render={
@@ -126,34 +74,27 @@ export function ChannelStatus() {
         </Tooltip>
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
-        <div className='flex flex-col gap-3'>
-          {hasData ? (
-            <StatusCards
-              rows={items}
-              loading={loading}
-              hours={hours}
-              refreshInSeconds={refreshInSeconds}
-            />
-          ) : (
-            <Empty className='min-h-72 border'>
-              <EmptyHeader>
-                <EmptyMedia variant='icon'>
-                  <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {statusQuery.isError
-                    ? t('Failed to load')
-                    : t('Channel Status')}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {statusQuery.isError
-                    ? t('Please try again later.')
-                    : t('No channel status data is available for this period.')}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </div>
+        {hasData ? (
+          <StatusCards rows={items} loading={statusQuery.isLoading} />
+        ) : (
+          <Empty className='min-h-72 border'>
+            <EmptyHeader>
+              <EmptyMedia variant='icon'>
+                <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
+              </EmptyMedia>
+              <EmptyTitle>
+                {statusQuery.isError
+                  ? t('Failed to load')
+                  : t('Channel Status')}
+              </EmptyTitle>
+              <EmptyDescription>
+                {statusQuery.isError
+                  ? t('Please try again later.')
+                  : t('No channel test data is available yet.')}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </SectionPageLayout.Content>
     </SectionPageLayout>
   )

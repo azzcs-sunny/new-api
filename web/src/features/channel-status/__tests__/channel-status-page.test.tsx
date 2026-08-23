@@ -31,112 +31,80 @@ vi.mock('../api', () => ({
 
 const emptyResponse = {
   success: true,
-  data: {
-    hours: 168,
-    bucket_seconds: 21600,
-    from_ts: 0,
-    through_ts: 0,
-    truncated: false,
-    summary: {
-      avg_ttft_ms: 0,
-      avg_latency_ms: 0,
-      latest_latency_ms: 0,
-      success_rate: 0,
-      avg_tps: 0,
-      health: 'unknown' as const,
-      has_data: false,
-    },
-    series: [],
-    items: [],
-  },
+  data: { items: [] },
 }
 
 const populatedResponse = {
   success: true,
   data: {
-    ...emptyResponse.data,
-    through_ts: 1787371200,
-    summary: {
-      avg_ttft_ms: 1764,
-      avg_latency_ms: 2931,
-      latest_latency_ms: 898,
-      success_rate: 100,
-      avg_tps: 40.27,
-      health: 'healthy' as const,
-      has_data: true,
-    },
-    series: [
-      {
-        ts: 1787371200,
-        request_count: 80,
-        success_count: 80,
-        avg_ttft_ms: 1764,
-        avg_latency_ms: 2931,
-        success_rate: 100,
-        avg_tps: 40.27,
-        has_data: true,
-      },
-    ],
     items: [
       {
-        channel_type: 1,
-        provider: 'OpenAI',
         group: 'default',
         model_name: 'gpt-5.6-sol',
-        ping_ms: 6,
-        metrics: {
-          avg_ttft_ms: 1764,
-          avg_latency_ms: 2931,
-          latest_latency_ms: 898,
-          success_rate: 100,
-          avg_tps: 40.27,
-          health: 'healthy' as const,
-          has_data: true,
-        },
-        series: [
+        health: 'healthy' as const,
+        latency_ms: 898,
+        records: [
           {
-            ts: 1787371200,
-            request_count: 80,
-            success_count: 80,
-            avg_ttft_ms: 1764,
-            avg_latency_ms: 2931,
-            success_rate: 100,
-            avg_tps: 40.27,
-            has_data: true,
+            id: 1,
+            model_name: 'gpt-5.6-sol',
+            success: true,
+            latency_ms: 700,
+            tested_at: 1,
+          },
+          {
+            id: 2,
+            model_name: 'gpt-5.6-sol',
+            success: true,
+            latency_ms: 898,
+            tested_at: 2,
           },
         ],
       },
       {
-        channel_type: 14,
-        provider: 'Anthropic',
         group: 'vip',
         model_name: 'claude-sonnet',
-        ping_ms: 17,
-        metrics: {
-          avg_ttft_ms: 900,
-          avg_latency_ms: 2100,
-          latest_latency_ms: 1250,
-          success_rate: 97,
-          avg_tps: 35,
-          health: 'warning' as const,
-          has_data: true,
-        },
-        series: [
+        health: 'warning' as const,
+        latency_ms: 9000,
+        records: [
           {
-            ts: 1787371200,
-            request_count: 3,
-            success_count: 2,
-            avg_ttft_ms: 900,
-            avg_latency_ms: 2100,
-            success_rate: 97,
-            avg_tps: 35,
-            has_data: true,
+            id: 3,
+            model_name: 'claude-sonnet',
+            success: false,
+            latency_ms: 9000,
+            tested_at: 1,
+          },
+          {
+            id: 4,
+            model_name: 'claude-sonnet',
+            success: true,
+            latency_ms: 9000,
+            tested_at: 2,
+          },
+          {
+            id: 5,
+            model_name: 'claude-sonnet',
+            success: true,
+            latency_ms: 9000,
+            tested_at: 3,
           },
         ],
       },
     ],
   },
 }
+
+const responseWithoutTestRecords = {
+  success: true,
+  data: {
+    items: [
+      {
+        group: 'legacy',
+        model_name: 'legacy-model',
+        latency_ms: 0,
+      },
+    ],
+  },
+} as unknown as Awaited<ReturnType<typeof getChannelStatus>>
 
 let queryClient: QueryClient | undefined
 
@@ -159,43 +127,17 @@ afterEach(async () => {
 })
 
 describe('channel status page', () => {
-  test('shows the empty state when the selected period has no samples', async () => {
+  test('shows an empty state when no channel tests exist', async () => {
     vi.mocked(getChannelStatus).mockResolvedValue(emptyResponse)
 
     renderPage()
 
     expect(
-      await screen.findByText(
-        'No channel status data is available for this period.'
-      )
+      await screen.findByText('No channel test data is available yet.')
     ).toBeInTheDocument()
   })
 
-  test('requests a new time window when the range tab changes', async () => {
-    vi.mocked(getChannelStatus).mockResolvedValue(emptyResponse)
-    const user = userEvent.setup()
-    renderPage()
-    await waitFor(() => expect(getChannelStatus).toHaveBeenCalledWith(168))
-
-    await user.click(screen.getByRole('tab', { name: '15 days' }))
-
-    await waitFor(() => expect(getChannelStatus).toHaveBeenCalledWith(360))
-  })
-
-  test('exposes an accessible refresh command and refetches on click', async () => {
-    vi.mocked(getChannelStatus).mockResolvedValue(emptyResponse)
-    const user = userEvent.setup()
-    renderPage()
-    await waitFor(() => expect(getChannelStatus).toHaveBeenCalledTimes(1))
-
-    await user.click(
-      screen.getByRole('button', { name: 'Refresh channel status' })
-    )
-
-    await waitFor(() => expect(getChannelStatus).toHaveBeenCalledTimes(2))
-  })
-
-  test('refetches when the visible countdown reaches zero', async () => {
+  test('refreshes the test status data every minute', async () => {
     vi.useFakeTimers()
     vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
 
@@ -212,7 +154,20 @@ describe('channel status page', () => {
     expect(getChannelStatus).toHaveBeenCalledTimes(2)
   })
 
-  test('distinguishes a failed request from a valid empty period', async () => {
+  test('exposes an accessible refresh command and refetches on click', async () => {
+    vi.mocked(getChannelStatus).mockResolvedValue(emptyResponse)
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(getChannelStatus).toHaveBeenCalledTimes(1))
+
+    await user.click(
+      screen.getByRole('button', { name: 'Refresh channel status' })
+    )
+
+    await waitFor(() => expect(getChannelStatus).toHaveBeenCalledTimes(2))
+  })
+
+  test('distinguishes a failed request from an empty test history', async () => {
     vi.mocked(getChannelStatus).mockRejectedValue(new Error('offline'))
 
     renderPage()
@@ -220,47 +175,53 @@ describe('channel status page', () => {
     expect(await screen.findByText('Failed to load')).toBeInTheDocument()
     expect(screen.getByText('Please try again later.')).toBeInTheDocument()
     expect(
-      screen.queryByText('No channel status data is available for this period.')
+      screen.queryByText('No channel test data is available yet.')
     ).toBeNull()
   })
 
-  test('renders the complete page after the first passive sample arrives', async () => {
+  test('handles cached rows from before test records were added', async () => {
+    vi.mocked(getChannelStatus).mockResolvedValue(responseWithoutTestRecords)
+
+    renderPage()
+
+    expect(await screen.findByText('legacy-model')).toBeInTheDocument()
+    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getAllByTestId('test-record')).toHaveLength(60)
+  })
+
+  test('renders only group, model, status, latency, and test history', async () => {
     vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
 
     renderPage()
 
     expect(await screen.findByText('gpt-5.6-sol')).toBeInTheDocument()
-    expect(screen.getByText('OpenAI')).toBeInTheDocument()
-    expect(screen.getByText('Operational')).toBeInTheDocument()
+    expect(screen.getByText('Healthy')).toBeInTheDocument()
     expect(screen.getByText('vip')).toBeInTheDocument()
-    expect(screen.getAllByText('Conversation latency')).toHaveLength(2)
-    expect(screen.getAllByText('Node PING')).toHaveLength(2)
+    expect(screen.getAllByText('Model')).toHaveLength(2)
+    expect(screen.getAllByText('Latency')).toHaveLength(2)
     expect(screen.getByText('898 ms')).toBeInTheDocument()
-    expect(screen.queryByText('2931 ms')).toBeNull()
-    expect(screen.getByText('6 ms')).toBeInTheDocument()
-    expect(screen.queryByText('First token')).toBeNull()
-    expect(screen.queryByText('Throughput')).toBeNull()
+    expect(screen.getByText('9000 ms')).toBeInTheDocument()
+    expect(screen.queryByText('OpenAI')).toBeNull()
+    expect(screen.queryByText('Conversation latency')).toBeNull()
+    expect(screen.queryByText('Availability')).toBeNull()
 
     const cards = screen.getAllByTestId('channel-status-card')
     expect(cards).toHaveLength(2)
-    expect(within(cards[0]).getByText('Operational')).toHaveClass(
-      'text-success'
-    )
-    expect(within(cards[1]).getByText('Degraded')).toHaveClass('text-warning')
-    expect(within(cards[0]).getAllByTestId('usage-record')).toHaveLength(60)
+    expect(within(cards[0]).getAllByTestId('test-record')).toHaveLength(60)
     expect(
       within(cards[0])
-        .getAllByTestId('usage-record')
-        .every((record) => record.dataset.status === 'success')
-    ).toBe(true)
+        .getAllByTestId('test-record')
+        .filter((record) => record.dataset.status === 'success')
+    ).toHaveLength(2)
     expect(
       within(cards[1])
-        .getAllByTestId('usage-record')
+        .getAllByTestId('test-record')
         .filter((record) => record.dataset.status === 'failure')
     ).toHaveLength(1)
   })
 
-  test('renders timestamps when the interface uses the internal zhCN code', async () => {
+  test('renders cards when the interface uses the internal zhCN code', async () => {
     await i18next.changeLanguage('zhCN')
     vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
 

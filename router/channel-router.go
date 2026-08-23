@@ -33,6 +33,14 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 			middleware.RequirePermission(route.permission),
 			route.handler,
 		)
+		// Keep the root channel endpoints compatible with clients that omit the
+		// trailing slash. Some reverse proxies do not preserve Gin's redirect.
+		if route.path == "/" {
+			channelRoute.Handle(route.method, "",
+				middleware.RequirePermission(route.permission),
+				route.handler,
+			)
+		}
 	}
 }
 

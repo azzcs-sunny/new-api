@@ -18,45 +18,23 @@ For commercial licensing, please contact support@quantumnous.com
 */
 export type ChannelHealth = 'unknown' | 'healthy' | 'warning' | 'critical'
 
-export type ChannelStatusPoint = {
-  ts: number
-  request_count: number
-  success_count: number
-  avg_ttft_ms: number
-  avg_latency_ms: number
-  success_rate: number
-  avg_tps: number
-  has_data: boolean
-}
-
-export type ChannelStatusSummary = {
-  avg_ttft_ms: number
-  avg_latency_ms: number
-  latest_latency_ms: number
-  success_rate: number
-  avg_tps: number
-  health: ChannelHealth
-  has_data: boolean
+export type ChannelTestRecord = {
+  id: number
+  model_name: string
+  success: boolean
+  latency_ms: number
+  tested_at: number
 }
 
 export type ChannelStatusRow = {
-  channel_type: number
-  provider: string
   group: string
   model_name: string
-  ping_ms: number
-  metrics: ChannelStatusSummary
-  series: ChannelStatusPoint[]
+  health: ChannelHealth
+  latency_ms: number
+  records: ChannelTestRecord[]
 }
 
 export type ChannelStatusResult = {
-  hours: number
-  bucket_seconds: number
-  from_ts: number
-  through_ts: number
-  truncated: boolean
-  summary: ChannelStatusSummary
-  series: ChannelStatusPoint[]
   items: ChannelStatusRow[]
 }
 

@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
@@ -35,6 +36,30 @@ func TestChannelStatusRoutesRegisterWithoutConflict(t *testing.T) {
 	require.NotPanics(t, func() {
 		registerChannelRoutes(api)
 	})
+}
+
+func TestChannelRootRoutesSupportMissingTrailingSlash(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	api := engine.Group("/api")
+	registerChannelRoutes(api)
+
+	routes := engine.Routes()
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut} {
+		found := false
+		for _, route := range routes {
+			if route.Method == method && route.Path == "/api/channel" {
+				found = true
+				break
+			}
+		}
+		require.Truef(t, found, "missing no-slash root route for %s", method)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/channel?status=disabled&tag_mode=false&id_sort=false&p=1&page_size=20", nil)
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, request)
+	require.Equal(t, http.StatusUnauthorized, response.Code)
 }
 
 func assertChannelRoutePermission(t *testing.T, method string, path string, permission authz.Permission, handler any) {

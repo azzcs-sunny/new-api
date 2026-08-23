@@ -16,11 +16,37 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { api } from '@/lib/api'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import type { ChannelStatusResponse } from './types'
+const { getMock } = vi.hoisted(() => ({
+  getMock: vi.fn(),
+}))
 
-export async function getChannelStatus() {
-  const response = await api.get<ChannelStatusResponse>('/api/channel-status')
-  return response.data
-}
+vi.mock('@/lib/api', () => ({
+  api: {
+    get: getMock,
+  },
+}))
+
+const { getChannels } = await import('../api')
+
+describe('getChannels', () => {
+  beforeEach(() => {
+    getMock.mockReset()
+    getMock.mockResolvedValue({ data: { success: true, data: { items: [] } } })
+  })
+
+  test('uses the canonical root endpoint when filtering disabled channels', async () => {
+    const params = {
+      status: 'disabled',
+      tag_mode: false,
+      id_sort: false,
+      p: 1,
+      page_size: 20,
+    }
+
+    await getChannels(params)
+
+    expect(getMock).toHaveBeenCalledWith('/api/channel/', { params })
+  })
+})

@@ -19,52 +19,8 @@ func flushLoop() {
 			continue
 		}
 		flushCompletedBuckets()
-		flushCompletedChannelStatusBuckets()
 		cleanupExpiredMetrics(setting.RetentionDays)
 	}
-}
-
-func flushCompletedChannelStatusBuckets() {
-	currentBucket := bucketStart(time.Now().Unix())
-	channelHotBuckets.Range(func(key, value any) bool {
-		k := key.(channelBucketKey)
-		if k.bucketTs >= currentBucket {
-			return true
-		}
-		bucket := value.(*atomicBucket)
-		drained := bucket.drain()
-		if drained.requestCount == 0 {
-			if k.bucketTs < bucketStart(time.Now().Add(-24*time.Hour).Unix()) {
-				channelHotBuckets.Delete(key)
-			}
-			return true
-		}
-		err := model.UpsertChannelStatusMetric(&model.ChannelStatusMetric{
-			ChannelId:       k.channelId,
-			ChannelType:     k.channelType,
-			ModelName:       k.model,
-			Group:           k.group,
-			BucketTs:        k.bucketTs,
-			RequestCount:    drained.requestCount,
-			SuccessCount:    drained.successCount,
-			TotalLatencyMs:  drained.totalLatencyMs,
-			TtftSumMs:       drained.ttftSumMs,
-			TtftCount:       drained.ttftCount,
-			OutputTokens:    drained.outputTokens,
-			GenerationMs:    drained.generationMs,
-			LatestLatencyMs: drained.latestLatencyMs,
-			LatestLatencyTs: drained.latestLatencyTs,
-		})
-		if err != nil {
-			bucket.addCounters(drained)
-			common.SysError(fmt.Sprintf("failed to flush channel status metric channel=%d model=%s group=%s bucket=%d: %s", k.channelId, k.model, k.group, k.bucketTs, err.Error()))
-			return true
-		}
-		if k.bucketTs < bucketStart(time.Now().Add(-24*time.Hour).Unix()) {
-			channelHotBuckets.Delete(key)
-		}
-		return true
-	})
 }
 
 func flushCompletedBuckets() {
@@ -118,9 +74,6 @@ func cleanupExpiredMetrics(retentionDays int) {
 	cutoff := time.Now().Add(-time.Duration(retentionDays) * 24 * time.Hour).Unix()
 	if err := model.DeletePerfMetricsBefore(cutoff); err != nil {
 		common.SysError("failed to cleanup expired perf metrics: " + err.Error())
-	}
-	if err := model.DeleteChannelStatusMetricsBefore(cutoff); err != nil {
-		common.SysError("failed to cleanup expired channel status metrics: " + err.Error())
 	}
 }
 
