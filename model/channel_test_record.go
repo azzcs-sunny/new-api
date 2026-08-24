@@ -3,12 +3,15 @@ package model
 import (
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"gorm.io/gorm"
 )
 
 const ChannelTestHistoryLimit = 60
+
+const ChannelTestRetentionDays = 30
 
 const (
 	ChannelTestTriggerScheduled = "scheduled"
@@ -87,6 +90,17 @@ type ChannelTestRecord struct {
 	TestedAt    int64  `json:"tested_at" gorm:"index:idx_channel_test_record_channel_trigger_time,priority:3"`
 }
 
+type ChannelTestAvailabilityStats struct {
+	ChannelId     int   `gorm:"column:channel_id"`
+	Total7d       int64 `gorm:"column:total_7d"`
+	Successful7d  int64 `gorm:"column:successful_7d"`
+	LatencySum7d  int64 `gorm:"column:latency_sum_7d"`
+	Total15d      int64 `gorm:"column:total_15d"`
+	Successful15d int64 `gorm:"column:successful_15d"`
+	Total30d      int64 `gorm:"column:total_30d"`
+	Successful30d int64 `gorm:"column:successful_30d"`
+}
+
 func (ChannelTestRecord) TableName() string {
 	return "channel_test_records"
 }
@@ -107,18 +121,8 @@ func CreateChannelTestRecord(record *ChannelTestRecord) error {
 		if err := tx.Create(record).Error; err != nil {
 			return err
 		}
-		var keepIds []int
-		if err := tx.Model(&ChannelTestRecord{}).
-			Where("channel_id = ? AND trigger_type = ?", record.ChannelId, record.TriggerType).
-			Order("tested_at DESC, id DESC").
-			Limit(ChannelTestHistoryLimit).
-			Pluck("id", &keepIds).Error; err != nil {
-			return err
-		}
-		if len(keepIds) < ChannelTestHistoryLimit {
-			return nil
-		}
-		return tx.Where("channel_id = ? AND trigger_type = ? AND id NOT IN ?", record.ChannelId, record.TriggerType, keepIds).
+		cutoff := time.Now().Add(-ChannelTestRetentionDays * 24 * time.Hour).UnixMilli()
+		return tx.Where("channel_id = ? AND trigger_type = ? AND tested_at < ?", record.ChannelId, record.TriggerType, cutoff).
 			Delete(&ChannelTestRecord{}).Error
 	})
 }
@@ -143,6 +147,37 @@ func GetChannelTestRecordsByTrigger(triggerType string) ([]ChannelTestRecord, er
 		Order("channel_id ASC, tested_at DESC, id DESC").
 		Find(&records).Error
 	return records, err
+}
+
+func GetChannelTestAvailabilityStats(triggerType string, now time.Time) (map[int]ChannelTestAvailabilityStats, error) {
+	triggerType = normalizeChannelTestTrigger(triggerType)
+	cutoff7d := now.Add(-7 * 24 * time.Hour).UnixMilli()
+	cutoff15d := now.Add(-15 * 24 * time.Hour).UnixMilli()
+	cutoff30d := now.Add(-ChannelTestRetentionDays * 24 * time.Hour).UnixMilli()
+
+	var rows []ChannelTestAvailabilityStats
+	err := DB.Model(&ChannelTestRecord{}).
+		Select(`channel_id,
+			SUM(CASE WHEN tested_at >= ? THEN 1 ELSE 0 END) AS total_7d,
+			SUM(CASE WHEN tested_at >= ? AND success = ? THEN 1 ELSE 0 END) AS successful_7d,
+			SUM(CASE WHEN tested_at >= ? THEN latency_ms ELSE 0 END) AS latency_sum_7d,
+			SUM(CASE WHEN tested_at >= ? THEN 1 ELSE 0 END) AS total_15d,
+			SUM(CASE WHEN tested_at >= ? AND success = ? THEN 1 ELSE 0 END) AS successful_15d,
+			COUNT(*) AS total_30d,
+			SUM(CASE WHEN success = ? THEN 1 ELSE 0 END) AS successful_30d`,
+			cutoff7d, cutoff7d, true, cutoff7d, cutoff15d, cutoff15d, true, true).
+		Where("trigger_type = ? AND tested_at >= ?", triggerType, cutoff30d).
+		Group("channel_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make(map[int]ChannelTestAvailabilityStats, len(rows))
+	for _, row := range rows {
+		stats[row.ChannelId] = row
+	}
+	return stats, nil
 }
 
 func normalizeChannelTestTrigger(triggerType string) string {

@@ -43,7 +43,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { StatusCards } from '@/features/channel-status/components/status-cards'
+import { ChannelStatusDetailDialog } from '@/features/channel-status/components/channel-status-detail-dialog'
+import {
+  StatusCards,
+  type AvailabilityDays,
+} from '@/features/channel-status/components/status-cards'
+import type { ChannelStatusRow } from '@/features/channel-status/types'
 import { useCountdown } from '@/hooks/use-countdown'
 
 import { getAllChannelStatus } from './api'
@@ -56,11 +61,15 @@ const statusFilterOptions = [
   { value: 'enabled', label: 'Enabled' },
 ] as const
 
+const availabilityOptions: AvailabilityDays[] = [7, 15, 30]
+
 type StatusFilter = (typeof statusFilterOptions)[number]['value']
 
 export function ChannelMonitor() {
   const { t } = useTranslation()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [availabilityDays, setAvailabilityDays] = useState<AvailabilityDays>(7)
+  const [selectedChannel, setSelectedChannel] = useState<ChannelStatusRow>()
   const { secondsLeft, start } = useCountdown({
     initialSeconds: refreshIntervalMs / 1000,
   })
@@ -93,79 +102,111 @@ export function ChannelMonitor() {
   }
 
   return (
-    <SectionPageLayout>
-      <SectionPageLayout.Title>
-        {t('Channel Monitoring')}
-      </SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <div className='flex items-center gap-2'>
-          <span className='text-muted-foreground text-xs'>{t('Status')}</span>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              if (
-                value === 'all' ||
-                value === 'disabled' ||
-                value === 'enabled'
-              ) {
-                setStatusFilter(value)
-              }
-            }}
-          >
-            <SelectTrigger
-              className='w-[116px]'
-              aria-label={t('Channel monitoring status')}
+    <>
+      <SectionPageLayout>
+        <SectionPageLayout.Title>
+          {t('Channel Monitoring')}
+        </SectionPageLayout.Title>
+        <SectionPageLayout.Actions>
+          <div className='flex items-center gap-2'>
+            <div
+              aria-label={t('Availability period')}
+              className='bg-muted flex items-center rounded-lg border p-0.5'
             >
-              <SelectValue>{t(selectedStatusLabel)}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {statusFilterOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.label)}
-                </SelectItem>
+              {availabilityOptions.map((days) => (
+                <Button
+                  key={days}
+                  variant={availabilityDays === days ? 'secondary' : 'ghost'}
+                  size='sm'
+                  className='h-7 px-2 text-xs'
+                  aria-pressed={availabilityDays === days}
+                  onClick={() => setAvailabilityDays(days)}
+                >
+                  {t('{{days}} days', { days })}
+                </Button>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <span className='text-muted-foreground text-xs' aria-live='polite'>
-          {t('Refreshes in {{seconds}}s', { seconds: secondsLeft })}
-        </span>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant='outline'
-                size='icon'
-                aria-label={t('Refresh channel status')}
-                disabled={statusQuery.isFetching}
-                onClick={() => void statusQuery.refetch()}
-              />
-            }
-          >
-            <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
-          </TooltipTrigger>
-          <TooltipContent>{t('Refresh channel status')}</TooltipContent>
-        </Tooltip>
-      </SectionPageLayout.Actions>
-      <SectionPageLayout.Content>
-        {hasData ? (
-          <StatusCards rows={filteredItems} loading={statusQuery.isLoading} />
-        ) : (
-          <Empty className='min-h-72 border'>
-            <EmptyHeader>
-              <EmptyMedia variant='icon'>
-                <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
-              </EmptyMedia>
-              <EmptyTitle>
-                {statusQuery.isError
-                  ? t('Failed to load')
-                  : t('Channel Monitoring')}
-              </EmptyTitle>
-              <EmptyDescription>{emptyDescription}</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-      </SectionPageLayout.Content>
-    </SectionPageLayout>
+            </div>
+            <span className='text-muted-foreground text-xs'>{t('Status')}</span>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                if (
+                  value === 'all' ||
+                  value === 'disabled' ||
+                  value === 'enabled'
+                ) {
+                  setStatusFilter(value)
+                }
+              }}
+            >
+              <SelectTrigger
+                className='w-[116px]'
+                aria-label={t('Channel monitoring status')}
+              >
+                <SelectValue>{t(selectedStatusLabel)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {statusFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {t(option.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <span className='text-muted-foreground text-xs' aria-live='polite'>
+            {t('Refreshes in {{seconds}}s', { seconds: secondsLeft })}
+          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant='outline'
+                  size='icon'
+                  aria-label={t('Refresh channel status')}
+                  disabled={statusQuery.isFetching}
+                  onClick={() => void statusQuery.refetch()}
+                />
+              }
+            >
+              <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
+            </TooltipTrigger>
+            <TooltipContent>{t('Refresh channel status')}</TooltipContent>
+          </Tooltip>
+        </SectionPageLayout.Actions>
+        <SectionPageLayout.Content>
+          {hasData ? (
+            <StatusCards
+              rows={filteredItems}
+              loading={statusQuery.isLoading}
+              availabilityDays={availabilityDays}
+              onCardClick={setSelectedChannel}
+            />
+          ) : (
+            <Empty className='min-h-72 border'>
+              <EmptyHeader>
+                <EmptyMedia variant='icon'>
+                  <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {statusQuery.isError
+                    ? t('Failed to load')
+                    : t('Channel Monitoring')}
+                </EmptyTitle>
+                <EmptyDescription>{emptyDescription}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
+      {selectedChannel ? (
+        <ChannelStatusDetailDialog
+          row={selectedChannel}
+          onOpenChange={(open) => {
+            if (!open) setSelectedChannel(undefined)
+          }}
+        />
+      ) : null}
+    </>
   )
 }

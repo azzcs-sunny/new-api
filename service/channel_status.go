@@ -30,6 +30,13 @@ type ChannelStatusItem struct {
 	Health            ChannelStatusHealth       `json:"health"`
 	LatencyMs         int64                     `json:"latency_ms"`
 	RecentSuccessRate float64                   `json:"recent_success_rate"`
+	Availability7d    float64                   `json:"availability_7d"`
+	Availability15d   float64                   `json:"availability_15d"`
+	Availability30d   float64                   `json:"availability_30d"`
+	Availability7dN   int64                     `json:"availability_7d_samples"`
+	Availability15dN  int64                     `json:"availability_15d_samples"`
+	Availability30dN  int64                     `json:"availability_30d_samples"`
+	AverageLatency7d  *int64                    `json:"avg_latency_7d_ms"`
 	LatestCheckedAt   int64                     `json:"latest_checked_at"`
 	Records           []model.ChannelTestRecord `json:"records"`
 }
@@ -63,6 +70,10 @@ func QueryChannelStatus(groups []string) (ChannelStatusResult, error) {
 	if err != nil {
 		return ChannelStatusResult{}, err
 	}
+	availabilityByChannel, err := model.GetChannelTestAvailabilityStats(model.ChannelTestTriggerScheduled, time.Now())
+	if err != nil {
+		return ChannelStatusResult{}, err
+	}
 
 	recordsByChannel := make(map[int][]model.ChannelTestRecord, len(targets))
 	items := make([]ChannelStatusItem, 0, len(targets))
@@ -77,6 +88,8 @@ func QueryChannelStatus(groups []string) (ChannelStatusResult, error) {
 		}
 
 		item := buildChannelStatusItem(records)
+		applyChannelAvailability(&item, availabilityByChannel[target.ChannelId])
+		item.ChannelId = target.ChannelId
 		item.Group = target.Group
 		item.GroupRatios = map[string]float64{
 			target.Group: ratio_setting.GetGroupRatio(target.Group),
@@ -95,19 +108,26 @@ func QueryAllChannelStatus() (ChannelStatusResult, error) {
 	if err != nil {
 		return ChannelStatusResult{}, err
 	}
+	availabilityByChannel, err := model.GetChannelTestAvailabilityStats(model.ChannelTestTriggerScheduled, time.Now())
+	if err != nil {
+		return ChannelStatusResult{}, err
+	}
 	records, err := model.GetChannelTestRecordsByTrigger(model.ChannelTestTriggerScheduled)
 	if err != nil {
 		return ChannelStatusResult{}, err
 	}
 	recordsByChannel := make(map[int][]model.ChannelTestRecord, len(channels))
 	for _, record := range records {
-		recordsByChannel[record.ChannelId] = append(recordsByChannel[record.ChannelId], record)
+		if len(recordsByChannel[record.ChannelId]) < model.ChannelTestHistoryLimit {
+			recordsByChannel[record.ChannelId] = append(recordsByChannel[record.ChannelId], record)
+		}
 	}
 
 	items := make([]ChannelStatusItem, 0, len(channels))
 	for _, channel := range channels {
 		channelRecords := recordsByChannel[channel.Id]
 		item := buildChannelStatusItem(channelRecords)
+		applyChannelAvailability(&item, availabilityByChannel[channel.Id])
 		item.ChannelId = channel.Id
 		item.ChannelName = channel.Name
 		item.Provider = constant.GetChannelTypeName(channel.Type)
@@ -124,6 +144,23 @@ func QueryAllChannelStatus() (ChannelStatusResult, error) {
 		items = append(items, item)
 	}
 	return ChannelStatusResult{Items: items}, nil
+}
+
+func applyChannelAvailability(item *ChannelStatusItem, stats model.ChannelTestAvailabilityStats) {
+	item.Availability7dN = stats.Total7d
+	item.Availability15dN = stats.Total15d
+	item.Availability30dN = stats.Total30d
+	if stats.Total7d > 0 {
+		item.Availability7d = float64(stats.Successful7d) / float64(stats.Total7d) * 100
+		averageLatency := stats.LatencySum7d / stats.Total7d
+		item.AverageLatency7d = &averageLatency
+	}
+	if stats.Total15d > 0 {
+		item.Availability15d = float64(stats.Successful15d) / float64(stats.Total15d) * 100
+	}
+	if stats.Total30d > 0 {
+		item.Availability30d = float64(stats.Successful30d) / float64(stats.Total30d) * 100
+	}
 }
 
 func buildChannelStatusItem(records []model.ChannelTestRecord) ChannelStatusItem {

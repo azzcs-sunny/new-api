@@ -190,15 +190,28 @@ describe('API key group table cell', () => {
     )
     expect(popup).toHaveClass(
       'max-h-[min(20rem,var(--available-height))]',
-      'w-[360px]',
+      'w-[440px]',
       'max-w-[calc(100vw-2rem)]',
       'overflow-y-auto',
       'overscroll-contain',
       'p-1.5'
     )
-    expect(vipOption).toHaveClass('whitespace-normal', 'py-2.5')
+    expect(vipOption).toHaveClass(
+      'whitespace-normal',
+      'py-2.5',
+      'pl-1.5',
+      'text-xs'
+    )
+    expect(
+      vipOption.querySelector('[data-api-key-group-option-content]')
+    ).toHaveClass('justify-between', 'gap-4')
+    expect(
+      vipOption.querySelector('[data-api-key-group-option-ratio]')
+    ).toHaveClass('shrink-0')
+    expect(vipOption).toHaveTextContent('3x Ratio')
     expect(screen.getByText('Priority group')).toHaveClass(
       'w-full',
+      'pl-1.5',
       'break-words',
       'whitespace-normal'
     )
@@ -260,9 +273,7 @@ describe('API key group table cell', () => {
     )
 
     await user.click(screen.getByRole('combobox', { name: 'Group' }))
-    await user.click(
-      await screen.findByRole('option', { name: /User Group/i })
-    )
+    await user.click(await screen.findByRole('option', { name: /User Group/i }))
 
     expect(onGroupChange).toHaveBeenCalledWith('')
   })

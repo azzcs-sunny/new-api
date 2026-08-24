@@ -39,11 +39,19 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
   data: {
     items: [
       {
+        channel_id: 1,
         group: 'default',
         group_ratios: { default: 1.25 },
         model_name: 'gpt-5.6-sol',
         health: 'healthy' as const,
         latency_ms: 898,
+        availability_7d: 80,
+        availability_15d: 70,
+        availability_30d: 60,
+        availability_7d_samples: 10,
+        availability_15d_samples: 20,
+        availability_30d_samples: 30,
+        avg_latency_7d_ms: 120,
         records: [
           {
             id: 1,
@@ -62,6 +70,7 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
         ],
       },
       {
+        channel_id: 2,
         group: 'vip',
         group_ratios: { vip: 2 },
         model_name: 'claude-sonnet',
@@ -220,6 +229,11 @@ describe('channel status page', () => {
     expect(screen.getAllByText('Latency')).toHaveLength(2)
     expect(screen.getByText('898 ms')).toBeInTheDocument()
     expect(screen.getByText('9000 ms')).toBeInTheDocument()
+    expect(
+      within(screen.getAllByTestId('channel-status-card')[0]).getByTestId(
+        'channel-status-card-actions'
+      )
+    ).toHaveClass('max-w-[50%]', 'shrink-0', 'overflow-hidden')
     expect(screen.getAllByTestId('channel-status-card')[0]).toHaveTextContent(
       'x1.25'
     )
@@ -264,5 +278,20 @@ describe('channel status page', () => {
 
     expect(await screen.findByText('gpt-5.6-sol')).toBeInTheDocument()
     expect(screen.getAllByTestId('channel-status-card')).toHaveLength(2)
+  })
+
+  test('changes availability period and opens channel details', async () => {
+    vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('80.0%')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '15 days' }))
+    expect(screen.getByText('70.0%')).toBeInTheDocument()
+
+    await user.click(screen.getAllByTestId('channel-status-card')[0])
+    expect(await screen.findByText('Latest status')).toBeInTheDocument()
+    expect(screen.getByText('60.00%')).toBeInTheDocument()
   })
 })

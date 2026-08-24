@@ -63,6 +63,16 @@ const newKeys = {
       'Manage the links or content displayed for the four required legal documents.',
     'Enter Markdown, HTML, or a full URL':
       'Enter Markdown, HTML, or a full URL',
+    'Availability period': 'Availability period',
+    '{{days}} days': '{{days}} days',
+    '{{days}}-day availability': '{{days}}-day availability',
+    'Channel details': 'Channel details',
+    'Latest status': 'Latest status',
+    'Latest latency (ms)': 'Latest latency (ms)',
+    '7-day availability': '7-day availability',
+    '15-day availability': '15-day availability',
+    '30-day availability': '30-day availability',
+    '7-day average latency (ms)': '7-day average latency (ms)',
   },
   zh: {
     'By clicking sign in, you agree to our': '点击登录即表示您同意',
@@ -95,6 +105,16 @@ const newKeys = {
     'Manage the links or content displayed for the four required legal documents.':
       '管理四项必需法律协议显示的链接或内容。',
     'Enter Markdown, HTML, or a full URL': '输入 Markdown、HTML 或完整 URL',
+    'Availability period': '可用率周期',
+    '{{days}} days': '{{days}} 天',
+    '{{days}}-day availability': '{{days}} 天可用率',
+    'Channel details': '渠道详情',
+    'Latest status': '最新状态',
+    'Latest latency (ms)': '最新延迟（ms）',
+    '7-day availability': '7 天可用率',
+    '15-day availability': '15 天可用率',
+    '30-day availability': '30 天可用率',
+    '7-day average latency (ms)': '7 天平均延迟（ms）',
   },
   'zh-TW': {
     'By clicking sign in, you agree to our': '點擊登入即表示您同意',
@@ -128,6 +148,16 @@ const newKeys = {
     'Manage the links or content displayed for the four required legal documents.':
       '管理四項必要法律協議顯示的連結或內容。',
     'Enter Markdown, HTML, or a full URL': '輸入 Markdown、HTML 或完整 URL',
+    'Availability period': '可用率週期',
+    '{{days}} days': '{{days}} 天',
+    '{{days}}-day availability': '{{days}} 天可用率',
+    'Channel details': '渠道詳情',
+    'Latest status': '最新狀態',
+    'Latest latency (ms)': '最新延遲（ms）',
+    '7-day availability': '7 天可用率',
+    '15-day availability': '15 天可用率',
+    '30-day availability': '30 天可用率',
+    '7-day average latency (ms)': '7 天平均延遲（ms）',
   },
   fr: {
     'By clicking sign in, you agree to our':
@@ -166,6 +196,16 @@ const newKeys = {
       'Gérez les liens ou le contenu des quatre documents juridiques requis.',
     'Enter Markdown, HTML, or a full URL':
       'Saisissez du Markdown, du HTML ou une URL complète',
+    'Availability period': 'Période de disponibilité',
+    '{{days}} days': '{{days}} jours',
+    '{{days}}-day availability': 'Disponibilité sur {{days}} jours',
+    'Channel details': 'Détails du canal',
+    'Latest status': 'Dernier état',
+    'Latest latency (ms)': 'Dernière latence (ms)',
+    '7-day availability': 'Disponibilité sur 7 jours',
+    '15-day availability': 'Disponibilité sur 15 jours',
+    '30-day availability': 'Disponibilité sur 30 jours',
+    '7-day average latency (ms)': 'Latence moyenne sur 7 jours (ms)',
   },
   ja: {
     'By clicking sign in, you agree to our':
@@ -204,6 +244,16 @@ const newKeys = {
       '4つの必須法的文書に表示するリンクまたはコンテンツを管理します。',
     'Enter Markdown, HTML, or a full URL':
       'Markdown、HTML、または完全なURLを入力',
+    'Availability period': '可用性の期間',
+    '{{days}} days': '{{days}}日',
+    '{{days}}-day availability': '{{days}}日間の可用性',
+    'Channel details': 'チャネルの詳細',
+    'Latest status': '最新状態',
+    'Latest latency (ms)': '最新レイテンシ (ms)',
+    '7-day availability': '7日間の可用性',
+    '15-day availability': '15日間の可用性',
+    '30-day availability': '30日間の可用性',
+    '7-day average latency (ms)': '7日間の平均レイテンシ (ms)',
   },
   ru: {
     'By clicking sign in, you agree to our':
@@ -242,6 +292,16 @@ const newKeys = {
       'Управляйте ссылками или содержимым четырех обязательных юридических документов.',
     'Enter Markdown, HTML, or a full URL':
       'Введите Markdown, HTML или полный URL',
+    'Availability period': 'Период доступности',
+    '{{days}} days': '{{days}} дн.',
+    '{{days}}-day availability': 'Доступность за {{days}} дн.',
+    'Channel details': 'Сведения о канале',
+    'Latest status': 'Последний статус',
+    'Latest latency (ms)': 'Последняя задержка (мс)',
+    '7-day availability': 'Доступность за 7 дн.',
+    '15-day availability': 'Доступность за 15 дн.',
+    '30-day availability': 'Доступность за 30 дн.',
+    '7-day average latency (ms)': 'Средняя задержка за 7 дн. (мс)',
   },
   vi: {
     'By clicking sign in, you agree to our':
@@ -279,6 +339,16 @@ const newKeys = {
       'Quản lý liên kết hoặc nội dung hiển thị cho bốn tài liệu pháp lý bắt buộc.',
     'Enter Markdown, HTML, or a full URL':
       'Nhập Markdown, HTML hoặc URL đầy đủ',
+    'Availability period': 'Khoảng thời gian khả dụng',
+    '{{days}} days': '{{days}} ngày',
+    '{{days}}-day availability': 'Khả dụng trong {{days}} ngày',
+    'Channel details': 'Chi tiết kênh',
+    'Latest status': 'Trạng thái mới nhất',
+    'Latest latency (ms)': 'Độ trễ mới nhất (ms)',
+    '7-day availability': 'Khả dụng 7 ngày',
+    '15-day availability': 'Khả dụng 15 ngày',
+    '30-day availability': 'Khả dụng 30 ngày',
+    '7-day average latency (ms)': 'Độ trễ trung bình 7 ngày (ms)',
   },
 }
 

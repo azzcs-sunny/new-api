@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18next from 'i18next'
 import { afterEach, describe, expect, test, vi } from 'vitest'
@@ -40,6 +40,13 @@ const response = {
         model_name: 'enabled-model',
         health: 'healthy' as const,
         latency_ms: 100,
+        availability_7d: 80,
+        availability_15d: 70,
+        availability_30d: 60,
+        availability_7d_samples: 10,
+        availability_15d_samples: 20,
+        availability_30d_samples: 30,
+        avg_latency_7d_ms: 120,
         records: [],
       },
       {
@@ -71,6 +78,7 @@ function renderPage() {
 }
 
 afterEach(async () => {
+  cleanup()
   queryClient?.clear()
   queryClient = undefined
   vi.mocked(getAllChannelStatus).mockReset()
@@ -109,5 +117,21 @@ describe('channel monitor page', () => {
       expect(screen.queryByText('disabled-channel')).toBeNull()
     })
     expect(screen.getByText('enabled-channel')).toBeInTheDocument()
+  })
+
+  test('changes the card availability window and opens channel details', async () => {
+    vi.mocked(getAllChannelStatus).mockResolvedValue(response)
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('80.0%')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '30 days' }))
+    expect(screen.getByText('60.0%')).toBeInTheDocument()
+
+    await user.click(screen.getAllByTestId('channel-status-card')[0])
+    expect(await screen.findByText('Latest status')).toBeInTheDocument()
+    expect(screen.getAllByText('30-day availability').length).toBeGreaterThan(1)
+    expect(screen.getByText('60.00%')).toBeInTheDocument()
   })
 })

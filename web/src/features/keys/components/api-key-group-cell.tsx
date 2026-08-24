@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,7 +18,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
 
 import { BadgeCell, TruncatedCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
@@ -36,17 +36,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import type { ApiKeyGroupOption } from './api-key-group-combobox'
 import {
   // AutoGroupBadge,
   GroupRatioBadge,
   type GroupRatio,
 } from './auto-group-visuals'
-import type { ApiKeyGroupOption } from './api-key-group-combobox'
 
 const groupSelectContentClassName =
-  'max-h-[min(20rem,var(--available-height))] w-[360px] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-1.5'
+  'max-h-[min(20rem,var(--available-height))] w-[440px] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-1.5'
 const groupSelectItemClassName =
-  'items-start py-2.5 pr-9 pl-2.5 whitespace-normal [&_[data-slot=select-item-text]]:min-w-0 [&_[data-slot=select-item-text]]:shrink [&_[data-slot=select-item-text]]:whitespace-normal'
+  'items-center py-2.5 pr-10 pl-1.5 text-xs whitespace-normal [&_[data-slot=select-item-text]]:min-w-0 [&_[data-slot=select-item-text]]:shrink [&_[data-slot=select-item-text]]:whitespace-normal'
 
 type ApiKeyGroupCellProps = {
   crossGroupRetry: boolean
@@ -89,11 +89,7 @@ function ApiKeyGroupDisplay(props: ApiKeyGroupDisplayProps) {
           />
         }
       >
-        <StatusBadge
-          label={t('Cross-group')}
-          variant='info'
-          copyable={false}
-        />
+        <StatusBadge label={t('Cross-group')} variant='info' copyable={false} />
         {/*<AutoGroupBadge shouldReduceMotion={props.shouldReduceMotion} />*/}
         <GroupRatioBadge
           ratio={props.ratio}
@@ -159,19 +155,31 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
               value={option.value}
               className={groupSelectItemClassName}
             >
-              <span className='flex min-w-0 flex-1 flex-col items-start gap-1.5 whitespace-normal'>
-                <GroupBadge
-                  group={option.value}
-                  ratio={
-                    typeof option.ratio === 'number' ? option.ratio : undefined
-                  }
-                  className='h-auto min-h-5 shrink py-1 leading-snug whitespace-normal [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal'
-                />
-                {option.desc && option.desc !== option.label && (
-                  <span className='text-muted-foreground w-full text-xs leading-relaxed break-words whitespace-normal'>
-                    {option.desc}
-                  </span>
-                )}
+              <span
+                data-api-key-group-option-content='true'
+                className='flex min-w-0 flex-1 items-center justify-between gap-4 whitespace-normal'
+              >
+                <span className='flex min-w-0 flex-1 flex-col items-start gap-1'>
+                  <GroupBadge
+                    group={option.value}
+                    className='h-5 max-w-full px-1.5 text-[11px] leading-none [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal'
+                  />
+                  {option.desc && option.desc !== option.label && (
+                    <span className='text-muted-foreground w-full pl-1.5 text-[11px] leading-snug break-words whitespace-normal'>
+                      {option.desc}
+                    </span>
+                  )}
+                </span>
+                <span
+                  data-api-key-group-option-ratio='true'
+                  className='shrink-0 [&_[data-slot=badge]]:text-[10px]'
+                >
+                  <GroupRatioBadge
+                    ratio={option.ratio}
+                    isAuto={option.value === 'auto'}
+                    shouldReduceMotion={props.shouldReduceMotion}
+                  />
+                </span>
               </span>
             </SelectItem>
           ))}

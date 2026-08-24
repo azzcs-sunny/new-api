@@ -37,6 +37,13 @@ export type ChannelStatusRow = {
   health: ChannelHealth
   latency_ms: number
   recent_success_rate?: number
+  availability_7d?: number
+  availability_15d?: number
+  availability_30d?: number
+  availability_7d_samples?: number
+  availability_15d_samples?: number
+  availability_30d_samples?: number
+  avg_latency_7d_ms?: number
   latest_checked_at?: number
   records: ChannelTestRecord[]
 }

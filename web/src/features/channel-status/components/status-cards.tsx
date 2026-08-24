@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +34,11 @@ import type {
 type StatusCardsProps = {
   rows: ChannelStatusRow[]
   loading: boolean
+  availabilityDays?: AvailabilityDays
+  onCardClick?: (row: ChannelStatusRow) => void
 }
+
+export type AvailabilityDays = 7 | 15 | 30
 
 const badgeVariant = {
   unknown: 'outline',
@@ -67,8 +72,8 @@ export function StatusCards(props: StatusCardsProps) {
 
   if (props.loading) {
     return (
-      <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
-        {[0, 1, 2].map((item) => (
+      <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
+        {[0, 1, 2, 3].map((item) => (
           <Card key={item} aria-hidden='true'>
             <CardHeader>
               <Skeleton className='h-5 w-32' />
@@ -84,12 +89,14 @@ export function StatusCards(props: StatusCardsProps) {
   }
 
   return (
-    <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+    <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
       {props.rows.map((row) => (
         <StatusCard
-          key={row.channel_id ?? row.group}
+          key={`${row.channel_id ?? 'group'}-${row.group}`}
           row={row}
           healthLabel={healthLabel}
+          availabilityDays={props.availabilityDays ?? 7}
+          onCardClick={props.onCardClick}
         />
       ))}
     </div>
@@ -99,6 +106,8 @@ export function StatusCards(props: StatusCardsProps) {
 type StatusCardProps = {
   row: ChannelStatusRow
   healthLabel: Record<ChannelHealth, string>
+  availabilityDays: AvailabilityDays
+  onCardClick?: (row: ChannelStatusRow) => void
 }
 
 function recordDisplay(record: ChannelTestRecord) {
@@ -140,11 +149,30 @@ function StatusCard(props: StatusCardProps) {
     records.length > 0
       ? `${Math.round(Math.max(0, props.row.latency_ms))} ms`
       : '—'
+  const availability = getAvailability(props.row, props.availabilityDays)
+  const isInteractive = props.onCardClick !== undefined
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!isInteractive || (event.key !== 'Enter' && event.key !== ' ')) return
+    event.preventDefault()
+    props.onCardClick?.(props.row)
+  }
 
   return (
-    <Card data-testid='channel-status-card' className='h-full overflow-hidden'>
+    <Card
+      data-testid='channel-status-card'
+      className={cn(
+        'h-full overflow-hidden',
+        isInteractive &&
+          'cursor-pointer transition-colors hover:border-primary/40 focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none'
+      )}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onClick={isInteractive ? () => props.onCardClick?.(props.row) : undefined}
+      onKeyDown={handleKeyDown}
+    >
       <CardHeader className='gap-3'>
-        <div className='flex items-start justify-between gap-3'>
+        <div className='flex min-w-0 items-start justify-between gap-2'>
           <div className='min-w-0 flex-1'>
             <CardTitle className='truncate'>
               {props.row.channel_name ?? props.row.group}
@@ -159,9 +187,12 @@ function StatusCard(props: StatusCardProps) {
               </div>
             )}
           </div>
-          <div className='flex shrink-0 items-center gap-1'>
+          <div
+            data-testid='channel-status-card-actions'
+            className='flex max-w-[50%] min-w-0 shrink-0 items-center justify-end gap-1 overflow-hidden'
+          >
             {groupRatios.length > 0 && (
-              <div className='flex items-center gap-1'>
+              <div className='flex min-w-0 flex-1 items-center justify-end gap-1 overflow-hidden'>
                 {groupRatios.map(([group, ratio]) => (
                   <Badge
                     key={group}
@@ -201,11 +232,13 @@ function StatusCard(props: StatusCardProps) {
           {props.row.channel_id !== undefined && (
             <div className='min-w-0'>
               <dt className='text-muted-foreground text-xs'>
-                {t('Success rate')}
+                {t('{{days}}-day availability', {
+                  days: props.availabilityDays,
+                })}
               </dt>
               <dd className='mt-1 truncate font-mono text-sm font-semibold tabular-nums'>
-                {records.length > 0
-                  ? `${(props.row.recent_success_rate ?? 0).toFixed(1)}%`
+                {availability.samples > 0
+                  ? `${availability.value.toFixed(1)}%`
                   : '—'}
               </dd>
             </div>
@@ -244,6 +277,27 @@ function StatusCard(props: StatusCardProps) {
       </CardContent>
     </Card>
   )
+}
+
+function getAvailability(row: ChannelStatusRow, days: AvailabilityDays) {
+  switch (days) {
+    case 15:
+      return {
+        value: row.availability_15d ?? 0,
+        samples: row.availability_15d_samples ?? 0,
+      }
+    case 30:
+      return {
+        value: row.availability_30d ?? 0,
+        samples: row.availability_30d_samples ?? 0,
+      }
+    case 7:
+    default:
+      return {
+        value: row.availability_7d ?? 0,
+        samples: row.availability_7d_samples ?? 0,
+      }
+  }
 }
 
 function TestRecordBar({ record }: { record: ChannelTestRecord }) {

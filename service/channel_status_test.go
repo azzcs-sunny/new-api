@@ -2,6 +2,7 @@ package service
 
 import (
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -55,7 +56,7 @@ func TestQueryAllChannelStatusReturnsOneItemPerChannelUsingScheduledHistory(t *t
 		ModelName:   testModel,
 		Success:     true,
 		LatencyMs:   500,
-		TestedAt:    200,
+		TestedAt:    time.Now().UnixMilli(),
 	}))
 
 	result, err := QueryAllChannelStatus()
