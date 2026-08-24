@@ -5,6 +5,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +31,11 @@ func TestChannelTestHealthUsesLatestResultAndLatency(t *testing.T) {
 
 func TestQueryAllChannelStatusReturnsOneItemPerChannelUsingScheduledHistory(t *testing.T) {
 	truncate(t)
+	originalRatios := ratio_setting.GroupRatio2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(originalRatios))
+	})
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"vip":1.5}`))
 	testModel := "configured-model"
 	require.NoError(t, model.DB.Create(&[]model.Channel{
 		{Id: 1, Type: 1, Name: "first", Status: common.ChannelStatusEnabled, Group: "default", Models: "fallback-model", TestModel: &testModel},
@@ -57,12 +63,14 @@ func TestQueryAllChannelStatusReturnsOneItemPerChannelUsingScheduledHistory(t *t
 	require.Len(t, result.Items, 2)
 	assert.Equal(t, 1, result.Items[0].ChannelId)
 	assert.Equal(t, "first", result.Items[0].ChannelName)
+	assert.Equal(t, map[string]float64{"default": 1}, result.Items[0].GroupRatios)
 	assert.Equal(t, ChannelStatusHealthHealthy, result.Items[0].Health)
 	assert.Equal(t, int64(500), result.Items[0].LatencyMs)
 	assert.Equal(t, 100.0, result.Items[0].RecentSuccessRate)
 	require.Len(t, result.Items[0].Records, 1)
 	assert.Equal(t, testModel, result.Items[0].Records[0].ModelName)
 	assert.Equal(t, 2, result.Items[1].ChannelId)
+	assert.Equal(t, map[string]float64{"vip": 1.5}, result.Items[1].GroupRatios)
 	assert.Equal(t, ChannelStatusHealthUnknown, result.Items[1].Health)
 	assert.Empty(t, result.Items[1].Records)
 }

@@ -32,6 +32,8 @@ const newKeys = {
     'By creating an account, you agree to our':
       'By creating an account, you agree to our',
     'Channel Status': 'Channel Status',
+    'Channel monitoring status': 'Channel monitoring status',
+    'Group ratio': 'Group ratio',
     'Refresh channel status': 'Refresh channel status',
     Degraded: 'Degraded',
     'Last 60 tests': 'Last 60 tests',
@@ -44,6 +46,8 @@ const newKeys = {
       '{{success}} successful, {{failed}} failed',
     'No channel test data is available yet.':
       'No channel test data is available yet.',
+    'No channels match the selected status.':
+      'No channels match the selected status.',
     'I have read and agree to the': 'I have read and agree to the',
     'Terms of Service': 'Terms of Service',
     'Usage Policy': 'Usage Policy',
@@ -62,6 +66,8 @@ const newKeys = {
     'By clicking sign in, you agree to our': '点击登录即表示您同意',
     'By creating an account, you agree to our': '创建账户即表示您同意',
     'Channel Status': '渠道状态',
+    'Channel monitoring status': '渠道监控状态',
+    'Group ratio': '分组倍率',
     'Refresh channel status': '刷新渠道状态',
     Degraded: '降级',
     'Last 60 tests': '最近 60 次测速',
@@ -72,6 +78,7 @@ const newKeys = {
     '{{success}} successful, {{failed}} failed':
       '成功 {{success}} 次，失败 {{failed}} 次',
     'No channel test data is available yet.': '暂无渠道测速数据。',
+    'No channels match the selected status.': '没有符合所选状态的渠道。',
     'I have read and agree to the': '我已阅读并同意',
     'Terms of Service': '服务条款',
     'Usage Policy': '使用政策',
@@ -89,6 +96,8 @@ const newKeys = {
     'By clicking sign in, you agree to our': '點擊登入即表示您同意',
     'By creating an account, you agree to our': '建立帳戶即表示您同意',
     'Channel Status': '渠道狀態',
+    'Channel monitoring status': '渠道監控狀態',
+    'Group ratio': '分組倍率',
     'Refresh channel status': '重新整理渠道狀態',
     Degraded: '降級',
     'Last 60 tests': '最近 60 次測速',
@@ -100,6 +109,7 @@ const newKeys = {
     '{{success}} successful, {{failed}} failed':
       '成功 {{success}} 次，失敗 {{failed}} 次',
     'No channel test data is available yet.': '尚無渠道測速資料。',
+    'No channels match the selected status.': '沒有符合所選狀態的渠道。',
     'I have read and agree to the': '我已閱讀並同意',
     'Terms of Service': '服務條款',
     'Usage Policy': '使用政策',
@@ -119,6 +129,8 @@ const newKeys = {
     'By creating an account, you agree to our':
       'En créant un compte, vous acceptez',
     'Channel Status': 'Statut des canaux',
+    'Channel monitoring status': 'Statut de la surveillance des canaux',
+    'Group ratio': 'Ratio de groupe',
     'Refresh channel status': 'Actualiser le statut des canaux',
     Degraded: 'Dégradé',
     'Last 60 tests': '60 derniers tests',
@@ -131,6 +143,8 @@ const newKeys = {
       '{{success}} réussies, {{failed}} échouées',
     'No channel test data is available yet.':
       "Aucune donnée de test de canal n'est encore disponible.",
+    'No channels match the selected status.':
+      'Aucun canal ne correspond au statut sélectionné.',
     'I have read and agree to the': "J'ai lu et j'accepte",
     'Terms of Service': "Conditions d'utilisation",
     'Usage Policy': "Politique d'utilisation",
@@ -151,6 +165,8 @@ const newKeys = {
     'By creating an account, you agree to our':
       'アカウントを作成すると、次に同意したものとみなされます：',
     'Channel Status': 'チャネル状態',
+    'Channel monitoring status': 'チャネル監視のステータス',
+    'Group ratio': 'グループ倍率',
     'Refresh channel status': 'チャネル状態を更新',
     Degraded: '性能低下',
     'Last 60 tests': '直近60回のテスト',
@@ -163,6 +179,8 @@ const newKeys = {
       '成功 {{success}} 回、失敗 {{failed}} 回',
     'No channel test data is available yet.':
       'チャネルテストデータはまだありません。',
+    'No channels match the selected status.':
+      '選択したステータスに一致するチャネルはありません。',
     'I have read and agree to the': '以下を読み、同意します：',
     'Terms of Service': '利用規約',
     'Usage Policy': '利用ポリシー',
@@ -183,6 +201,8 @@ const newKeys = {
     'By creating an account, you agree to our':
       'Создавая аккаунт, вы соглашаетесь с',
     'Channel Status': 'Состояние каналов',
+    'Channel monitoring status': 'Статус мониторинга каналов',
+    'Group ratio': 'Коэффициент группы',
     'Refresh channel status': 'Обновить состояние каналов',
     Degraded: 'Работает с перебоями',
     'Last 60 tests': 'Последние 60 проверок',
@@ -195,6 +215,8 @@ const newKeys = {
       'Успешно: {{success}}, с ошибкой: {{failed}}',
     'No channel test data is available yet.':
       'Данные проверки каналов пока отсутствуют.',
+    'No channels match the selected status.':
+      'Нет каналов, соответствующих выбранному статусу.',
     'I have read and agree to the': 'Я прочитал(а) и принимаю',
     'Terms of Service': 'Условия использования',
     'Usage Policy': 'Политика использования',
@@ -215,6 +237,8 @@ const newKeys = {
     'By creating an account, you agree to our':
       'Bằng cách tạo tài khoản, bạn đồng ý với',
     'Channel Status': 'Trạng thái kênh',
+    'Channel monitoring status': 'Trạng thái giám sát kênh',
+    'Group ratio': 'Hệ số nhóm',
     'Refresh channel status': 'Làm mới trạng thái kênh',
     Degraded: 'Suy giảm',
     'Last 60 tests': '60 lần kiểm tra gần nhất',
@@ -226,6 +250,8 @@ const newKeys = {
     '{{success}} successful, {{failed}} failed':
       '{{success}} thành công, {{failed}} thất bại',
     'No channel test data is available yet.': 'Chưa có dữ liệu kiểm tra kênh.',
+    'No channels match the selected status.':
+      'Không có kênh nào khớp với trạng thái đã chọn.',
     'I have read and agree to the': 'Tôi đã đọc và đồng ý với',
     'Terms of Service': 'Điều khoản dịch vụ',
     'Usage Policy': 'Chính sách sử dụng',

@@ -18,13 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Refresh01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import { useCountdown } from '@/hooks/use-countdown'
 import {
   Empty,
   EmptyDescription,
@@ -33,18 +32,35 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { StatusCards } from '@/features/channel-status/components/status-cards'
+import { useCountdown } from '@/hooks/use-countdown'
 
 import { getAllChannelStatus } from './api'
 
 const refreshIntervalMs = 60 * 1000
 
+const statusFilterOptions = [
+  { value: 'all', label: 'All Status' },
+  { value: 'disabled', label: 'Disabled' },
+  { value: 'enabled', label: 'Enabled' },
+] as const
+
+type StatusFilter = (typeof statusFilterOptions)[number]['value']
+
 export function ChannelMonitor() {
   const { t } = useTranslation()
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const { secondsLeft, start } = useCountdown({
     initialSeconds: refreshIntervalMs / 1000,
   })
@@ -60,7 +76,21 @@ export function ChannelMonitor() {
   }, [start, statusQuery.dataUpdatedAt])
 
   const items = statusQuery.data?.data.items ?? []
-  const hasData = statusQuery.isLoading || items.length > 0
+  const selectedStatusLabel =
+    statusFilterOptions.find((option) => option.value === statusFilter)
+      ?.label ?? 'All Status'
+  const filteredItems = items.filter((item) => {
+    if (statusFilter === 'all') return true
+    const isEnabled = item.channel_status === 1
+    return statusFilter === 'enabled' ? isEnabled : !isEnabled
+  })
+  const hasData = statusQuery.isLoading || filteredItems.length > 0
+  let emptyDescription = t('No channel test data is available yet.')
+  if (statusQuery.isError) {
+    emptyDescription = t('Please try again later.')
+  } else if (items.length > 0) {
+    emptyDescription = t('No channels match the selected status.')
+  }
 
   return (
     <SectionPageLayout>
@@ -68,6 +98,35 @@ export function ChannelMonitor() {
         {t('Channel Monitoring')}
       </SectionPageLayout.Title>
       <SectionPageLayout.Actions>
+        <div className='flex items-center gap-2'>
+          <span className='text-muted-foreground text-xs'>{t('Status')}</span>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              if (
+                value === 'all' ||
+                value === 'disabled' ||
+                value === 'enabled'
+              ) {
+                setStatusFilter(value)
+              }
+            }}
+          >
+            <SelectTrigger
+              className='w-[116px]'
+              aria-label={t('Channel monitoring status')}
+            >
+              <SelectValue>{t(selectedStatusLabel)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {statusFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {t(option.label)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <span className='text-muted-foreground text-xs' aria-live='polite'>
           {t('Refreshes in {{seconds}}s', { seconds: secondsLeft })}
         </span>
@@ -90,7 +149,7 @@ export function ChannelMonitor() {
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         {hasData ? (
-          <StatusCards rows={items} loading={statusQuery.isLoading} />
+          <StatusCards rows={filteredItems} loading={statusQuery.isLoading} />
         ) : (
           <Empty className='min-h-72 border'>
             <EmptyHeader>
@@ -102,11 +161,7 @@ export function ChannelMonitor() {
                   ? t('Failed to load')
                   : t('Channel Monitoring')}
               </EmptyTitle>
-              <EmptyDescription>
-                {statusQuery.isError
-                  ? t('Please try again later.')
-                  : t('No channel test data is available yet.')}
-              </EmptyDescription>
+              <EmptyDescription>{emptyDescription}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}

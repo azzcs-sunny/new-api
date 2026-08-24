@@ -35,6 +35,19 @@ func streamResponseXAI2OpenAI(xAIResp *dto.ChatCompletionsStreamResponse, usage 
 	return openAIResp
 }
 
+func mergeXAIStreamUsage(usage *dto.Usage, upstreamUsage *dto.Usage) {
+	if usage == nil || upstreamUsage == nil {
+		return
+	}
+
+	usage.PromptTokens = upstreamUsage.PromptTokens
+	usage.TotalTokens = upstreamUsage.TotalTokens
+	usage.CompletionTokens = usage.TotalTokens - usage.PromptTokens
+	usage.PromptTokensDetails = upstreamUsage.PromptTokensDetails
+	usage.PromptCacheHitTokens = upstreamUsage.PromptCacheHitTokens
+	usage.InputTokensDetails = upstreamUsage.InputTokensDetails
+}
+
 func xAIStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	usage := &dto.Usage{}
 	var responseTextBuilder strings.Builder
@@ -54,9 +67,7 @@ func xAIStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 		// 把 xAI 的usage转换为 OpenAI 的usage
 		if xAIResp.Usage != nil {
 			containStreamUsage = true
-			usage.PromptTokens = xAIResp.Usage.PromptTokens
-			usage.TotalTokens = xAIResp.Usage.TotalTokens
-			usage.CompletionTokens = usage.TotalTokens - usage.PromptTokens
+			mergeXAIStreamUsage(usage, xAIResp.Usage)
 		}
 
 		openaiResponse := streamResponseXAI2OpenAI(xAIResp, usage)

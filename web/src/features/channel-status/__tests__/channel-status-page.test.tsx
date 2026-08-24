@@ -34,12 +34,13 @@ const emptyResponse = {
   data: { items: [] },
 }
 
-const populatedResponse = {
+const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
   success: true,
   data: {
     items: [
       {
         group: 'default',
+        group_ratios: { default: 1.25 },
         model_name: 'gpt-5.6-sol',
         health: 'healthy' as const,
         latency_ms: 898,
@@ -62,6 +63,7 @@ const populatedResponse = {
       },
       {
         group: 'vip',
+        group_ratios: { vip: 2 },
         model_name: 'claude-sonnet',
         health: 'warning' as const,
         latency_ms: 9000,
@@ -218,6 +220,12 @@ describe('channel status page', () => {
     expect(screen.getAllByText('Latency')).toHaveLength(2)
     expect(screen.getByText('898 ms')).toBeInTheDocument()
     expect(screen.getByText('9000 ms')).toBeInTheDocument()
+    expect(screen.getAllByTestId('channel-status-card')[0]).toHaveTextContent(
+      'x1.25'
+    )
+    expect(screen.getAllByTestId('channel-status-card')[1]).toHaveTextContent(
+      'x2'
+    )
     expect(screen.queryByText('OpenAI')).toBeNull()
     expect(screen.queryByText('Conversation latency')).toBeNull()
     expect(screen.queryByText('Availability')).toBeNull()

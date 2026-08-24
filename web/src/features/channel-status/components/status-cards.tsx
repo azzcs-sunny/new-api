@@ -119,9 +119,17 @@ function recordDisplay(record: ChannelTestRecord) {
   return { colorClass: 'bg-success', heightPercent: 100, status: 'success' }
 }
 
+function formatGroupRatio(ratio: number) {
+  if (!Number.isFinite(ratio)) return '1'
+  return Number.isInteger(ratio)
+    ? ratio.toString()
+    : ratio.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+}
+
 function StatusCard(props: StatusCardProps) {
   const { t } = useTranslation()
   const records = (props.row.records ?? []).slice(-60)
+  const groupRatios = Object.entries(props.row.group_ratios ?? {})
   const health = props.row.health ?? 'unknown'
   const channelDisabled =
     props.row.channel_status !== undefined && props.row.channel_status !== 1
@@ -137,24 +145,42 @@ function StatusCard(props: StatusCardProps) {
     <Card data-testid='channel-status-card' className='h-full overflow-hidden'>
       <CardHeader className='gap-3'>
         <div className='flex items-start justify-between gap-3'>
-          <div className='min-w-0'>
+          <div className='min-w-0 flex-1'>
             <CardTitle className='truncate'>
               {props.row.channel_name ?? props.row.group}
             </CardTitle>
             {props.row.channel_name && (
-              <div className='text-muted-foreground mt-1 truncate text-xs'>
-                #{props.row.channel_id}
-                {props.row.provider ? ` · ${props.row.provider}` : ''}
-                {props.row.group ? ` · ${props.row.group}` : ''}
+              <div className='text-muted-foreground mt-1 flex min-w-0 items-center gap-1 text-xs'>
+                <span className='min-w-0 truncate'>
+                  #{props.row.channel_id}
+                  {props.row.provider ? ` · ${props.row.provider}` : ''}
+                  {props.row.group ? ` · ${props.row.group}` : ''}
+                </span>
               </div>
             )}
           </div>
-          <Badge
-            variant={channelDisabled ? 'secondary' : badgeVariant[health]}
-            className={channelDisabled ? undefined : healthBadgeClass[health]}
-          >
-            {channelDisabled ? t('Disabled') : props.healthLabel[health]}
-          </Badge>
+          <div className='flex shrink-0 items-center gap-1'>
+            {groupRatios.length > 0 && (
+              <div className='flex items-center gap-1'>
+                {groupRatios.map(([group, ratio]) => (
+                  <Badge
+                    key={group}
+                    variant='warning'
+                    className='h-5 px-1.5 text-[11px]'
+                    title={`${t('Group ratio')}: ${group} x${formatGroupRatio(ratio)}`}
+                  >
+                    x{formatGroupRatio(ratio)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <Badge
+              variant={channelDisabled ? 'secondary' : badgeVariant[health]}
+              className={channelDisabled ? undefined : healthBadgeClass[health]}
+            >
+              {channelDisabled ? t('Disabled') : props.healthLabel[health]}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <Separator />

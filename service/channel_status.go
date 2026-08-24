@@ -6,6 +6,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
 type ChannelStatusHealth string
@@ -24,6 +25,7 @@ type ChannelStatusItem struct {
 	Provider          string                    `json:"provider,omitempty"`
 	ChannelStatus     int                       `json:"channel_status,omitempty"`
 	Group             string                    `json:"group"`
+	GroupRatios       map[string]float64        `json:"group_ratios,omitempty"`
 	ModelName         string                    `json:"model_name"`
 	Health            ChannelStatusHealth       `json:"health"`
 	LatencyMs         int64                     `json:"latency_ms"`
@@ -76,6 +78,9 @@ func QueryChannelStatus(groups []string) (ChannelStatusResult, error) {
 
 		item := buildChannelStatusItem(records)
 		item.Group = target.Group
+		item.GroupRatios = map[string]float64{
+			target.Group: ratio_setting.GetGroupRatio(target.Group),
+		}
 		item.ModelName = target.ModelName
 		if len(records) > 0 {
 			item.ModelName = records[0].ModelName
@@ -108,6 +113,10 @@ func QueryAllChannelStatus() (ChannelStatusResult, error) {
 		item.Provider = constant.GetChannelTypeName(channel.Type)
 		item.ChannelStatus = channel.Status
 		item.Group = channel.Group
+		item.GroupRatios = make(map[string]float64)
+		for _, group := range channel.GetGroups() {
+			item.GroupRatios[group] = ratio_setting.GetGroupRatio(group)
+		}
 		item.ModelName = channel.GetTestModel()
 		if len(channelRecords) > 0 {
 			item.ModelName = channelRecords[0].ModelName

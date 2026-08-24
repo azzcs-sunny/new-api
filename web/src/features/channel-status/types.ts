@@ -32,6 +32,7 @@ export type ChannelStatusRow = {
   provider?: string
   channel_status?: number
   group: string
+  group_ratios?: Record<string, number>
   model_name: string
   health: ChannelHealth
   latency_ms: number
