@@ -68,8 +68,10 @@ export function useStatus() {
     },
     // Use localStorage data as initial data
     placeholderData: getInitialStatus(),
-    // Data becomes stale after 5 minutes
-    staleTime: 5 * 60 * 1000,
+    // Status includes admin-editable legal documents. Refresh when an auth
+    // page regains focus so changes made in another tab take effect promptly.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     // Cache expires after 30 minutes
     gcTime: 30 * 60 * 1000,
   })

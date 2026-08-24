@@ -37,6 +37,10 @@ const STATUS_RELATED_KEYS = new Set([
   'general_setting.custom_currency_symbol',
   'general_setting.custom_currency_exchange_rate',
   'oidc.display_name',
+  'legal.terms_of_service',
+  'legal.usage_policy',
+  'legal.supported_regions',
+  'legal.service_specific_terms',
 ])
 
 export function useUpdateOption() {

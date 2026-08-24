@@ -115,7 +115,9 @@ var WeChatServerAddress = ""
 var WeChatServerToken = ""
 var WeChatAccountQRCodeImageURL = ""
 
-var TurnstileSiteKey = ""
+// Public Cloudflare Turnstile site key. The private secret remains an
+// administrator-only setting and must be configured before enabling checks.
+var TurnstileSiteKey = "0x4AAAAAAEZrR07XMkOSfWS_"
 var TurnstileSecretKey = ""
 
 var TelegramBotToken = ""

@@ -130,6 +130,14 @@ export interface SystemStatus {
     demo_site_enabled?: boolean
     user_agreement_enabled?: boolean
     privacy_policy_enabled?: boolean
+    legal_terms_of_service?: string
+    legal_terms_of_service_updated_at?: number
+    legal_usage_policy?: string
+    legal_usage_policy_updated_at?: number
+    legal_supported_regions?: string
+    legal_supported_regions_updated_at?: number
+    legal_service_specific_terms?: string
+    legal_service_specific_terms_updated_at?: number
     oauth_register_enabled?: boolean
     register_enabled?: boolean
     password_login_enabled?: boolean
@@ -175,6 +183,14 @@ export interface SystemStatus {
   demo_site_enabled?: boolean
   user_agreement_enabled?: boolean
   privacy_policy_enabled?: boolean
+  legal_terms_of_service?: string
+  legal_terms_of_service_updated_at?: number
+  legal_usage_policy?: string
+  legal_usage_policy_updated_at?: number
+  legal_supported_regions?: string
+  legal_supported_regions_updated_at?: number
+  legal_service_specific_terms?: string
+  legal_service_specific_terms_updated_at?: number
   oauth_register_enabled?: boolean
   register_enabled?: boolean
   password_login_enabled?: boolean

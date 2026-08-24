@@ -43,10 +43,12 @@ export function Turnstile({
 
   useEffect(() => {
     const render = () => {
-      if (!ref.current || !window.turnstile) return
+      if (!ref.current || !window.turnstile || ref.current.childElementCount > 0)
+        return
       try {
         window.turnstile.render(ref.current, {
           sitekey: siteKey,
+          size: 'flexible',
           callback: (token: string) => onVerify(token),
           'error-callback': () => onExpire?.(),
           'expired-callback': () => onExpire?.(),
@@ -60,17 +62,32 @@ export function Turnstile({
       render()
       return
     }
+
     const scriptId = 'cf-turnstile'
-    if (document.getElementById(scriptId)) return
-    const s = document.createElement('script')
-    s.id = scriptId
-    s.src =
-      'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    s.async = true
-    s.defer = true
-    s.onload = () => render()
-    document.head.appendChild(s)
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null
+    const onLoad = () => render()
+    if (!script) {
+      script = document.createElement('script')
+      script.id = scriptId
+      script.src =
+        'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.defer = true
+      document.head.appendChild(script)
+    }
+    script.addEventListener('load', onLoad)
+    const retry = window.setInterval(render, 100)
+
+    return () => {
+      script?.removeEventListener('load', onLoad)
+      window.clearInterval(retry)
+    }
   }, [siteKey, onVerify, onExpire])
 
-  return <div ref={ref} className={className} />
+  return (
+    <div
+      ref={ref}
+      className={`turnstile-container w-full${className ? ` ${className}` : ''}`}
+    />
+  )
 }

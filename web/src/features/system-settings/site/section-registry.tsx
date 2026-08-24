@@ -28,6 +28,7 @@ import { NoticeSection } from '../maintenance/notice-section'
 import { SidebarModulesSection } from '../maintenance/sidebar-modules-section'
 import type { SiteSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { LegalDocumentsSection } from './legal-documents-section'
 
 const SITE_SECTIONS = [
   {
@@ -55,6 +56,20 @@ const SITE_SECTIONS = [
     titleKey: 'System Notice',
     build: (settings: SiteSettings) => (
       <NoticeSection defaultValue={settings.Notice ?? ''} />
+    ),
+  },
+  {
+    id: 'legal',
+    titleKey: 'Legal Documents',
+    build: (settings: SiteSettings) => (
+      <LegalDocumentsSection
+        defaultValues={{
+          termsOfService: settings['legal.terms_of_service'],
+          usagePolicy: settings['legal.usage_policy'],
+          supportedRegions: settings['legal.supported_regions'],
+          serviceSpecificTerms: settings['legal.service_specific_terms'],
+        }}
+      />
     ),
   },
   {

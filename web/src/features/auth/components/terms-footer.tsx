@@ -16,10 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Dialog } from '@/components/dialog'
+import { Markdown } from '@/components/ui/markdown'
+import { formatDate } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
+import {
+  getLegalDocuments,
+  isExternalLegalDocument,
+  normalizeLegalDocumentContent,
+  type LegalDocument,
+} from '../lib/legal-documents'
 import type { SystemStatus } from '../types'
 
 interface TermsFooterProps {
@@ -34,61 +44,68 @@ export function TermsFooter({
   status,
 }: TermsFooterProps) {
   const { t } = useTranslation()
+  const [selectedDocument, setSelectedDocument] =
+    useState<LegalDocument | null>(null)
   const text =
     variant === 'sign-in'
       ? 'By clicking sign in, you agree to our'
       : 'By creating an account, you agree to our'
 
-  const hasUserAgreement = Boolean(status?.user_agreement_enabled)
-  const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
-
-  if (!hasUserAgreement && !hasPrivacyPolicy) {
-    return null
+  const legalDocuments = getLegalDocuments(status)
+  const handleDocumentClick = (
+    event: MouseEvent<HTMLButtonElement>,
+    document: LegalDocument
+  ) => {
+    event.preventDefault()
+    setSelectedDocument(document)
   }
 
-  const agreementLink = {
-    label: 'User Agreement',
-    href: '/user-agreement',
-  }
-  const privacyLink = {
-    label: 'Privacy Policy',
-    href: '/privacy-policy',
-  }
-
-  const activeLinks =
-    hasUserAgreement || hasPrivacyPolicy
-      ? ([
-          hasUserAgreement ? agreementLink : null,
-          hasPrivacyPolicy ? privacyLink : null,
-        ].filter(Boolean) as Array<{ label: string; href: string }>)
-      : [agreementLink, privacyLink]
-
-  const [firstLink, secondLink] = activeLinks
+  if (legalDocuments.length === 0) return null
 
   return (
     <p className={cn('text-muted-foreground text-center text-xs', className)}>
-      {text}{' '}
-      {firstLink && (
-        <a
-          href={firstLink.href}
-          className='hover:text-primary underline underline-offset-4'
-        >
-          {firstLink.label}
-        </a>
-      )}
-      {secondLink && (
-        <>
-          {' '}
-          {t('and')}{' '}
-          <a
-            href={secondLink.href}
-            className='hover:text-primary underline underline-offset-4'
-          >
-            {secondLink.label}
-          </a>
-        </>
-      )}
+      {t(text)}{' '}
+      {legalDocuments.map((document, index) => (
+        <span key={document.label}>
+          {isExternalLegalDocument(document.content) ? (
+            <a
+              href={document.content}
+              className='hover:text-primary underline underline-offset-4'
+            >
+              {t(document.label)}
+            </a>
+          ) : (
+            <button
+              type='button'
+              className='text-primary underline underline-offset-4 hover:opacity-80'
+              onClick={(event) => handleDocumentClick(event, document)}
+            >
+              {t(document.label)}
+            </button>
+          )}
+          {index < legalDocuments.length - 1 ? ` ${t('and')} ` : ''}
+        </span>
+      ))}
       .
+      <Dialog
+        open={selectedDocument !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDocument(null)
+        }}
+        title={selectedDocument ? t(selectedDocument.label) : ''}
+        description={
+          selectedDocument?.updatedAt
+            ? `${t('Last updated:')} ${formatDate(selectedDocument.updatedAt)}`
+            : undefined
+        }
+        contentClassName='max-w-3xl'
+      >
+        {selectedDocument ? (
+          <Markdown>
+            {normalizeLegalDocumentContent(selectedDocument.content)}
+          </Markdown>
+        ) : null}
+      </Dialog>
     </p>
   )
 }

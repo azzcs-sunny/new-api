@@ -45,3 +45,26 @@ func TestGetStatusAdvertisesDefaultDashboard(t *testing.T) {
 	assert.True(t, payload.Success)
 	assert.Equal(t, "default", payload.Data["theme"])
 }
+
+func TestGetStatusReturnsSavedLegalDocumentAndUpdateTime(t *testing.T) {
+	previousMap := common.OptionMap
+	common.OptionMap = map[string]string{
+		"legal.terms_of_service":            "Configured terms content",
+		"legal.terms_of_service_updated_at": "1787529600",
+	}
+	t.Cleanup(func() { common.OptionMap = previousMap })
+	response := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(response)
+	context.Request = httptest.NewRequest(http.MethodGet, "/api/status", nil)
+
+	GetStatus(context)
+
+	var payload struct {
+		Success bool           `json:"success"`
+		Data    map[string]any `json:"data"`
+	}
+	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &payload))
+	assert.True(t, payload.Success)
+	assert.Equal(t, "Configured terms content", payload.Data["legal_terms_of_service"])
+	assert.Equal(t, float64(1787529600), payload.Data["legal_terms_of_service_updated_at"])
+}

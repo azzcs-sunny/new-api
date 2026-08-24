@@ -27,6 +27,10 @@ function stableStringify(obj) {
 
 const newKeys = {
   en: {
+    'By clicking sign in, you agree to our':
+      'By clicking sign in, you agree to our',
+    'By creating an account, you agree to our':
+      'By creating an account, you agree to our',
     'Channel Status': 'Channel Status',
     'Refresh channel status': 'Refresh channel status',
     Degraded: 'Degraded',
@@ -40,8 +44,23 @@ const newKeys = {
       '{{success}} successful, {{failed}} failed',
     'No channel test data is available yet.':
       'No channel test data is available yet.',
+    'I have read and agree to the': 'I have read and agree to the',
+    'Terms of Service': 'Terms of Service',
+    'Usage Policy': 'Usage Policy',
+    'Supported Countries and Regions': 'Supported Countries and Regions',
+    'Service-Specific Terms': 'Service-Specific Terms',
+    'Legal Documents': 'Legal Documents',
+    Document: 'Document',
+    'Content or URL': 'Content or URL',
+    Action: 'Action',
+    'Manage the links or content displayed for the four required legal documents.':
+      'Manage the links or content displayed for the four required legal documents.',
+    'Enter Markdown, HTML, or a full URL':
+      'Enter Markdown, HTML, or a full URL',
   },
   zh: {
+    'By clicking sign in, you agree to our': '点击登录即表示您同意',
+    'By creating an account, you agree to our': '创建账户即表示您同意',
     'Channel Status': '渠道状态',
     'Refresh channel status': '刷新渠道状态',
     Degraded: '降级',
@@ -53,8 +72,22 @@ const newKeys = {
     '{{success}} successful, {{failed}} failed':
       '成功 {{success}} 次，失败 {{failed}} 次',
     'No channel test data is available yet.': '暂无渠道测速数据。',
+    'I have read and agree to the': '我已阅读并同意',
+    'Terms of Service': '服务条款',
+    'Usage Policy': '使用政策',
+    'Supported Countries and Regions': '支持的国家和地区',
+    'Service-Specific Terms': '服务特定条款',
+    'Legal Documents': '法律协议',
+    Document: '协议',
+    'Content or URL': '内容或 URL',
+    Action: '操作',
+    'Manage the links or content displayed for the four required legal documents.':
+      '管理四项必需法律协议显示的链接或内容。',
+    'Enter Markdown, HTML, or a full URL': '输入 Markdown、HTML 或完整 URL',
   },
   'zh-TW': {
+    'By clicking sign in, you agree to our': '點擊登入即表示您同意',
+    'By creating an account, you agree to our': '建立帳戶即表示您同意',
     'Channel Status': '渠道狀態',
     'Refresh channel status': '重新整理渠道狀態',
     Degraded: '降級',
@@ -67,8 +100,24 @@ const newKeys = {
     '{{success}} successful, {{failed}} failed':
       '成功 {{success}} 次，失敗 {{failed}} 次',
     'No channel test data is available yet.': '尚無渠道測速資料。',
+    'I have read and agree to the': '我已閱讀並同意',
+    'Terms of Service': '服務條款',
+    'Usage Policy': '使用政策',
+    'Supported Countries and Regions': '支援的國家和地區',
+    'Service-Specific Terms': '服務特定條款',
+    'Legal Documents': '法律協議',
+    Document: '協議',
+    'Content or URL': '內容或 URL',
+    Action: '操作',
+    'Manage the links or content displayed for the four required legal documents.':
+      '管理四項必要法律協議顯示的連結或內容。',
+    'Enter Markdown, HTML, or a full URL': '輸入 Markdown、HTML 或完整 URL',
   },
   fr: {
+    'By clicking sign in, you agree to our':
+      'En cliquant sur « Se connecter », vous acceptez',
+    'By creating an account, you agree to our':
+      'En créant un compte, vous acceptez',
     'Channel Status': 'Statut des canaux',
     'Refresh channel status': 'Actualiser le statut des canaux',
     Degraded: 'Dégradé',
@@ -82,8 +131,25 @@ const newKeys = {
       '{{success}} réussies, {{failed}} échouées',
     'No channel test data is available yet.':
       "Aucune donnée de test de canal n'est encore disponible.",
+    'I have read and agree to the': "J'ai lu et j'accepte",
+    'Terms of Service': "Conditions d'utilisation",
+    'Usage Policy': "Politique d'utilisation",
+    'Supported Countries and Regions': 'Pays et régions pris en charge',
+    'Service-Specific Terms': 'Conditions spécifiques au service',
+    'Legal Documents': 'Documents juridiques',
+    Document: 'Document',
+    'Content or URL': 'Contenu ou URL',
+    Action: 'Action',
+    'Manage the links or content displayed for the four required legal documents.':
+      'Gérez les liens ou le contenu des quatre documents juridiques requis.',
+    'Enter Markdown, HTML, or a full URL':
+      'Saisissez du Markdown, du HTML ou une URL complète',
   },
   ja: {
+    'By clicking sign in, you agree to our':
+      'ログインをクリックすると、次に同意したものとみなされます：',
+    'By creating an account, you agree to our':
+      'アカウントを作成すると、次に同意したものとみなされます：',
     'Channel Status': 'チャネル状態',
     'Refresh channel status': 'チャネル状態を更新',
     Degraded: '性能低下',
@@ -97,8 +163,25 @@ const newKeys = {
       '成功 {{success}} 回、失敗 {{failed}} 回',
     'No channel test data is available yet.':
       'チャネルテストデータはまだありません。',
+    'I have read and agree to the': '以下を読み、同意します：',
+    'Terms of Service': '利用規約',
+    'Usage Policy': '利用ポリシー',
+    'Supported Countries and Regions': '対応国・地域',
+    'Service-Specific Terms': 'サービス固有の規約',
+    'Legal Documents': '法的文書',
+    Document: '文書',
+    'Content or URL': 'コンテンツまたはURL',
+    Action: '操作',
+    'Manage the links or content displayed for the four required legal documents.':
+      '4つの必須法的文書に表示するリンクまたはコンテンツを管理します。',
+    'Enter Markdown, HTML, or a full URL':
+      'Markdown、HTML、または完全なURLを入力',
   },
   ru: {
+    'By clicking sign in, you agree to our':
+      'Нажимая «Войти», вы соглашаетесь с',
+    'By creating an account, you agree to our':
+      'Создавая аккаунт, вы соглашаетесь с',
     'Channel Status': 'Состояние каналов',
     'Refresh channel status': 'Обновить состояние каналов',
     Degraded: 'Работает с перебоями',
@@ -112,8 +195,25 @@ const newKeys = {
       'Успешно: {{success}}, с ошибкой: {{failed}}',
     'No channel test data is available yet.':
       'Данные проверки каналов пока отсутствуют.',
+    'I have read and agree to the': 'Я прочитал(а) и принимаю',
+    'Terms of Service': 'Условия использования',
+    'Usage Policy': 'Политика использования',
+    'Supported Countries and Regions': 'Поддерживаемые страны и регионы',
+    'Service-Specific Terms': 'Особые условия сервиса',
+    'Legal Documents': 'Юридические документы',
+    Document: 'Документ',
+    'Content or URL': 'Содержимое или URL',
+    Action: 'Действие',
+    'Manage the links or content displayed for the four required legal documents.':
+      'Управляйте ссылками или содержимым четырех обязательных юридических документов.',
+    'Enter Markdown, HTML, or a full URL':
+      'Введите Markdown, HTML или полный URL',
   },
   vi: {
+    'By clicking sign in, you agree to our':
+      'Bằng cách nhấp vào đăng nhập, bạn đồng ý với',
+    'By creating an account, you agree to our':
+      'Bằng cách tạo tài khoản, bạn đồng ý với',
     'Channel Status': 'Trạng thái kênh',
     'Refresh channel status': 'Làm mới trạng thái kênh',
     Degraded: 'Suy giảm',
@@ -126,6 +226,19 @@ const newKeys = {
     '{{success}} successful, {{failed}} failed':
       '{{success}} thành công, {{failed}} thất bại',
     'No channel test data is available yet.': 'Chưa có dữ liệu kiểm tra kênh.',
+    'I have read and agree to the': 'Tôi đã đọc và đồng ý với',
+    'Terms of Service': 'Điều khoản dịch vụ',
+    'Usage Policy': 'Chính sách sử dụng',
+    'Supported Countries and Regions': 'Các quốc gia và khu vực được hỗ trợ',
+    'Service-Specific Terms': 'Điều khoản riêng của dịch vụ',
+    'Legal Documents': 'Tài liệu pháp lý',
+    Document: 'Tài liệu',
+    'Content or URL': 'Nội dung hoặc URL',
+    Action: 'Thao tác',
+    'Manage the links or content displayed for the four required legal documents.':
+      'Quản lý liên kết hoặc nội dung hiển thị cho bốn tài liệu pháp lý bắt buộc.',
+    'Enter Markdown, HTML, or a full URL':
+      'Nhập Markdown, HTML hoặc URL đầy đủ',
   },
 }
 

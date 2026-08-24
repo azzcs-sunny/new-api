@@ -50,6 +50,7 @@ import {
 } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
+import { getLegalDocuments } from '@/features/auth/lib/legal-documents'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import type { AuthFormProps } from '@/features/auth/types'
 import { useStatus } from '@/hooks/use-status'
@@ -100,9 +101,7 @@ export function UserAuthForm({
     (state) => state.auth.setPending2FAFlowToken
   )
 
-  const hasUserAgreement = Boolean(status?.user_agreement_enabled)
-  const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
-  const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
+  const requiresLegalConsent = getLegalDocuments(status).length > 0
   const passkeyButtonDisabled =
     isPasskeyLoading ||
     !passkeySupported ||
@@ -417,7 +416,7 @@ export function UserAuthForm({
 
             {/* Turnstile */}
             {isTurnstileEnabled && (
-              <div className='mt-2'>
+              <div className='mt-2 w-full'>
                 <Turnstile
                   key={turnstileWidgetKey}
                   siteKey={turnstileSiteKey}

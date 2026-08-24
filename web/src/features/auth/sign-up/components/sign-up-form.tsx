@@ -50,6 +50,7 @@ import {
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useEmailVerification } from '@/features/auth/hooks/use-email-verification'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
+import { getLegalDocuments } from '@/features/auth/lib/legal-documents'
 import {
   getAffiliateCode,
   saveAffiliateCode,
@@ -104,9 +105,7 @@ export function SignUpForm({
 
   const emailValue = form.watch('email')
   const emailVerificationRequired = !!status?.email_verification
-  const hasUserAgreement = Boolean(status?.user_agreement_enabled)
-  const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
-  const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
+  const requiresLegalConsent = getLegalDocuments(status).length > 0
   const oauthRegisterEnabled =
     status?.oauth_register_enabled ??
     status?.data?.oauth_register_enabled ??

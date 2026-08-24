@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
@@ -203,10 +204,10 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	case "TurnstileCheckEnabled":
-		if option.Value == "true" && common.TurnstileSiteKey == "" {
+		if option.Value == "true" && (common.TurnstileSiteKey == "" || common.TurnstileSecretKey == "") {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
-				"message": "无法启用 Turnstile 校验，请先填入 Turnstile 校验相关配置信息！",
+				"message": "无法启用 Turnstile 校验，请先填入 Site Key 和 Secret Key！",
 			})
 
 			return
@@ -363,7 +364,25 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	}
-	err = model.UpdateOption(option.Key, option.Value.(string))
+	legalDocumentUpdatedAtKey := ""
+	switch option.Key {
+	case "legal.terms_of_service":
+		legalDocumentUpdatedAtKey = "legal.terms_of_service_updated_at"
+	case "legal.usage_policy":
+		legalDocumentUpdatedAtKey = "legal.usage_policy_updated_at"
+	case "legal.supported_regions":
+		legalDocumentUpdatedAtKey = "legal.supported_regions_updated_at"
+	case "legal.service_specific_terms":
+		legalDocumentUpdatedAtKey = "legal.service_specific_terms_updated_at"
+	}
+	if legalDocumentUpdatedAtKey != "" {
+		err = model.UpdateOptionsBulk(map[string]string{
+			option.Key:                option.Value.(string),
+			legalDocumentUpdatedAtKey: strconv.FormatInt(time.Now().Unix(), 10),
+		})
+	} else {
+		err = model.UpdateOption(option.Key, option.Value.(string))
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -129,7 +129,7 @@ func InitOptionMap() {
 	common.OptionMap["WeChatServerAddress"] = ""
 	common.OptionMap["WeChatServerToken"] = ""
 	common.OptionMap["WeChatAccountQRCodeImageURL"] = ""
-	common.OptionMap["TurnstileSiteKey"] = ""
+	common.OptionMap["TurnstileSiteKey"] = common.TurnstileSiteKey
 	common.OptionMap["TurnstileSecretKey"] = ""
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)

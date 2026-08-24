@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -49,6 +50,10 @@ func GetStatus(c *gin.Context) {
 
 	passkeySetting := system_setting.GetPasskeySettings()
 	legalSetting := system_setting.GetLegalSettings()
+	legalDocumentUpdatedAt := func(key string) int64 {
+		updatedAt, _ := strconv.ParseInt(common.Interface2String(common.OptionMap[key]), 10, 64)
+		return updatedAt
+	}
 
 	data := gin.H{
 		"version":                     common.Version,
@@ -108,21 +113,29 @@ func GetStatus(c *gin.Context) {
 		"HeaderNavModules":    common.OptionMap["HeaderNavModules"],
 		"SidebarModulesAdmin": common.OptionMap["SidebarModulesAdmin"],
 
-		"oidc_enabled":                system_setting.GetOIDCSettings().Enabled,
-		"oidc_client_id":              system_setting.GetOIDCSettings().ClientId,
-		"oidc_authorization_endpoint": system_setting.GetOIDCSettings().AuthorizationEndpoint,
-		"oidc_display_name":           system_setting.GetOIDCSettings().GetEffectiveDisplayName(),
-		"passkey_login":               passkeySetting.Enabled,
-		"passkey_display_name":        passkeySetting.RPDisplayName,
-		"passkey_rp_id":               passkeySetting.RPID,
-		"passkey_origins":             passkeySetting.Origins,
-		"passkey_allow_insecure":      passkeySetting.AllowInsecureOrigin,
-		"passkey_user_verification":   passkeySetting.UserVerification,
-		"passkey_attachment":          passkeySetting.AttachmentPreference,
-		"setup":                       constant.Setup,
-		"user_agreement_enabled":      legalSetting.UserAgreement != "",
-		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
-		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
+		"oidc_enabled":                            system_setting.GetOIDCSettings().Enabled,
+		"oidc_client_id":                          system_setting.GetOIDCSettings().ClientId,
+		"oidc_authorization_endpoint":             system_setting.GetOIDCSettings().AuthorizationEndpoint,
+		"oidc_display_name":                       system_setting.GetOIDCSettings().GetEffectiveDisplayName(),
+		"passkey_login":                           passkeySetting.Enabled,
+		"passkey_display_name":                    passkeySetting.RPDisplayName,
+		"passkey_rp_id":                           passkeySetting.RPID,
+		"passkey_origins":                         passkeySetting.Origins,
+		"passkey_allow_insecure":                  passkeySetting.AllowInsecureOrigin,
+		"passkey_user_verification":               passkeySetting.UserVerification,
+		"passkey_attachment":                      passkeySetting.AttachmentPreference,
+		"setup":                                   constant.Setup,
+		"user_agreement_enabled":                  legalSetting.UserAgreement != "",
+		"privacy_policy_enabled":                  legalSetting.PrivacyPolicy != "",
+		"legal_terms_of_service":                  common.OptionMap["legal.terms_of_service"],
+		"legal_terms_of_service_updated_at":       legalDocumentUpdatedAt("legal.terms_of_service_updated_at"),
+		"legal_usage_policy":                      common.OptionMap["legal.usage_policy"],
+		"legal_usage_policy_updated_at":           legalDocumentUpdatedAt("legal.usage_policy_updated_at"),
+		"legal_supported_regions":                 common.OptionMap["legal.supported_regions"],
+		"legal_supported_regions_updated_at":      legalDocumentUpdatedAt("legal.supported_regions_updated_at"),
+		"legal_service_specific_terms":            common.OptionMap["legal.service_specific_terms"],
+		"legal_service_specific_terms_updated_at": legalDocumentUpdatedAt("legal.service_specific_terms_updated_at"),
+		"checkin_enabled":                         operation_setting.GetCheckinSetting().Enabled,
 	}
 
 	// 根据启用状态注入可选内容

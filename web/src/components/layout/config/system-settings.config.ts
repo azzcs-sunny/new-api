@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type TFunction } from 'i18next'
+import type { TFunction } from 'i18next'
 import {
   Box,
   CreditCard,
+  FileText,
   Layout,
   Settings,
   Shield,
@@ -53,7 +54,14 @@ function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
         {
           title: t('Site & Branding'),
           icon: Settings,
-          items: getSiteSectionNavItems(t),
+          items: getSiteSectionNavItems(t).filter(
+            (item) => item.url !== '/system-settings/site/legal'
+          ),
+        },
+        {
+          title: t('Legal Documents'),
+          icon: FileText,
+          url: '/system-settings/site/legal',
         },
         {
           title: t('Authentication'),
