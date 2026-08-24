@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, test } from 'vitest'
 
 import { QqGroupButton } from '../qq-group-button'
@@ -26,8 +27,22 @@ describe('QqGroupButton', () => {
     render(<QqGroupButton />)
 
     const link = screen.getByRole('button', { name: 'Join QQ Group' })
-    expect(link).toHaveAttribute('href', 'https://qm.qq.com/q/sSUPo1zdDy')
+    expect(link).toHaveAttribute('href', 'https://qm.qq.com/q/FSYcQbGngA')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  test('shows the group details and QR code when the link is hovered', async () => {
+    const user = userEvent.setup()
+    render(<QqGroupButton />)
+
+    await user.hover(screen.getByRole('button', { name: 'Join QQ Group' }))
+
+    expect(await screen.findByText('WC API')).toBeVisible()
+    expect(screen.getByText(/QQ Group Number: 907379317/)).toBeVisible()
+    expect(screen.getByTitle('Join QQ Group').closest('svg')).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Copy to clipboard' })
+    ).toBeVisible()
   })
 })
