@@ -33,6 +33,8 @@ const newKeys = {
       'By creating an account, you agree to our',
     'Channel Status': 'Channel Status',
     'Channel monitoring status': 'Channel monitoring status',
+    'View current availability across configured channels.':
+      'View current availability across configured channels.',
     'Group ratio': 'Group ratio',
     'Refresh channel status': 'Refresh channel status',
     Degraded: 'Degraded',
@@ -67,6 +69,8 @@ const newKeys = {
     'By creating an account, you agree to our': '创建账户即表示您同意',
     'Channel Status': '渠道状态',
     'Channel monitoring status': '渠道监控状态',
+    'View current availability across configured channels.':
+      '查看已配置渠道的当前可用状态。',
     'Group ratio': '分组倍率',
     'Refresh channel status': '刷新渠道状态',
     Degraded: '降级',
@@ -97,6 +101,8 @@ const newKeys = {
     'By creating an account, you agree to our': '建立帳戶即表示您同意',
     'Channel Status': '渠道狀態',
     'Channel monitoring status': '渠道監控狀態',
+    'View current availability across configured channels.':
+      '查看已設定渠道目前的可用狀態。',
     'Group ratio': '分組倍率',
     'Refresh channel status': '重新整理渠道狀態',
     Degraded: '降級',
@@ -130,6 +136,8 @@ const newKeys = {
       'En créant un compte, vous acceptez',
     'Channel Status': 'Statut des canaux',
     'Channel monitoring status': 'Statut de la surveillance des canaux',
+    'View current availability across configured channels.':
+      'Consultez la disponibilité actuelle des canaux configurés.',
     'Group ratio': 'Ratio de groupe',
     'Refresh channel status': 'Actualiser le statut des canaux',
     Degraded: 'Dégradé',
@@ -166,6 +174,8 @@ const newKeys = {
       'アカウントを作成すると、次に同意したものとみなされます：',
     'Channel Status': 'チャネル状態',
     'Channel monitoring status': 'チャネル監視のステータス',
+    'View current availability across configured channels.':
+      '設定済みチャネルの現在の稼働状況を確認します。',
     'Group ratio': 'グループ倍率',
     'Refresh channel status': 'チャネル状態を更新',
     Degraded: '性能低下',
@@ -202,6 +212,8 @@ const newKeys = {
       'Создавая аккаунт, вы соглашаетесь с',
     'Channel Status': 'Состояние каналов',
     'Channel monitoring status': 'Статус мониторинга каналов',
+    'View current availability across configured channels.':
+      'Просматривайте текущую доступность настроенных каналов.',
     'Group ratio': 'Коэффициент группы',
     'Refresh channel status': 'Обновить состояние каналов',
     Degraded: 'Работает с перебоями',
@@ -238,6 +250,8 @@ const newKeys = {
       'Bằng cách tạo tài khoản, bạn đồng ý với',
     'Channel Status': 'Trạng thái kênh',
     'Channel monitoring status': 'Trạng thái giám sát kênh',
+    'View current availability across configured channels.':
+      'Xem trạng thái khả dụng hiện tại của các kênh đã cấu hình.',
     'Group ratio': 'Hệ số nhóm',
     'Refresh channel status': 'Làm mới trạng thái kênh',
     Degraded: 'Suy giảm',

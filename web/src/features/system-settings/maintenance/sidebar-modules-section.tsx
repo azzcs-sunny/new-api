@@ -102,6 +102,10 @@ export function SidebarModulesSection({
         title: t('Dashboard'),
         description: t('Aggregated usage metrics and trend charts.'),
       },
+      channelStatus: {
+        title: t('Channel Status'),
+        description: t('View current availability across configured channels.'),
+      },
       token: {
         title: t('Token management'),
         description: t('Create, revoke, and audit API tokens.'),
