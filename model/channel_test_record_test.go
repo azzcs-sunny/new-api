@@ -47,14 +47,44 @@ func TestCreateChannelTestRecordKeepsLatestSixtyPerChannel(t *testing.T) {
 		TestedAt:  1,
 	}))
 
-	records, err := GetLatestChannelTestRecords(1, ChannelTestHistoryLimit)
+	records, err := GetLatestChannelTestRecords(1, ChannelTestTriggerScheduled, ChannelTestHistoryLimit)
 	require.NoError(t, err)
 	require.Len(t, records, ChannelTestHistoryLimit)
 	assert.Equal(t, "model-62", records[0].ModelName)
 	assert.Equal(t, "model-3", records[len(records)-1].ModelName)
 
-	otherRecords, err := GetLatestChannelTestRecords(2, ChannelTestHistoryLimit)
+	otherRecords, err := GetLatestChannelTestRecords(2, ChannelTestTriggerScheduled, ChannelTestHistoryLimit)
 	require.NoError(t, err)
 	require.Len(t, otherRecords, 1)
 	assert.Equal(t, "other-channel", otherRecords[0].ModelName)
+}
+
+func TestCreateChannelTestRecordKeepsSeparateScheduledAndManualHistory(t *testing.T) {
+	truncateTables(t)
+	require.NoError(t, DB.Create(&Channel{Id: 1}).Error)
+
+	for i := 1; i <= ChannelTestHistoryLimit+1; i++ {
+		require.NoError(t, CreateChannelTestRecord(&ChannelTestRecord{
+			ChannelId:   1,
+			TriggerType: ChannelTestTriggerManual,
+			ModelName:   "manual-model",
+			Success:     true,
+			TestedAt:    int64(i),
+		}))
+	}
+	require.NoError(t, CreateChannelTestRecord(&ChannelTestRecord{
+		ChannelId:   1,
+		TriggerType: ChannelTestTriggerScheduled,
+		ModelName:   "scheduled-model",
+		Success:     true,
+		TestedAt:    1,
+	}))
+
+	manual, err := GetLatestChannelTestRecords(1, ChannelTestTriggerManual, ChannelTestHistoryLimit)
+	require.NoError(t, err)
+	require.Len(t, manual, ChannelTestHistoryLimit)
+	scheduled, err := GetLatestChannelTestRecords(1, ChannelTestTriggerScheduled, ChannelTestHistoryLimit)
+	require.NoError(t, err)
+	require.Len(t, scheduled, 1)
+	assert.Equal(t, "scheduled-model", scheduled[0].ModelName)
 }

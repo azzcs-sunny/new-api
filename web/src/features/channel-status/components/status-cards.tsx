@@ -24,7 +24,11 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
-import type { ChannelHealth, ChannelStatusRow } from '../types'
+import type {
+  ChannelHealth,
+  ChannelStatusRow,
+  ChannelTestRecord,
+} from '../types'
 
 type StatusCardsProps = {
   rows: ChannelStatusRow[]
@@ -49,6 +53,8 @@ const testPlaceholderKeys = Array.from(
   { length: 60 },
   (_, slot) => `empty-${slot}`
 )
+
+const degradedLatencyMs = 6000
 
 export function StatusCards(props: StatusCardsProps) {
   const { t } = useTranslation()
@@ -80,7 +86,11 @@ export function StatusCards(props: StatusCardsProps) {
   return (
     <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
       {props.rows.map((row) => (
-        <StatusCard key={row.group} row={row} healthLabel={healthLabel} />
+        <StatusCard
+          key={row.channel_id ?? row.group}
+          row={row}
+          healthLabel={healthLabel}
+        />
       ))}
     </div>
   )
@@ -91,10 +101,30 @@ type StatusCardProps = {
   healthLabel: Record<ChannelHealth, string>
 }
 
+function recordDisplay(record: ChannelTestRecord) {
+  if (!record.success) {
+    return {
+      colorClass: 'bg-destructive',
+      heightPercent: 35,
+      status: 'failure',
+    }
+  }
+  if (record.latency_ms >= degradedLatencyMs) {
+    return {
+      colorClass: 'bg-warning',
+      heightPercent: 65,
+      status: 'degraded',
+    }
+  }
+  return { colorClass: 'bg-success', heightPercent: 100, status: 'success' }
+}
+
 function StatusCard(props: StatusCardProps) {
   const { t } = useTranslation()
   const records = (props.row.records ?? []).slice(-60)
   const health = props.row.health ?? 'unknown'
+  const channelDisabled =
+    props.row.channel_status !== undefined && props.row.channel_status !== 1
   const successfulTests = records.filter((record) => record.success).length
   const failedTests = records.length - successfulTests
   const placeholders = Math.max(0, 60 - records.length)
@@ -107,12 +137,23 @@ function StatusCard(props: StatusCardProps) {
     <Card data-testid='channel-status-card' className='h-full overflow-hidden'>
       <CardHeader className='gap-3'>
         <div className='flex items-start justify-between gap-3'>
-          <CardTitle className='truncate'>{props.row.group}</CardTitle>
+          <div className='min-w-0'>
+            <CardTitle className='truncate'>
+              {props.row.channel_name ?? props.row.group}
+            </CardTitle>
+            {props.row.channel_name && (
+              <div className='text-muted-foreground mt-1 truncate text-xs'>
+                #{props.row.channel_id}
+                {props.row.provider ? ` · ${props.row.provider}` : ''}
+                {props.row.group ? ` · ${props.row.group}` : ''}
+              </div>
+            )}
+          </div>
           <Badge
-            variant={badgeVariant[health]}
-            className={healthBadgeClass[health]}
+            variant={channelDisabled ? 'secondary' : badgeVariant[health]}
+            className={channelDisabled ? undefined : healthBadgeClass[health]}
           >
-            {props.healthLabel[health]}
+            {channelDisabled ? t('Disabled') : props.healthLabel[health]}
           </Badge>
         </div>
       </CardHeader>
@@ -131,6 +172,18 @@ function StatusCard(props: StatusCardProps) {
               {latency}
             </dd>
           </div>
+          {props.row.channel_id !== undefined && (
+            <div className='min-w-0'>
+              <dt className='text-muted-foreground text-xs'>
+                {t('Success rate')}
+              </dt>
+              <dd className='mt-1 truncate font-mono text-sm font-semibold tabular-nums'>
+                {records.length > 0
+                  ? `${(props.row.recent_success_rate ?? 0).toFixed(1)}%`
+                  : '—'}
+              </dd>
+            </div>
+          )}
         </dl>
 
         <Separator />
@@ -152,25 +205,32 @@ function StatusCard(props: StatusCardProps) {
                 key={key}
                 data-testid='test-record'
                 data-status='empty'
-                className='bg-muted h-3 min-w-0 flex-1 rounded-[1px]'
+                style={{ height: '15%' }}
+                className='bg-muted min-w-0 flex-1 rounded-[1px]'
                 aria-hidden='true'
               />
             ))}
             {records.map((record) => (
-              <span
-                key={record.id}
-                data-testid='test-record'
-                data-status={record.success ? 'success' : 'failure'}
-                className={cn(
-                  'h-7 min-w-0 flex-1 rounded-[1px]',
-                  record.success ? 'bg-success' : 'bg-destructive'
-                )}
-                aria-hidden='true'
-              />
+              <TestRecordBar key={record.id} record={record} />
             ))}
           </div>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function TestRecordBar({ record }: { record: ChannelTestRecord }) {
+  const display = recordDisplay(record)
+
+  return (
+    <span
+      data-testid='test-record'
+      data-status={display.status}
+      title={`${Math.round(Math.max(0, record.latency_ms))} ms`}
+      style={{ height: `${display.heightPercent}%` }}
+      className={cn('min-w-0 flex-1 rounded-[1px]', display.colorClass)}
+      aria-hidden='true'
+    />
   )
 }

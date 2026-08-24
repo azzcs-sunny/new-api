@@ -16,36 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export type ChannelHealth = 'unknown' | 'healthy' | 'warning' | 'critical'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-export type ChannelTestRecord = {
-  id: number
-  model_name: string
-  success: boolean
-  latency_ms: number
-  tested_at: number
-}
+import { ChannelMonitor } from '@/features/channel-monitor'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
-export type ChannelStatusRow = {
-  channel_id?: number
-  channel_name?: string
-  provider?: string
-  channel_status?: number
-  group: string
-  model_name: string
-  health: ChannelHealth
-  latency_ms: number
-  recent_success_rate?: number
-  latest_checked_at?: number
-  records: ChannelTestRecord[]
-}
-
-export type ChannelStatusResult = {
-  items: ChannelStatusRow[]
-}
-
-export type ChannelStatusResponse = {
-  success: boolean
-  message?: string
-  data: ChannelStatusResult
-}
+export const Route = createFileRoute('/_authenticated/channel-monitor/')({
+  beforeLoad: () => {
+    const { auth } = useAuthStore.getState()
+    if (!auth.user || auth.user.role < ROLE.ADMIN) {
+      throw redirect({ to: '/403' })
+    }
+  },
+  component: ChannelMonitor,
+})

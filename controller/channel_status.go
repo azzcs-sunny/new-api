@@ -25,3 +25,18 @@ func GetChannelStatus(c *gin.Context) {
 		"data":    result,
 	})
 }
+
+func GetAllChannelStatus(c *gin.Context) {
+	result, err := service.QueryAllChannelStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    result,
+	})
+}

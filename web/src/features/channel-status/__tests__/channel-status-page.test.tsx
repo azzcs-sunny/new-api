@@ -154,6 +154,22 @@ describe('channel status page', () => {
     expect(getChannelStatus).toHaveBeenCalledTimes(2)
   })
 
+  test('shows the time until the next automatic refresh', async () => {
+    vi.useFakeTimers()
+    vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
+
+    renderPage()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(screen.getByText('Refreshes in 60s')).toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(screen.getByText('Refreshes in 59s')).toBeInTheDocument()
+  })
+
   test('exposes an accessible refresh command and refetches on click', async () => {
     vi.mocked(getChannelStatus).mockResolvedValue(emptyResponse)
     const user = userEvent.setup()
@@ -219,6 +235,17 @@ describe('channel status page', () => {
         .getAllByTestId('test-record')
         .filter((record) => record.dataset.status === 'failure')
     ).toHaveLength(1)
+    const degradedRecords = within(cards[1])
+      .getAllByTestId('test-record')
+      .filter((record) => record.dataset.status === 'degraded')
+    expect(degradedRecords).toHaveLength(2)
+    for (const record of degradedRecords) {
+      expect(record).toHaveClass('bg-warning')
+      expect(record).toHaveStyle({ height: '65%' })
+    }
+    expect(within(cards[0]).getAllByTestId('test-record')[0]).toHaveStyle({
+      height: '15%',
+    })
   })
 
   test('renders cards when the interface uses the internal zhCN code', async () => {

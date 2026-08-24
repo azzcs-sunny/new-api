@@ -42,6 +42,8 @@ type testResult struct {
 	newAPIError *types.NewAPIError
 }
 
+type channelTestTriggerContextKey struct{}
+
 func normalizeChannelTestEndpoint(channel *model.Channel, endpointType string) string {
 	normalized := strings.TrimSpace(endpointType)
 	if normalized != "" {
@@ -99,12 +101,11 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 	}
 	statusModel := testModel
 	defer func() {
-		service.RecordChannelTestResult(
-			channel,
-			statusModel,
-			time.Since(tik).Milliseconds(),
-			result.localErr == nil && result.newAPIError == nil,
-		)
+		triggerType, _ := ctx.Value(channelTestTriggerContextKey{}).(string)
+		if triggerType == "" {
+			triggerType = model.ChannelTestTriggerManual
+		}
+		service.RecordChannelTestResult(channel, triggerType, statusModel, time.Since(tik).Milliseconds(), result.localErr == nil && result.newAPIError == nil)
 	}()
 
 	endpointType = normalizeChannelTestEndpoint(channel, endpointType)
@@ -912,6 +913,7 @@ func testChannelForHealthCheck(ctx context.Context, channel *model.Channel, test
 	summary := channelTestSummary{}
 	isChannelEnabled := channel.Status == common.ChannelStatusEnabled
 	tik := time.Now()
+	ctx = context.WithValue(ctx, channelTestTriggerContextKey{}, model.ChannelTestTriggerScheduled)
 	result := testChannel(ctx, channel, testUserID, "", "", shouldUseStreamForAutomaticChannelTest(channel))
 	milliseconds := time.Since(tik).Milliseconds()
 	if ctx.Err() != nil {

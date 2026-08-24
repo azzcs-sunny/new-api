@@ -16,36 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export type ChannelHealth = 'unknown' | 'healthy' | 'warning' | 'critical'
+import type { ChannelStatusResponse } from '@/features/channel-status/types'
+import { api } from '@/lib/api'
 
-export type ChannelTestRecord = {
-  id: number
-  model_name: string
-  success: boolean
-  latency_ms: number
-  tested_at: number
-}
-
-export type ChannelStatusRow = {
-  channel_id?: number
-  channel_name?: string
-  provider?: string
-  channel_status?: number
-  group: string
-  model_name: string
-  health: ChannelHealth
-  latency_ms: number
-  recent_success_rate?: number
-  latest_checked_at?: number
-  records: ChannelTestRecord[]
-}
-
-export type ChannelStatusResult = {
-  items: ChannelStatusRow[]
-}
-
-export type ChannelStatusResponse = {
-  success: boolean
-  message?: string
-  data: ChannelStatusResult
+export async function getAllChannelStatus() {
+  const response = await api.get<ChannelStatusResponse>(
+    '/api/channel-monitor/status'
+  )
+  return response.data
 }

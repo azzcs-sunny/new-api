@@ -233,6 +233,11 @@ func SetApiRouter(router *gin.Engine) {
 			ratioSyncRoute.POST("/fetch", controller.FetchUpstreamRatios)
 		}
 		registerChannelRoutes(apiRouter)
+		channelMonitorRoute := apiRouter.Group("/channel-monitor")
+		channelMonitorRoute.Use(middleware.AdminAuth())
+		{
+			channelMonitorRoute.GET("/status", controller.GetAllChannelStatus)
+		}
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
 		tokenRoute.Use(middleware.UserAuth())

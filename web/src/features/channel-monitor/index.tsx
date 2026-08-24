@@ -37,20 +37,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { StatusCards } from '@/features/channel-status/components/status-cards'
 
-import { getChannelStatus } from './api'
-import { StatusCards } from './components/status-cards'
+import { getAllChannelStatus } from './api'
 
 const refreshIntervalMs = 60 * 1000
 
-export function ChannelStatus() {
+export function ChannelMonitor() {
   const { t } = useTranslation()
   const { secondsLeft, start } = useCountdown({
     initialSeconds: refreshIntervalMs / 1000,
   })
   const statusQuery = useQuery({
-    queryKey: ['channel-status'],
-    queryFn: getChannelStatus,
+    queryKey: ['channel-monitor-status'],
+    queryFn: getAllChannelStatus,
     refetchInterval: refreshIntervalMs,
     refetchIntervalInBackground: true,
     staleTime: 0,
@@ -64,7 +64,9 @@ export function ChannelStatus() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Channel Status')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>
+        {t('Channel Monitoring')}
+      </SectionPageLayout.Title>
       <SectionPageLayout.Actions>
         <span className='text-muted-foreground text-xs' aria-live='polite'>
           {t('Refreshes in {{seconds}}s', { seconds: secondsLeft })}
@@ -98,7 +100,7 @@ export function ChannelStatus() {
               <EmptyTitle>
                 {statusQuery.isError
                   ? t('Failed to load')
-                  : t('Channel Status')}
+                  : t('Channel Monitoring')}
               </EmptyTitle>
               <EmptyDescription>
                 {statusQuery.isError

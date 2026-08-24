@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { TFunction } from 'i18next'
 import {
   Activity,
   Box,
@@ -36,7 +37,6 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 
 import type { SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
@@ -128,6 +128,12 @@ export function buildSidebarData(t: TFunction): SidebarData {
             title: t('Channels'),
             url: '/channels',
             icon: Radio,
+          },
+          {
+            title: t('Channel Monitoring'),
+            url: '/channel-monitor',
+            icon: Signal,
+            requiredRole: ROLE.ADMIN,
           },
           {
             title: t('Models'),
