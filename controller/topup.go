@@ -580,3 +580,24 @@ func AdminCompleteTopUp(c *gin.Context) {
 	}
 	common.ApiSuccess(c, nil)
 }
+
+type AdminUpdateTopUpInvoiceStatusRequest struct {
+	ID            int  `json:"id"`
+	InvoiceIssued bool `json:"invoice_issued"`
+}
+
+// AdminUpdateTopUpInvoiceStatus manually marks a successful order as invoiced
+// so it will no longer be offered for a user's invoice request.
+func AdminUpdateTopUpInvoiceStatus(c *gin.Context) {
+	var req AdminUpdateTopUpInvoiceStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
+		common.ApiErrorMsg(c, "参数错误")
+		return
+	}
+
+	if err := model.UpdateTopUpInvoiceStatus(req.ID, req.InvoiceIssued); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}

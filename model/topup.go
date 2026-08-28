@@ -22,6 +22,7 @@ type TopUp struct {
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
 	Status          string  `json:"status"`
+	InvoiceIssued   bool    `json:"invoice_issued"`
 }
 
 const (
@@ -42,11 +43,12 @@ const (
 )
 
 var (
-	ErrPaymentMethodMismatch   = errors.New("payment method mismatch")
-	ErrTopUpNotFound           = errors.New("topup not found")
-	ErrTopUpStatusInvalid      = errors.New("topup status invalid")
-	ErrInvalidTopUpQuota       = errors.New("invalid top-up quota")
-	ErrTopUpQuotaLimitExceeded = errors.New("top-up quota limit exceeded")
+	ErrPaymentMethodMismatch     = errors.New("payment method mismatch")
+	ErrTopUpNotFound             = errors.New("topup not found")
+	ErrTopUpStatusInvalid        = errors.New("topup status invalid")
+	ErrInvalidTopUpQuota         = errors.New("invalid top-up quota")
+	ErrTopUpQuotaLimitExceeded   = errors.New("top-up quota limit exceeded")
+	ErrTopUpInvoiceStatusInvalid = errors.New("top-up invoice status can only be changed for successful orders")
 )
 
 func (topUp *TopUp) Insert() error {
@@ -140,6 +142,66 @@ func GetTopUpByTradeNo(tradeNo string) *TopUp {
 		return nil
 	}
 	return topUp
+}
+
+// applyIssuedInvoiceFlags keeps billing history compatible with invoice
+// records created before top-ups started storing the invoice flag.
+func applyIssuedInvoiceFlags(tx *gorm.DB, topups []*TopUp) error {
+	if len(topups) == 0 {
+		return nil
+	}
+	ids := make([]int, 0, len(topups))
+	for _, topUp := range topups {
+		if topUp != nil {
+			ids = append(ids, topUp.Id)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	var issuedIDs []int
+	if err := tx.Model(&InvoiceOrder{}).
+		Select("invoice_orders.top_up_id").
+		Joins("JOIN invoices ON invoices.id = invoice_orders.invoice_id").
+		Where("invoice_orders.top_up_id IN ? AND invoices.status = ?", ids, InvoiceStatusIssued).
+		Find(&issuedIDs).Error; err != nil {
+		return err
+	}
+	issued := make(map[int]struct{}, len(issuedIDs))
+	for _, id := range issuedIDs {
+		issued[id] = struct{}{}
+	}
+	for _, topUp := range topups {
+		if topUp == nil {
+			continue
+		}
+		if _, ok := issued[topUp.Id]; ok {
+			topUp.InvoiceIssued = true
+		}
+	}
+	return nil
+}
+
+// UpdateTopUpInvoiceStatus lets an administrator mark a successful top-up as
+// already invoiced (or make it eligible again). The row lock keeps concurrent
+// updates deterministic and ensures the order status is checked atomically.
+func UpdateTopUpInvoiceStatus(id int, issued bool) error {
+	if id <= 0 {
+		return ErrTopUpNotFound
+	}
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var topUp TopUp
+		if err := lockForUpdate(tx).Where("id = ?", id).First(&topUp).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrTopUpNotFound
+			}
+			return err
+		}
+		if topUp.Status != common.TopUpStatusSuccess {
+			return ErrTopUpInvoiceStatusInvalid
+		}
+		return tx.Model(&topUp).Update("invoice_issued", issued).Error
+	})
 }
 
 func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, targetStatus string) error {
@@ -323,6 +385,10 @@ func GetUserTopUps(userId int, pageInfo *common.PageInfo) (topups []*TopUp, tota
 		tx.Rollback()
 		return nil, 0, err
 	}
+	if err = applyIssuedInvoiceFlags(tx, topups); err != nil {
+		tx.Rollback()
+		return nil, 0, err
+	}
 
 	// Commit transaction
 	if err = tx.Commit().Error; err != nil {
@@ -350,6 +416,10 @@ func GetAllTopUps(pageInfo *common.PageInfo) (topups []*TopUp, total int64, err 
 	}
 
 	if err = tx.Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&topups).Error; err != nil {
+		tx.Rollback()
+		return nil, 0, err
+	}
+	if err = applyIssuedInvoiceFlags(tx, topups); err != nil {
 		tx.Rollback()
 		return nil, 0, err
 	}
@@ -398,6 +468,10 @@ func SearchUserTopUps(userId int, keyword string, pageInfo *common.PageInfo) (to
 		common.SysError("failed to search topups: " + err.Error())
 		return nil, 0, errors.New("搜索充值记录失败")
 	}
+	if err = applyIssuedInvoiceFlags(tx, topups); err != nil {
+		tx.Rollback()
+		return nil, 0, errors.New("搜索充值记录失败")
+	}
 
 	if err = tx.Commit().Error; err != nil {
 		return nil, 0, err
@@ -436,6 +510,10 @@ func SearchAllTopUps(keyword string, pageInfo *common.PageInfo) (topups []*TopUp
 	if err = query.Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&topups).Error; err != nil {
 		tx.Rollback()
 		common.SysError("failed to search topups: " + err.Error())
+		return nil, 0, errors.New("搜索充值记录失败")
+	}
+	if err = applyIssuedInvoiceFlags(tx, topups); err != nil {
+		tx.Rollback()
 		return nil, 0, errors.New("搜索充值记录失败")
 	}
 

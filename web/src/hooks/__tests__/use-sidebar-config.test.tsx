@@ -40,6 +40,12 @@ function hasChannelStatus(groups: ReturnType<typeof useSidebarConfig>) {
   )
 }
 
+function hasInvoices(groups: ReturnType<typeof useSidebarConfig>) {
+  return groups.some((group) =>
+    group.items.some((item) => 'url' in item && item.url === '/invoices')
+  )
+}
+
 describe('channel status sidebar configuration', () => {
   beforeEach(() => {
     mockUseAuthStore.mockReturnValue({ auth: { user: null } })
@@ -79,5 +85,19 @@ describe('channel status sidebar configuration', () => {
     const { result } = renderHook(() => useSidebarConfig(sidebarGroups))
 
     expect(hasChannelStatus(result.current)).toBe(true)
+  })
+
+  test('hides invoices when the personal invoice switch is disabled', () => {
+    mockUseStatus.mockReturnValue({
+      status: {
+        SidebarModulesAdmin: JSON.stringify({
+          personal: { enabled: true, invoices: false },
+        }),
+      },
+    })
+
+    const { result } = renderHook(() => useSidebarConfig(sidebarGroups))
+
+    expect(hasInvoices(result.current)).toBe(false)
   })
 })

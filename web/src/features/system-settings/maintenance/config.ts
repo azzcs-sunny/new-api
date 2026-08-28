@@ -71,6 +71,7 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
   personal: {
     enabled: true,
     topup: true,
+    invoices: true,
     personal: true,
   },
   admin: {

@@ -64,6 +64,11 @@ import { getServerErrorMessageKey } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
+import {
+  getLastLoginAccount,
+  saveLastLoginAccount,
+} from '../../lib/storage'
+
 export function UserAuthForm({
   className,
   redirectTo,
@@ -140,6 +145,13 @@ export function UserAuthForm({
     },
   })
 
+  useEffect(() => {
+    const lastLoginAccount = getLastLoginAccount()
+    if (lastLoginAccount && !form.getValues('username')) {
+      form.setValue('username', lastLoginAccount)
+    }
+  }, [form])
+
   const wechatQrCodeUrl = useMemo(() => {
     return (
       status?.wechat_qrcode ||
@@ -169,6 +181,7 @@ export function UserAuthForm({
     }
 
     setIsLoading(true)
+    saveLastLoginAccount(data.username)
     try {
       const res = await login({
         username: data.username,
@@ -372,6 +385,7 @@ export function UserAuthForm({
                   <FormControl>
                     <Input
                       placeholder={t('Enter your username or email')}
+                      autoComplete='username'
                       className={AUTH_INPUT_CLASSNAME}
                       {...field}
                     />
@@ -391,6 +405,7 @@ export function UserAuthForm({
                   <FormControl>
                     <PasswordInput
                       placeholder={t('Enter password')}
+                      autoComplete='current-password'
                       className={AUTH_PASSWORD_INPUT_CLASSNAME}
                       inputClassName={AUTH_INPUT_CLASSNAME}
                       {...field}

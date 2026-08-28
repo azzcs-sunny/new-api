@@ -16,7 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Search, Copy, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  Search,
+  Copy,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ReceiptText,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -73,14 +80,20 @@ export function BillingHistoryDialog({
     keyword,
     loading,
     completing,
+    updatingInvoiceStatus,
     isAdmin,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,
     handleCompleteOrder,
+    handleUpdateInvoiceStatus,
   } = useBillingHistory()
 
   const [confirmTradeNo, setConfirmTradeNo] = useState<string | null>(null)
+  const [confirmInvoiceStatus, setConfirmInvoiceStatus] = useState<{
+    id: number
+    issued: boolean
+  } | null>(null)
   const { copyToClipboard, copiedText } = useCopyToClipboard({ notify: false })
 
   const totalPages = Math.ceil(total / pageSize)
@@ -92,6 +105,15 @@ export function BillingHistoryDialog({
         setConfirmTradeNo(null)
       }
     }
+  }
+
+  const handleConfirmInvoiceStatus = async () => {
+    if (!confirmInvoiceStatus) return
+    const success = await handleUpdateInvoiceStatus(
+      confirmInvoiceStatus.id,
+      confirmInvoiceStatus.issued
+    )
+    if (success) setConfirmInvoiceStatus(null)
   }
 
   return (
@@ -128,7 +150,7 @@ export function BillingHistoryDialog({
               ]}
               value={pageSize.toString()}
               onValueChange={(value) =>
-                value !== null && handlePageSizeChange(parseInt(value))
+                value !== null && handlePageSizeChange(Number.parseInt(value))
               }
             >
               <SelectTrigger className='h-9 w-[92px] sm:w-32'>
@@ -147,10 +169,14 @@ export function BillingHistoryDialog({
 
           {/* Records List */}
           <div className='max-h-[min(54vh,520px)] overflow-y-auto pr-1'>
+            {/* eslint-disable-next-line no-nested-ternary */}
             {loading ? (
               <div className='space-y-3'>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className='rounded-lg border p-3 sm:p-4'>
+                {[1, 2, 3, 4, 5].map((skeleton) => (
+                  <div
+                    key={`billing-history-skeleton-${skeleton}`}
+                    className='rounded-lg border p-3 sm:p-4'
+                  >
                     <div className='flex items-start justify-between'>
                       <div className='flex-1 space-y-2'>
                         <Skeleton className='h-4 w-48' />
@@ -258,7 +284,42 @@ export function BillingHistoryDialog({
                         </div>
                       </div>
 
-                      {/* Admin Actions */}
+                      {/* Invoice status is visible to everyone; only admins can change it. */}
+                      {record.status === 'success' && (
+                        <div className='mt-4 flex flex-wrap items-center justify-end gap-2'>
+                          <StatusBadge
+                            label={
+                              record.invoice_issued
+                                ? t('Invoiced')
+                                : t('Not invoiced')
+                            }
+                            variant={
+                              record.invoice_issued ? 'success' : 'neutral'
+                            }
+                            size='sm'
+                            showDot
+                            copyable={false}
+                          />
+                          {isAdmin && (
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() =>
+                                setConfirmInvoiceStatus({
+                                  id: record.id,
+                                  issued: !record.invoice_issued,
+                                })
+                              }
+                              disabled={updatingInvoiceStatus}
+                            >
+                              <ReceiptText className='mr-1 h-4 w-4' />
+                              {record.invoice_issued
+                                ? t('Mark as not invoiced')
+                                : t('Mark as invoiced')}
+                            </Button>
+                          )}
+                        </div>
+                      )}
                       {isAdmin && record.status === 'pending' && (
                         <div className='mt-4 flex justify-end'>
                           <Button
@@ -338,6 +399,44 @@ export function BillingHistoryDialog({
               disabled={completing}
             >
               {completing ? t('Processing...') : t('Confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmInvoiceStatus}
+        onOpenChange={(open) => !open && setConfirmInvoiceStatus(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmInvoiceStatus?.issued
+                ? t('Mark as invoiced')
+                : t('Mark as not invoiced')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className='mb-2 block font-mono text-xs'>
+                {t('Order IDs')}: #{confirmInvoiceStatus?.id}
+              </span>
+              {confirmInvoiceStatus?.issued
+                ? t(
+                    'This order will no longer be available for invoice requests.'
+                  )
+                : t(
+                    'This order will become available for invoice requests again.'
+                  )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updatingInvoiceStatus}>
+              {t('Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmInvoiceStatus}
+              disabled={updatingInvoiceStatus}
+            >
+              {updatingInvoiceStatus ? t('Processing...') : t('Confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

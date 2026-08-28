@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { X, User, Wallet, LogOut } from 'lucide-react'
+import { FileText, X, User, Wallet, LogOut } from 'lucide-react'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,7 +26,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import useDialogState from '@/hooks/use-dialog'
+import { useIsSidebarModuleVisible } from '@/hooks/use-sidebar-config'
 import { useUserDisplay } from '@/hooks/use-user-display'
+import { ROLE } from '@/lib/roles'
 import type { AuthUser } from '@/stores/auth-store'
 
 import { MOBILE_DRAWER_ANIMATION, MOBILE_DRAWER_CONFIG } from '../constants'
@@ -81,6 +83,7 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
   const { t } = useTranslation()
   const [signOutOpen, setSignOutOpen] = useDialogState()
   const { displayName, initials, roleLabel } = useUserDisplay(user)
+  const isInvoiceVisible = useIsSidebarModuleVisible('/invoices')
 
   if (!user) return null
 
@@ -130,6 +133,21 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
           <Wallet className='size-4' />
           {t('Wallet')}
         </Link>
+
+        {isInvoiceVisible && (
+          <Link
+            to='/invoices'
+            onClick={onNavigate}
+            className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
+          >
+            <FileText className='size-4' />
+            {t(
+              (user.role ?? 0) >= ROLE.ADMIN
+                ? 'Invoice Management'
+                : 'My invoice requests'
+            )}
+          </Link>
+        )}
 
         {/* Sign out - consistent style */}
         <Button
@@ -261,9 +279,9 @@ export function MobileDrawer({
                   </div>
                 ) : (
                   <AnimatePresence>
-                    {mobileLinksList.map((link, index) => (
+                    {mobileLinksList.map((link) => (
                       <motion.div
-                        key={`${link.href}-${index}`}
+                        key={link.href}
                         className='border-border border-b p-2.5 last:border-b-0'
                         variants={MOBILE_DRAWER_ANIMATION.menuItem as Variants}
                       >

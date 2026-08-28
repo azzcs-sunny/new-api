@@ -27,6 +27,7 @@ import {
   getUserBillingHistory,
   getAllBillingHistory,
   completeOrder,
+  updateTopupInvoiceStatus,
   isApiSuccess,
 } from '../api'
 import type { TopupRecord } from '../types'
@@ -55,6 +56,7 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
   const requestIdRef = useRef(0)
   const [loading, setLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [updatingInvoiceStatus, setUpdatingInvoiceStatus] = useState(false)
 
   /**
    * Fetch billing history
@@ -128,6 +130,46 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
     [isAdmin, fetchBillingHistory]
   )
 
+  const handleUpdateInvoiceStatus = useCallback(
+    async (id: number, invoiceIssued: boolean) => {
+      if (!isAdmin) {
+        toast.error(i18next.t('Admin access required'))
+        return false
+      }
+
+      setUpdatingInvoiceStatus(true)
+      try {
+        const response = await updateTopupInvoiceStatus({
+          id,
+          invoice_issued: invoiceIssued,
+        })
+        if (isApiSuccess(response)) {
+          toast.success(
+            i18next.t(
+              invoiceIssued
+                ? 'Order marked as invoiced'
+                : 'Order marked as not invoiced'
+            )
+          )
+          await fetchBillingHistory()
+          return true
+        }
+        toast.error(
+          response.message || i18next.t('Failed to update invoice status')
+        )
+        return false
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to update invoice status:', error)
+        toast.error(i18next.t('Failed to update invoice status'))
+        return false
+      } finally {
+        setUpdatingInvoiceStatus(false)
+      }
+    },
+    [fetchBillingHistory, isAdmin]
+  )
+
   /**
    * Change page
    */
@@ -167,11 +209,13 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
     keyword,
     loading,
     completing,
+    updatingInvoiceStatus,
     isAdmin,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,
     handleCompleteOrder,
+    handleUpdateInvoiceStatus,
     refresh: fetchBillingHistory,
   }
 }

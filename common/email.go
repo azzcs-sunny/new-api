@@ -1,10 +1,13 @@
 package common
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"mime/multipart"
 	"net/smtp"
+	"net/textproto"
 	"slices"
 	"strings"
 	"time"
@@ -76,6 +79,20 @@ func newSMTPClient(addr string) (*smtp.Client, error) {
 }
 
 func SendEmail(subject string, receiver string, content string) error {
+	return sendEmail(subject, receiver, content, "", nil)
+}
+
+// SendEmailWithAttachment sends an HTML email with one binary attachment.
+// The attachment is supplied by the caller so downloading and validating
+// remote files remains outside the SMTP transport layer.
+func SendEmailWithAttachment(subject string, receiver string, content string, filename string, attachment []byte) error {
+	if filename == "" || len(attachment) == 0 {
+		return fmt.Errorf("email attachment is empty")
+	}
+	return sendEmail(subject, receiver, content, filename, attachment)
+}
+
+func sendEmail(subject string, receiver string, content string, attachmentName string, attachment []byte) error {
 	if SMTPFrom == "" { // for compatibility
 		SMTPFrom = SMTPAccount
 	}
@@ -87,13 +104,52 @@ func SendEmail(subject string, receiver string, content string) error {
 		return fmt.Errorf("SMTP 服务器未配置")
 	}
 	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
+	var body bytes.Buffer
+	contentType := "text/html; charset=UTF-8"
+	if len(attachment) > 0 {
+		writer := multipart.NewWriter(&body)
+		contentType = fmt.Sprintf("multipart/mixed; boundary=%s", writer.Boundary())
+		textHeader := make(textproto.MIMEHeader)
+		textHeader.Set("Content-Type", "text/html; charset=UTF-8")
+		textPart, err := writer.CreatePart(textHeader)
+		if err != nil {
+			return err
+		}
+		if _, err = textPart.Write([]byte(content)); err != nil {
+			return err
+		}
+		attachmentHeader := make(textproto.MIMEHeader)
+		attachmentHeader.Set("Content-Type", "application/octet-stream")
+		attachmentHeader.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, attachmentName))
+		attachmentHeader.Set("Content-Transfer-Encoding", "base64")
+		attachmentPart, err := writer.CreatePart(attachmentHeader)
+		if err != nil {
+			return err
+		}
+		encodedAttachment := base64.StdEncoding.EncodeToString(attachment)
+		for start := 0; start < len(encodedAttachment); start += 76 {
+			end := start + 76
+			if end > len(encodedAttachment) {
+				end = len(encodedAttachment)
+			}
+			if _, err = attachmentPart.Write([]byte(encodedAttachment[start:end] + "\r\n")); err != nil {
+				return err
+			}
+		}
+		if err = writer.Close(); err != nil {
+			return err
+		}
+	} else {
+		body.WriteString(content)
+	}
 	mail := []byte(fmt.Sprintf("To: %s\r\n"+
 		"From: %s <%s>\r\n"+
 		"Subject: %s\r\n"+
 		"Date: %s\r\n"+
-		"Message-ID: %s\r\n"+ // 添加 Message-ID 头
-		"Content-Type: text/html; charset=UTF-8\r\n\r\n%s\r\n",
-		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
+		"Message-ID: %s\r\n"+
+		"MIME-Version: 1.0\r\n"+
+		"Content-Type: %s\r\n\r\n%s\r\n",
+		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, contentType, body.String()))
 	auth := getSMTPAuth()
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
 	to := strings.Split(receiver, ";")

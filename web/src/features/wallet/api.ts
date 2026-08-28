@@ -33,6 +33,7 @@ import type {
   AffiliateTransferResponse,
   BillingHistoryResponse,
   CompleteOrderRequest,
+  UpdateTopupInvoiceStatusRequest,
   CreemPaymentRequest,
   CreemPaymentResponse,
   WaffoPaymentRequest,
@@ -244,5 +245,13 @@ export async function completeOrder(
   request: CompleteOrderRequest
 ): Promise<ApiResponse> {
   const res = await api.post('/api/user/topup/complete', request)
+  return res.data
+}
+
+/** Update whether a successful order has already been invoiced (admin only) */
+export async function updateTopupInvoiceStatus(
+  request: UpdateTopupInvoiceStatusRequest
+): Promise<ApiResponse> {
+  const res = await api.put('/api/user/topup/invoice-status', request)
   return res.data
 }

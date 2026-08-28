@@ -23,6 +23,7 @@ const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
   'user',
   'uid',
   'aff',
+  'newapi:last-login-account',
   'oauth:binding:result',
 ])
 

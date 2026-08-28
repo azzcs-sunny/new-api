@@ -40,6 +40,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -47,7 +48,10 @@ import { ROLE } from '@/lib/roles'
  * These are shown when the URL does not match any nested sidebar view
  * registered in `layout/lib/sidebar-view-registry.ts`.
  */
-export function buildSidebarData(t: TFunction): SidebarData {
+export function buildSidebarData(
+  t: TFunction,
+  role: number = ROLE.USER
+): SidebarData {
   return {
     navGroups: [
       {
@@ -114,6 +118,13 @@ export function buildSidebarData(t: TFunction): SidebarData {
             icon: Wallet,
           },
           {
+            title: t(
+              role >= ROLE.ADMIN ? 'Invoice Management' : 'My invoice requests'
+            ),
+            url: '/invoices',
+            icon: FileText,
+          },
+          {
             title: t('Profile'),
             url: '/profile',
             icon: User,
@@ -175,5 +186,6 @@ export function buildSidebarData(t: TFunction): SidebarData {
 
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
-  return buildSidebarData(t)
+  const role = useAuthStore((state) => state.auth.user?.role ?? ROLE.GUEST)
+  return buildSidebarData(t, role)
 }

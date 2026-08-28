@@ -26,6 +26,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 const STORAGE_KEYS = {
   AFFILIATE: 'aff',
+  LAST_LOGIN_ACCOUNT: 'newapi:last-login-account',
   STATUS: 'status',
 } as const
 
@@ -57,5 +58,39 @@ export function saveAffiliateCode(code: string): void {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save affiliate code:', error)
+  }
+}
+
+/**
+ * Get the most recently used username or email from localStorage.
+ */
+export function getLastLoginAccount(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    return window.localStorage.getItem(STORAGE_KEYS.LAST_LOGIN_ACCOUNT) ?? ''
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to get last login account:', error)
+    return ''
+  }
+}
+
+/**
+ * Save the username or email submitted for a password login.
+ * Passwords are intentionally never stored in browser storage.
+ */
+export function saveLastLoginAccount(account: string): void {
+  if (typeof window === 'undefined') return
+  const normalizedAccount = account.trim()
+  if (!normalizedAccount) return
+
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEYS.LAST_LOGIN_ACCOUNT,
+      normalizedAccount
+    )
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to save last login account:', error)
   }
 }

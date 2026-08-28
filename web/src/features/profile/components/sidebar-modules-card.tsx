@@ -116,6 +116,11 @@ export function SidebarModulesCard() {
           description: t('Balance and top-up management'),
         },
         {
+          key: 'invoices',
+          title: t('Invoices'),
+          description: t('Submit and review invoice requests.'),
+        },
+        {
           key: 'personal',
           title: t('Personal Settings'),
           description: t('Personal info settings'),

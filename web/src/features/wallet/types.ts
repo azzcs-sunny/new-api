@@ -247,7 +247,7 @@ export interface UserWalletData {
 /**
  * Topup record status
  */
-export type TopupStatus = 'success' | 'pending' | 'expired'
+export type TopupStatus = 'success' | 'pending' | 'expired' | 'failed'
 
 /**
  * Topup billing record
@@ -271,6 +271,8 @@ export interface TopupRecord {
   complete_time?: number
   /** Payment status */
   status: TopupStatus
+  /** Whether this order has already been invoiced manually */
+  invoice_issued: boolean
 }
 
 /**
@@ -286,4 +288,10 @@ export interface BillingHistoryResponse {
  */
 export interface CompleteOrderRequest {
   trade_no: string
+}
+
+/** Update invoice status for a top-up order (admin only) */
+export interface UpdateTopupInvoiceStatusRequest {
+  id: number
+  invoice_issued: boolean
 }

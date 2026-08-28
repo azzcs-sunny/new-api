@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -290,6 +291,35 @@ func TestSendEmailUsesExplicitStartTLSWithInsecureCertificate(t *testing.T) {
 	case message := <-server.messages:
 		require.Contains(t, message, "Subject: =?UTF-8?B?")
 		require.Contains(t, message, "<p>123456</p>")
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for SMTP DATA")
+	}
+}
+
+func TestSendEmailWithAttachmentIncludesInvoiceFile(t *testing.T) {
+	server := newFakeSMTPServer(t)
+	defer server.close()
+	withSMTPSettings(t)
+
+	SMTPServer = server.host
+	SMTPPort = server.port
+	SMTPSSLEnabled = false
+	SMTPStartTLSEnabled = true
+	SMTPInsecureSkipVerify = true
+	SMTPForceAuthLogin = false
+	SMTPAccount = "sender@example.com"
+	SMTPFrom = "sender@example.com"
+	SMTPToken = "secret"
+	SystemName = "New API"
+	attachment := []byte("invoice-pdf-content")
+
+	require.NoError(t, SendEmailWithAttachment("Invoice", "receiver@example.com", "<p>issued</p>", "invoice.pdf", attachment))
+
+	select {
+	case message := <-server.messages:
+		require.Contains(t, message, "Content-Type: multipart/mixed; boundary=")
+		require.Contains(t, message, `Content-Disposition: attachment; filename="invoice.pdf"`)
+		require.Contains(t, message, base64.StdEncoding.EncodeToString(attachment))
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for SMTP DATA")
 	}

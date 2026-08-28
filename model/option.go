@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -83,6 +84,8 @@ func InitOptionMap() {
 	common.OptionMap["Price"] = strconv.FormatFloat(operation_setting.Price, 'f', -1, 64)
 	common.OptionMap["USDExchangeRate"] = strconv.FormatFloat(operation_setting.USDExchangeRate, 'f', -1, 64)
 	common.OptionMap["MinTopUp"] = strconv.Itoa(operation_setting.MinTopUp)
+	common.OptionMap["InvoiceRequestIntervalDays"] = "0"
+	common.OptionMap["InvoiceRequestDescription"] = ""
 	common.OptionMap["StripeMinTopUp"] = strconv.Itoa(setting.StripeMinTopUp)
 	common.OptionMap["StripeApiSecret"] = setting.StripeApiSecret
 	common.OptionMap["StripeWebhookSecret"] = setting.StripeWebhookSecret
@@ -206,6 +209,12 @@ func SyncOptions(frequency int) {
 }
 
 func validateOptionValue(key string, value string) error {
+	if key == "InvoiceRequestIntervalDays" {
+		v, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil || (v != 0 && v != 15 && v != 30) {
+			return errors.New("Invoice request interval must be 0, 15, or 30 days")
+		}
+	}
 	if key == operation_setting.ToolPriceOptionKey {
 		return operation_setting.ValidateToolPricesJSON(value)
 	}
@@ -227,12 +236,16 @@ func UpdateOption(key string, value string) error {
 		Key: key,
 	}
 	// https://gorm.io/docs/update.html#Save-All-Fields
-	DB.FirstOrCreate(&option, Option{Key: key})
+	if err := DB.FirstOrCreate(&option, Option{Key: key}).Error; err != nil {
+		return err
+	}
 	option.Value = value
 	// Save is a combination function.
 	// If save value does not contain primary key, it will execute Create,
 	// otherwise it will execute Update (with all fields).
-	DB.Save(&option)
+	if err := DB.Save(&option).Error; err != nil {
+		return err
+	}
 	// Update OptionMap
 	return updateOptionMap(key, value)
 }
