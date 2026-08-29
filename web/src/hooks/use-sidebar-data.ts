@@ -35,6 +35,7 @@ import {
   User,
   Users,
   Wallet,
+  UserPlus,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -118,6 +119,11 @@ export function buildSidebarData(
             icon: Wallet,
           },
           {
+            title: t('Referral Program'),
+            url: '/affiliate',
+            icon: UserPlus,
+          },
+          {
             title: t(
               role >= ROLE.ADMIN ? 'Invoice Management' : 'My invoice requests'
             ),
@@ -155,6 +161,12 @@ export function buildSidebarData(
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Referral Relations'),
+            url: '/affiliate-admin',
+            icon: UserPlus,
+            requiredRole: ROLE.ADMIN,
           },
           {
             title: t('Redemption Codes'),

@@ -435,6 +435,10 @@ func TransferAffQuota(c *gin.Context) {
 	}
 
 	id := c.GetInt("id")
+	if err := model.ReleaseAffiliateRewards(id); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	user, err := model.GetUserById(id, true)
 	if err != nil {
 		common.ApiError(c, err)
@@ -478,8 +482,52 @@ func GetAffCode(c *gin.Context) {
 	return
 }
 
+func GetAffiliateRewards(c *gin.Context) {
+	inviterId := c.GetInt("id")
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.GetAffiliateRewardItems(inviterId, pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	var frozenQuota int64
+	if err := model.DB.Model(&model.AffiliateReward{}).
+		Select("COALESCE(SUM(reward_quota), 0)").
+		Where("inviter_id = ? AND status = ?", inviterId, model.AffiliateRewardFrozen).
+		Scan(&frozenQuota).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, gin.H{
+		"page":         pageInfo.Page,
+		"page_size":    pageInfo.PageSize,
+		"total":        pageInfo.Total,
+		"items":        pageInfo.Items,
+		"frozen_quota": frozenQuota,
+		"ratio":        common.AffiliateRewardRatio,
+	})
+}
+
+func GetAllAffiliateRewards(c *gin.Context) {
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.GetAllAffiliateRelations(pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, pageInfo)
+}
+
 func GetSelf(c *gin.Context) {
 	id := c.GetInt("id")
+	if err := model.ReleaseAffiliateRewards(id); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	userRole := c.GetInt("role")
 	user, err := model.GetUserById(id, false)
 	if err != nil {

@@ -237,10 +237,11 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 
 	// 个人中心区域 - 所有用户都可以访问
 	defaultConfig["personal"] = map[string]interface{}{
-		"enabled":  true,
-		"topup":    true,
-		"invoices": true,
-		"personal": true,
+		"enabled":   true,
+		"topup":     true,
+		"affiliate": true,
+		"invoices":  true,
+		"personal":  true,
 	}
 
 	// 管理员区域 - 根据角色决定
@@ -252,6 +253,7 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 			"models":     true,
 			"redemption": true,
 			"user":       true,
+			"affiliate":  true,
 			"setting":    false, // 管理员不能访问系统设置
 		}
 	} else if userRole == common.RoleRootUser {
@@ -262,6 +264,7 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 			"models":     true,
 			"redemption": true,
 			"user":       true,
+			"affiliate":  true,
 			"setting":    true,
 		}
 	}

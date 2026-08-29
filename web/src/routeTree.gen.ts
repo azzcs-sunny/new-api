@@ -34,6 +34,8 @@ import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
+import { Route as AuthenticatedAffiliateAdminIndexRouteImport } from './routes/_authenticated/affiliate-admin/index'
+import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate/index'
 import { Route as AuthenticatedChannelMonitorIndexRouteImport } from './routes/_authenticated/channel-monitor/index'
 import { Route as AuthenticatedChannelStatusIndexRouteImport } from './routes/_authenticated/channel-status/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -195,6 +197,18 @@ const authUserResetRoute = authUserResetRouteImport.update({
   path: '/user/reset',
   getParentRoute: () => authRouteRoute,
 } as any)
+const AuthenticatedAffiliateAdminIndexRoute =
+  AuthenticatedAffiliateAdminIndexRouteImport.update({
+    id: '/affiliate-admin/',
+    path: '/affiliate-admin/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAffiliateIndexRoute =
+  AuthenticatedAffiliateIndexRouteImport.update({
+    id: '/affiliate/',
+    path: '/affiliate/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedChannelMonitorIndexRoute =
   AuthenticatedChannelMonitorIndexRouteImport.update({
     id: '/channel-monitor/',
@@ -437,6 +451,8 @@ export interface FileRoutesByFullPath {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/affiliate-admin/': typeof AuthenticatedAffiliateAdminIndexRoute
+  '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/channel-monitor/': typeof AuthenticatedChannelMonitorIndexRoute
   '/channel-status/': typeof AuthenticatedChannelStatusIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -497,6 +513,8 @@ export interface FileRoutesByTo {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/affiliate-admin': typeof AuthenticatedAffiliateAdminIndexRoute
+  '/affiliate': typeof AuthenticatedAffiliateIndexRoute
   '/channel-monitor': typeof AuthenticatedChannelMonitorIndexRoute
   '/channel-status': typeof AuthenticatedChannelStatusIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
@@ -561,6 +579,8 @@ export interface FileRoutesById {
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/_authenticated/affiliate-admin/': typeof AuthenticatedAffiliateAdminIndexRoute
+  '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/_authenticated/channel-monitor/': typeof AuthenticatedChannelMonitorIndexRoute
   '/_authenticated/channel-status/': typeof AuthenticatedChannelStatusIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -624,6 +644,8 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/affiliate-admin/'
+    | '/affiliate/'
     | '/channel-monitor/'
     | '/channel-status/'
     | '/channels/'
@@ -684,6 +706,8 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/affiliate-admin'
+    | '/affiliate'
     | '/channel-monitor'
     | '/channel-status'
     | '/channels'
@@ -747,6 +771,8 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
+    | '/_authenticated/affiliate-admin/'
+    | '/_authenticated/affiliate/'
     | '/_authenticated/channel-monitor/'
     | '/_authenticated/channel-status/'
     | '/_authenticated/channels/'
@@ -975,6 +1001,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/user/reset'
       preLoaderRoute: typeof authUserResetRouteImport
       parentRoute: typeof authRouteRoute
+    }
+    '/_authenticated/affiliate-admin/': {
+      id: '/_authenticated/affiliate-admin/'
+      path: '/affiliate-admin'
+      fullPath: '/affiliate-admin/'
+      preLoaderRoute: typeof AuthenticatedAffiliateAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/affiliate/': {
+      id: '/_authenticated/affiliate/'
+      path: '/affiliate'
+      fullPath: '/affiliate/'
+      preLoaderRoute: typeof AuthenticatedAffiliateIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/channel-monitor/': {
       id: '/_authenticated/channel-monitor/'
@@ -1322,6 +1362,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+  AuthenticatedAffiliateAdminIndexRoute: typeof AuthenticatedAffiliateAdminIndexRoute
+  AuthenticatedAffiliateIndexRoute: typeof AuthenticatedAffiliateIndexRoute
   AuthenticatedChannelMonitorIndexRoute: typeof AuthenticatedChannelMonitorIndexRoute
   AuthenticatedChannelStatusIndexRoute: typeof AuthenticatedChannelStatusIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
@@ -1348,6 +1390,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+  AuthenticatedAffiliateAdminIndexRoute: AuthenticatedAffiliateAdminIndexRoute,
+  AuthenticatedAffiliateIndexRoute: AuthenticatedAffiliateIndexRoute,
   AuthenticatedChannelMonitorIndexRoute: AuthenticatedChannelMonitorIndexRoute,
   AuthenticatedChannelStatusIndexRoute: AuthenticatedChannelStatusIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,

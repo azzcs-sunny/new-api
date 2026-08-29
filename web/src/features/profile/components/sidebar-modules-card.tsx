@@ -116,6 +116,11 @@ export function SidebarModulesCard() {
           description: t('Balance and top-up management'),
         },
         {
+          key: 'affiliate',
+          title: t('Referral Program'),
+          description: t('Manage invited users and referral rewards.'),
+        },
+        {
           key: 'invoices',
           title: t('Invoices'),
           description: t('Submit and review invoice requests.'),

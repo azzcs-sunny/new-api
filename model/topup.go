@@ -276,7 +276,10 @@ func RechargeEpay(tradeNo string, actualPaymentMethod string, callerIp string) (
 		if err := tx.Save(topUp).Error; err != nil {
 			return err
 		}
-		return creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil)
+		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
+			return err
+		}
+		return applyAffiliateTopUpRewardTx(tx, topUp, quotaToAdd)
 	})
 	if err != nil {
 		if !errors.Is(err, ErrTopUpNotFound) && !errors.Is(err, ErrPaymentMethodMismatch) && !errors.Is(err, ErrTopUpStatusInvalid) {
@@ -334,9 +337,12 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 		if err != nil || quota <= 0 {
 			return ErrInvalidTopUpQuota
 		}
-		return creditTopUpQuota(tx, topUp.UserId, quota, map[string]interface{}{
+		if err := creditTopUpQuota(tx, topUp.UserId, quota, map[string]interface{}{
 			"stripe_customer": customerId,
-		})
+		}); err != nil {
+			return err
+		}
+		return applyAffiliateTopUpRewardTx(tx, topUp, quota)
 	})
 
 	if err != nil {
@@ -583,6 +589,9 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
 			return err
 		}
+		if err := applyAffiliateTopUpRewardTx(tx, topUp, quotaToAdd); err != nil {
+			return err
+		}
 
 		userId = topUp.UserId
 		payMoney = topUp.Money
@@ -657,7 +666,10 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 			}
 		}
 
-		return creditTopUpQuota(tx, topUp.UserId, quota, updateFields)
+		if err := creditTopUpQuota(tx, topUp.UserId, quota, updateFields); err != nil {
+			return err
+		}
+		return applyAffiliateTopUpRewardTx(tx, topUp, quota)
 	})
 
 	if err != nil {
@@ -715,7 +727,10 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 			return err
 		}
 
-		return creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil)
+		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
+			return err
+		}
+		return applyAffiliateTopUpRewardTx(tx, topUp, quotaToAdd)
 	})
 
 	if err != nil {
@@ -775,7 +790,10 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 			return err
 		}
 
-		return creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil)
+		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
+			return err
+		}
+		return applyAffiliateTopUpRewardTx(tx, topUp, quotaToAdd)
 	})
 
 	if err != nil {

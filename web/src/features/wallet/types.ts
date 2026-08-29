@@ -41,6 +41,42 @@ export type PaymentResponse = ApiResponse<Record<string, unknown>> & {
 export type StripePaymentResponse = ApiResponse<{ pay_link: string }>
 export type AffiliateCodeResponse = ApiResponse<string>
 export type AffiliateTransferResponse = ApiResponse
+
+export interface AffiliateRewardItem {
+  invitee_id: number
+  joined_at: number
+  top_up_count: number
+  reward_quota: number
+  frozen_quota: number
+  last_reward_at: number
+}
+
+export interface AffiliateRelationItem {
+  invitee_id: number
+  invitee_username: string
+  inviter_id: number
+  inviter_username: string
+  joined_at: number
+  top_up_count: number
+  reward_quota: number
+  frozen_quota: number
+}
+
+export interface AffiliateRelationsResponse {
+  page: number
+  page_size: number
+  total: number
+  items: AffiliateRelationItem[]
+}
+
+export interface AffiliateRewardsResponse {
+  items: AffiliateRewardItem[]
+  total: number
+  page: number
+  page_size: number
+  frozen_quota: number
+  ratio: number
+}
 export type CreemPaymentResponse = ApiResponse<{ checkout_url: string }>
 export type WaffoPaymentResponse = ApiResponse<
   { payment_url?: string } | string

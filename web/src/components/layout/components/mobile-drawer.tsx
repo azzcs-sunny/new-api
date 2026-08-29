@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { FileText, X, User, Wallet, LogOut } from 'lucide-react'
+import { FileText, X, User, UserPlus, Wallet, LogOut } from 'lucide-react'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 
@@ -84,6 +84,7 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
   const [signOutOpen, setSignOutOpen] = useDialogState()
   const { displayName, initials, roleLabel } = useUserDisplay(user)
   const isInvoiceVisible = useIsSidebarModuleVisible('/invoices')
+  const isAffiliateVisible = useIsSidebarModuleVisible('/affiliate')
 
   if (!user) return null
 
@@ -133,6 +134,17 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
           <Wallet className='size-4' />
           {t('Wallet')}
         </Link>
+
+        {isAffiliateVisible && (
+          <Link
+            to='/affiliate'
+            onClick={onNavigate}
+            className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
+          >
+            <UserPlus className='size-4' />
+            {t('Referral Program')}
+          </Link>
+        )}
 
         {isInvoiceVisible && (
           <Link

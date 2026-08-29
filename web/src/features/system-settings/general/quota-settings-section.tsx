@@ -55,6 +55,7 @@ const quotaSchema = z.object({
   PreConsumedQuota: z.coerce.number().min(0),
   QuotaForInviter: z.coerce.number().min(0),
   QuotaForInvitee: z.coerce.number().min(0),
+  AffiliateRewardRatio: z.coerce.number().min(0).max(1),
   TopUpLink: z.string(),
   general_setting: z.object({
     docs_link: z.string(),
@@ -231,6 +232,39 @@ export function QuotaSettingsSection({
                     {t('Quota given to invited users ({{formattedQuota}})', {
                       formattedQuota: formatQuotaInputValue(field.value),
                     })}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='AffiliateRewardRatio'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Affiliate Reward Ratio')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      value={field.value * 100}
+                      onChange={(event) => {
+                        const value = event.currentTarget.valueAsNumber
+                        field.onChange(Number.isNaN(value) ? '' : value / 100)
+                      }}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Fraction of each referred user top-up credited to the inviter (0-100%).'
+                    )}{' '}
+                    {t('Only the first three successful top-ups are eligible.')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

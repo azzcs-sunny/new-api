@@ -128,6 +128,10 @@ export function SidebarModulesSection({
         title: t('Wallet'),
         description: t('Top up balance and view billing history.'),
       },
+      affiliate: {
+        title: t('Referral Program'),
+        description: t('Manage invited users and referral rewards.'),
+      },
       invoices: {
         title: t('Invoices'),
         description: t('Submit and review invoice requests.'),
@@ -161,6 +165,10 @@ export function SidebarModulesSection({
       subscription: {
         title: t('Subscription Management'),
         description: t('Manage subscription plans and pricing.'),
+      },
+      affiliate: {
+        title: t('Referral Relations'),
+        description: t('Review all inviter and invitee bindings and rewards.'),
       },
     },
   }
