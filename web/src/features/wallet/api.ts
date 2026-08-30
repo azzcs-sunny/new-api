@@ -42,6 +42,8 @@ import type {
   WaffoPancakePaymentResponse,
   AffiliateRewardsResponse,
   AffiliateRelationsResponse,
+  AffiliateRewardDetailsResponse,
+  AffiliateRewardAdminDetailsResponse,
 } from './types'
 
 // ============================================================================
@@ -224,6 +226,37 @@ export async function getAffiliateRelations(
   })
   const res = await api.get(
     `/api/user/affiliate/admin/rewards?${params.toString()}`
+  )
+  return res.data
+}
+
+export async function getAffiliateRewardDetails(
+  inviteeId: number,
+  page: number,
+  pageSize: number
+): Promise<AffiliateRewardDetailsResponse> {
+  const params = new URLSearchParams({
+    p: page.toString(),
+    page_size: pageSize.toString(),
+  })
+  const res = await api.get(
+    `/api/user/affiliate/rewards/${inviteeId}/details?${params.toString()}`
+  )
+  return res.data
+}
+
+export async function getAffiliateRewardAdminDetails(
+  inviterId: number,
+  inviteeId: number,
+  page: number,
+  pageSize: number
+): Promise<AffiliateRewardAdminDetailsResponse> {
+  const params = new URLSearchParams({
+    p: page.toString(),
+    page_size: pageSize.toString(),
+  })
+  const res = await api.get(
+    `/api/user/affiliate/admin/rewards/${inviterId}/${inviteeId}/details?${params.toString()}`
   )
   return res.data
 }

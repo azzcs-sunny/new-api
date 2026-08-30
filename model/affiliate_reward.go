@@ -52,6 +52,27 @@ type AffiliateRelationItem struct {
 	FrozenQuota     int64  `json:"frozen_quota"`
 }
 
+// AffiliateRewardDetailItem is the privacy-preserving view available to an
+// inviter. Order and billing identifiers are intentionally excluded.
+type AffiliateRewardDetailItem struct {
+	Sequence    int     `json:"sequence"`
+	RewardQuota int     `json:"reward_quota"`
+	Ratio       float64 `json:"ratio"`
+	Status      string  `json:"status"`
+	CreatedAt   int64   `json:"created_at"`
+}
+
+type AffiliateRewardAdminDetailItem struct {
+	TopUpId     int     `json:"top_up_id"`
+	TradeNo     string  `json:"trade_no"`
+	Sequence    int     `json:"sequence"`
+	BaseQuota   int     `json:"base_quota"`
+	RewardQuota int     `json:"reward_quota"`
+	Ratio       float64 `json:"ratio"`
+	Status      string  `json:"status"`
+	CreatedAt   int64   `json:"created_at"`
+}
+
 func GetAllAffiliateRelations(pageInfo *common.PageInfo) ([]AffiliateRelationItem, int64, error) {
 	var total int64
 	if err := DB.Model(&User{}).Where("inviter_id > 0").Count(&total).Error; err != nil {
@@ -232,6 +253,88 @@ func GetAffiliateRewardItems(inviterId int, pageInfo *common.PageInfo) ([]Affili
 			RewardQuota:  aggregate.rewardQuota,
 			FrozenQuota:  aggregate.frozenQuota,
 			LastRewardAt: aggregate.lastRewardAt,
+		})
+	}
+	return items, total, nil
+}
+
+func GetAffiliateRewardDetails(inviterId int, inviteeId int, pageInfo *common.PageInfo) ([]AffiliateRewardDetailItem, int64, error) {
+	if inviterId <= 0 || inviteeId <= 0 {
+		return []AffiliateRewardDetailItem{}, 0, nil
+	}
+	if err := ReleaseAffiliateRewards(inviterId); err != nil {
+		return nil, 0, err
+	}
+	query := DB.Model(&AffiliateReward{}).
+		Where("inviter_id = ? AND invitee_id = ?", inviterId, inviteeId)
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var items []AffiliateRewardDetailItem
+	if err := query.
+		Select("sequence, reward_quota, ratio, status, created_at").
+		Order("sequence ASC").
+		Limit(pageInfo.GetPageSize()).
+		Offset(pageInfo.GetStartIdx()).
+		Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func GetAffiliateRewardAdminDetails(inviterId int, inviteeId int, pageInfo *common.PageInfo) ([]AffiliateRewardAdminDetailItem, int64, error) {
+	if inviterId <= 0 || inviteeId <= 0 {
+		return []AffiliateRewardAdminDetailItem{}, 0, nil
+	}
+	if err := ReleaseAffiliateRewards(inviterId); err != nil {
+		return nil, 0, err
+	}
+	query := DB.Model(&AffiliateReward{}).
+		Where("inviter_id = ? AND invitee_id = ?", inviterId, inviteeId)
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var rewards []AffiliateReward
+	if err := query.Select("top_up_id", "sequence", "base_quota", "reward_quota", "ratio", "status", "created_at").
+		Order("sequence ASC").
+		Limit(pageInfo.GetPageSize()).
+		Offset(pageInfo.GetStartIdx()).
+		Find(&rewards).Error; err != nil {
+		return nil, 0, err
+	}
+	if len(rewards) == 0 {
+		return []AffiliateRewardAdminDetailItem{}, total, nil
+	}
+
+	topUpIds := make([]int, 0, len(rewards))
+	for _, reward := range rewards {
+		topUpIds = append(topUpIds, reward.TopUpId)
+	}
+	var topUps []struct {
+		Id      int
+		TradeNo string
+	}
+	if err := DB.Model(&TopUp{}).Select("id", "trade_no").Where("id IN ?", topUpIds).Find(&topUps).Error; err != nil {
+		return nil, 0, err
+	}
+	tradeNoByTopUpId := make(map[int]string, len(topUps))
+	for _, topUp := range topUps {
+		tradeNoByTopUpId[topUp.Id] = topUp.TradeNo
+	}
+
+	items := make([]AffiliateRewardAdminDetailItem, 0, len(rewards))
+	for _, reward := range rewards {
+		items = append(items, AffiliateRewardAdminDetailItem{
+			TopUpId:     reward.TopUpId,
+			TradeNo:     tradeNoByTopUpId[reward.TopUpId],
+			Sequence:    reward.Sequence,
+			BaseQuota:   reward.BaseQuota,
+			RewardQuota: reward.RewardQuota,
+			Ratio:       reward.Ratio,
+			Status:      reward.Status,
+			CreatedAt:   reward.CreatedAt,
 		})
 	}
 	return items, total, nil

@@ -62,6 +62,30 @@ export interface AffiliateRelationItem {
   frozen_quota: number
 }
 
+export interface AffiliateRewardDetailItem {
+  sequence: number
+  reward_quota: number
+  ratio: number
+  status: 'frozen' | 'granted'
+  created_at: number
+}
+
+export interface AffiliateRewardAdminDetailItem
+  extends AffiliateRewardDetailItem {
+  top_up_id: number
+  trade_no: string
+  base_quota: number
+}
+
+export interface AffiliateRewardDetailsPage<
+  TItem extends AffiliateRewardDetailItem = AffiliateRewardDetailItem,
+> {
+  page: number
+  page_size: number
+  total: number
+  items: TItem[]
+}
+
 export interface AffiliateRelationsResponse {
   page: number
   page_size: number
@@ -77,6 +101,12 @@ export interface AffiliateRewardsResponse {
   frozen_quota: number
   ratio: number
 }
+export type AffiliateRewardDetailsResponse = ApiResponse<
+  AffiliateRewardDetailsPage
+>
+export type AffiliateRewardAdminDetailsResponse = ApiResponse<
+  AffiliateRewardDetailsPage<AffiliateRewardAdminDetailItem>
+>
 export type CreemPaymentResponse = ApiResponse<{ checkout_url: string }>
 export type WaffoPaymentResponse = ApiResponse<
   { payment_url?: string } | string

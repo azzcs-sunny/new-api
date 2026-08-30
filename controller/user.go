@@ -510,9 +510,44 @@ func GetAffiliateRewards(c *gin.Context) {
 	})
 }
 
+func GetAffiliateRewardDetails(c *gin.Context) {
+	inviteeId, err := strconv.Atoi(c.Param("invitee_id"))
+	if err != nil || inviteeId <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.GetAffiliateRewardDetails(c.GetInt("id"), inviteeId, pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, pageInfo)
+}
+
 func GetAllAffiliateRewards(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	items, total, err := model.GetAllAffiliateRelations(pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, pageInfo)
+}
+
+func GetAffiliateRewardAdminDetails(c *gin.Context) {
+	inviterId, inviterErr := strconv.Atoi(c.Param("inviter_id"))
+	inviteeId, inviteeErr := strconv.Atoi(c.Param("invitee_id"))
+	if inviterErr != nil || inviteeErr != nil || inviterId <= 0 || inviteeId <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.GetAffiliateRewardAdminDetails(inviterId, inviteeId, pageInfo)
 	if err != nil {
 		common.ApiError(c, err)
 		return

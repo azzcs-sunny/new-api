@@ -18,6 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
+import { ViewIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { Copy, Gift, Share2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,6 +31,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { getAffiliateRewards } from '@/features/wallet/api'
 import { TransferDialog } from '@/features/wallet/components/dialogs/transfer-dialog'
 import { useAffiliate } from '@/features/wallet/hooks/use-affiliate'
@@ -41,6 +48,8 @@ import { getSelf } from '@/lib/api'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 
+import { RewardDetailsDrawer } from './components/reward-details-drawer'
+
 export function Affiliate() {
   const { t } = useTranslation()
   const [pagination, setPagination] = useState<PaginationState>({
@@ -48,6 +57,7 @@ export function Affiliate() {
     pageSize: 20,
   })
   const [transferOpen, setTransferOpen] = useState(false)
+  const [detailsInviteeId, setDetailsInviteeId] = useState<number | null>(null)
   const { topupInfo } = useTopupInfo()
   const {
     affiliateLink,
@@ -100,18 +110,40 @@ export function Affiliate() {
       },
       {
         accessorKey: 'reward_quota',
-        header: t('Reward Earned'),
+        header: t('Amount Earned'),
         cell: ({ row }) => formatQuota(row.original.reward_quota),
       },
       {
         accessorKey: 'frozen_quota',
-        header: t('Frozen Reward'),
+        header: t('Frozen Amount'),
         cell: ({ row }) => formatQuota(row.original.frozen_quota),
       },
       {
         accessorKey: 'last_reward_at',
-        header: t('Last Reward'),
+        header: t('Last Earned At'),
         cell: ({ row }) => formatTimestampToDate(row.original.last_reward_at),
+      },
+      {
+        id: 'actions',
+        header: t('Details'),
+        cell: ({ row }) => (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  aria-label={t('View details')}
+                  onClick={() => setDetailsInviteeId(row.original.invitee_id)}
+                />
+              }
+            >
+              <HugeiconsIcon icon={ViewIcon} strokeWidth={2} />
+            </TooltipTrigger>
+            <TooltipContent>{t('View details')}</TooltipContent>
+          </Tooltip>
+        ),
+        meta: { pinned: 'right' as const },
       },
     ],
     [t]
@@ -148,8 +180,8 @@ export function Affiliate() {
           {t('Referral Program')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Content>
-          <div className='mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-4 sm:gap-5'>
-            <Card className='shrink-0'>
+          <div className='flex h-full min-h-0 w-full flex-col gap-4 sm:gap-5'>
+            <Card className='w-full shrink-0'>
               <CardHeader className='pb-3'>
                 <CardTitle className='flex items-center gap-2 text-base'>
                   <IconBadge tone='chart-3'>
@@ -272,6 +304,13 @@ export function Affiliate() {
         onConfirm={handleTransfer}
         availableQuota={user?.aff_quota ?? 0}
         transferring={transferring}
+      />
+      <RewardDetailsDrawer
+        open={detailsInviteeId !== null}
+        inviteeId={detailsInviteeId}
+        onOpenChange={(open) => {
+          if (!open) setDetailsInviteeId(null)
+        }}
       />
     </>
   )
