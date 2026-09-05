@@ -67,7 +67,7 @@ const options = [
   { value: 'vip', label: 'vip', desc: 'Priority group', ratio: 3 },
 ]
 
-function Harness(props: { initialValue: string }) {
+function Harness(props: { initialValue: string; hideDefaultOption?: boolean }) {
   const [value, setValue] = useState(props.initialValue)
 
   return (
@@ -75,6 +75,7 @@ function Harness(props: { initialValue: string }) {
       <ApiKeyGroupCombobox
         options={options}
         value={value}
+        hideDefaultOption={props.hideDefaultOption}
         onValueChange={setValue}
       />
       <output data-testid='selected-group'>{value}</output>
@@ -189,6 +190,20 @@ describe('API key group combobox Auto effect', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
     expect(trigger).not.toHaveAttribute('data-auto-group-effect')
     expect(trigger.querySelector('[data-auto-group-flow-border]')).toBe(null)
+  })
+
+  test('can hide the default group from selectable options while preserving the current value', () => {
+    setReducedMotion(false)
+    render(<Harness initialValue='default' hideDefaultOption />)
+
+    const trigger = getTrigger()
+    expect(trigger).toHaveTextContent('default')
+
+    fireEvent.click(trigger)
+    expect(() => getCommandItem('User group')).toThrow(
+      'Expected command item containing "User group"'
+    )
+    expect(getCommandItem('Priority group')).toBeInTheDocument()
   })
 
   test('preserves the static Auto treatment but omits moving layers for reduced motion', async () => {

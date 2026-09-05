@@ -27,6 +27,7 @@ import {
   LayoutDashboard,
   ListTodo,
   MessageSquare,
+  PanelsTopLeft,
   Radio,
   Signal,
   ServerCog,
@@ -63,6 +64,11 @@ export function buildSidebarData(
             title: t('Playground'),
             url: '/playground',
             icon: FlaskConical,
+          },
+          {
+            title: t('Infinite Canvas'),
+            url: '/canvas',
+            icon: PanelsTopLeft,
           },
           {
             title: t('Chat'),

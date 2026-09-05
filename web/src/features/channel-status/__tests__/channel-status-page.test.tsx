@@ -117,6 +117,35 @@ const responseWithoutTestRecords = {
   },
 } as unknown as Awaited<ReturnType<typeof getChannelStatus>>
 
+const responseWithMediaModels: Awaited<ReturnType<typeof getChannelStatus>> = {
+  success: true,
+  data: {
+    items: [
+      populatedResponse.data.items[0],
+      {
+        ...populatedResponse.data.items[1],
+        channel_id: 3,
+        channel_name: 'image-channel',
+        group: 'image',
+        model_name: 'gpt-image-1',
+      },
+      {
+        ...populatedResponse.data.items[1],
+        channel_id: 4,
+        channel_name: 'video-channel',
+        group: 'video',
+        model_name: 'sora-2',
+      },
+      {
+        ...populatedResponse.data.items[0],
+        channel_id: 5,
+        channel_name: 'regular-group-image-model-channel',
+        model_name: 'gpt-image-2',
+      },
+    ],
+  },
+}
+
 let queryClient: QueryClient | undefined
 
 function renderPage() {
@@ -265,6 +294,9 @@ describe('channel status page', () => {
       expect(record).toHaveClass('bg-warning')
       expect(record).toHaveStyle({ height: '65%' })
     }
+    expect(within(cards[0]).getAllByTestId('test-record')[0]).toHaveClass(
+      'rounded-[2px]'
+    )
     expect(within(cards[0]).getAllByTestId('test-record')[0]).toHaveStyle({
       height: '15%',
     })
@@ -278,6 +310,19 @@ describe('channel status page', () => {
 
     expect(await screen.findByText('gpt-5.6-sol')).toBeInTheDocument()
     expect(screen.getAllByTestId('channel-status-card')).toHaveLength(2)
+  })
+
+  test('hides image and video groups while preserving model text', async () => {
+    vi.mocked(getChannelStatus).mockResolvedValue(responseWithMediaModels)
+
+    renderPage()
+
+    expect(await screen.findByText('gpt-5.6-sol')).toBeInTheDocument()
+    expect(screen.queryByText('image-channel')).toBeNull()
+    expect(screen.queryByText('video-channel')).toBeNull()
+    expect(screen.queryByText('regular-group-image-model-channel')).toBeNull()
+    expect(screen.queryByText('gpt-image-2')).toBeNull()
+    expect(screen.getAllByTestId('channel-status-card')).toHaveLength(1)
   })
 
   test('changes availability period and opens channel details', async () => {

@@ -64,6 +64,36 @@ const response = {
   },
 } as Awaited<ReturnType<typeof getAllChannelStatus>>
 
+const responseWithMediaModels: Awaited<ReturnType<typeof getAllChannelStatus>> =
+  {
+    success: true,
+    data: {
+      items: [
+        response.data.items[0],
+        {
+          ...response.data.items[1],
+          channel_id: 3,
+          channel_name: 'image-channel',
+          group: 'image',
+          model_name: 'imagen-4',
+        },
+        {
+          ...response.data.items[1],
+          channel_id: 4,
+          channel_name: 'video-channel',
+          group: 'video',
+          model_name: 'kling-v2',
+        },
+        {
+          ...response.data.items[0],
+          channel_id: 5,
+          channel_name: 'regular-group-image-model-channel',
+          model_name: 'gpt-image-2',
+        },
+      ],
+    },
+  }
+
 let queryClient: QueryClient | undefined
 
 function renderPage() {
@@ -86,6 +116,19 @@ afterEach(async () => {
 })
 
 describe('channel monitor page', () => {
+  test('hides image and video groups while preserving model text', async () => {
+    vi.mocked(getAllChannelStatus).mockResolvedValue(responseWithMediaModels)
+
+    renderPage()
+
+    expect(await screen.findByText('enabled-channel')).toBeInTheDocument()
+    expect(screen.queryByText('image-channel')).toBeNull()
+    expect(screen.queryByText('video-channel')).toBeNull()
+    expect(screen.queryByText('regular-group-image-model-channel')).toBeNull()
+    expect(screen.queryByText('gpt-image-2')).toBeNull()
+    expect(screen.getAllByTestId('channel-status-card')).toHaveLength(1)
+  })
+
   test('filters cards by enabled and disabled channel status', async () => {
     vi.mocked(getAllChannelStatus).mockResolvedValue(response)
     const user = userEvent.setup()

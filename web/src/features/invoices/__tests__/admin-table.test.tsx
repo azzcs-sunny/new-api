@@ -65,6 +65,7 @@ describe('admin invoice table', () => {
     expect(
       screen.getByRole('button', { name: 'Export order' })
     ).toBeInTheDocument()
+    expect(screen.getAllByText('10.00')).toHaveLength(2)
     expect(screen.getAllByText('Reject')).toHaveLength(2)
     expect(screen.getByText('Actions').closest('th')).toHaveClass(
       'sticky',

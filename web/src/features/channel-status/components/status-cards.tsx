@@ -265,7 +265,7 @@ function StatusCard(props: StatusCardProps) {
                 data-testid='test-record'
                 data-status='empty'
                 style={{ height: '15%' }}
-                className='bg-muted min-w-0 flex-1 rounded-[1px]'
+                className='bg-muted min-w-0 flex-1 rounded-[2px]'
                 aria-hidden='true'
               />
             ))}
@@ -309,7 +309,7 @@ function TestRecordBar({ record }: { record: ChannelTestRecord }) {
       data-status={display.status}
       title={`${Math.round(Math.max(0, record.latency_ms))} ms`}
       style={{ height: `${display.heightPercent}%` }}
-      className={cn('min-w-0 flex-1 rounded-[1px]', display.colorClass)}
+      className={cn('min-w-0 flex-1 rounded-[2px]', display.colorClass)}
       aria-hidden='true'
     />
   )

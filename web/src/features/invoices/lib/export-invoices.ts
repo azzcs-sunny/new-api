@@ -28,6 +28,7 @@ export function buildProcessingInvoiceExportRows(
       [t('Top-up orders')]: (invoice.orders || [])
         .map((order) => order.topup.trade_no)
         .join(', '),
+      [t('Amount')]: invoice.amount,
       [t('Submitted at')]: invoice.create_time
         ? new Date(invoice.create_time * 1000).toLocaleString()
         : '',
@@ -51,6 +52,7 @@ export async function exportProcessingInvoices(
     { wch: 24 },
     { wch: 32 },
     { wch: 42 },
+    { wch: 14 },
     { wch: 22 },
   ]
   const workbook = XLSX.utils.book_new()

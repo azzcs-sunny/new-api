@@ -47,7 +47,7 @@ function createInvoice(id: number, status: string): Invoice {
 }
 
 describe('invoice Excel rows', () => {
-  test('exports only processing invoices with the required eight columns', () => {
+  test('exports only processing invoices with the required nine columns', () => {
     const rows = buildProcessingInvoiceExportRows(
       [createInvoice(1, 'processing'), createInvoice(2, 'pending')],
       (key) => key
@@ -62,6 +62,7 @@ describe('invoice Excel rows', () => {
       'Tax number': 'TAX-001',
       Email: 'billing@example.com',
       'Top-up orders': 'TOPUP-001',
+      Amount: 99,
     })
     expect(Object.keys(rows[0])).toEqual([
       'Invoice ID',
@@ -71,6 +72,7 @@ describe('invoice Excel rows', () => {
       'Tax number',
       'Email',
       'Top-up orders',
+      'Amount',
       'Submitted at',
     ])
   })

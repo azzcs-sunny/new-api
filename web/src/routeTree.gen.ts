@@ -36,6 +36,7 @@ import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedAffiliateAdminIndexRouteImport } from './routes/_authenticated/affiliate-admin/index'
 import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate/index'
+import { Route as AuthenticatedCanvasIndexRouteImport } from './routes/_authenticated/canvas/index'
 import { Route as AuthenticatedChannelMonitorIndexRouteImport } from './routes/_authenticated/channel-monitor/index'
 import { Route as AuthenticatedChannelStatusIndexRouteImport } from './routes/_authenticated/channel-status/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -207,6 +208,12 @@ const AuthenticatedAffiliateIndexRoute =
   AuthenticatedAffiliateIndexRouteImport.update({
     id: '/affiliate/',
     path: '/affiliate/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCanvasIndexRoute =
+  AuthenticatedCanvasIndexRouteImport.update({
+    id: '/canvas/',
+    path: '/canvas/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedChannelMonitorIndexRoute =
@@ -453,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/affiliate-admin/': typeof AuthenticatedAffiliateAdminIndexRoute
   '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
+  '/canvas/': typeof AuthenticatedCanvasIndexRoute
   '/channel-monitor/': typeof AuthenticatedChannelMonitorIndexRoute
   '/channel-status/': typeof AuthenticatedChannelStatusIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -515,6 +523,7 @@ export interface FileRoutesByTo {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/affiliate-admin': typeof AuthenticatedAffiliateAdminIndexRoute
   '/affiliate': typeof AuthenticatedAffiliateIndexRoute
+  '/canvas': typeof AuthenticatedCanvasIndexRoute
   '/channel-monitor': typeof AuthenticatedChannelMonitorIndexRoute
   '/channel-status': typeof AuthenticatedChannelStatusIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
@@ -581,6 +590,7 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/affiliate-admin/': typeof AuthenticatedAffiliateAdminIndexRoute
   '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
+  '/_authenticated/canvas/': typeof AuthenticatedCanvasIndexRoute
   '/_authenticated/channel-monitor/': typeof AuthenticatedChannelMonitorIndexRoute
   '/_authenticated/channel-status/': typeof AuthenticatedChannelStatusIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -646,6 +656,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/affiliate-admin/'
     | '/affiliate/'
+    | '/canvas/'
     | '/channel-monitor/'
     | '/channel-status/'
     | '/channels/'
@@ -708,6 +719,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/affiliate-admin'
     | '/affiliate'
+    | '/canvas'
     | '/channel-monitor'
     | '/channel-status'
     | '/channels'
@@ -773,6 +785,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/affiliate-admin/'
     | '/_authenticated/affiliate/'
+    | '/_authenticated/canvas/'
     | '/_authenticated/channel-monitor/'
     | '/_authenticated/channel-status/'
     | '/_authenticated/channels/'
@@ -1014,6 +1027,13 @@ declare module '@tanstack/react-router' {
       path: '/affiliate'
       fullPath: '/affiliate/'
       preLoaderRoute: typeof AuthenticatedAffiliateIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/canvas/': {
+      id: '/_authenticated/canvas/'
+      path: '/canvas'
+      fullPath: '/canvas/'
+      preLoaderRoute: typeof AuthenticatedCanvasIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/channel-monitor/': {
@@ -1364,6 +1384,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedAffiliateAdminIndexRoute: typeof AuthenticatedAffiliateAdminIndexRoute
   AuthenticatedAffiliateIndexRoute: typeof AuthenticatedAffiliateIndexRoute
+  AuthenticatedCanvasIndexRoute: typeof AuthenticatedCanvasIndexRoute
   AuthenticatedChannelMonitorIndexRoute: typeof AuthenticatedChannelMonitorIndexRoute
   AuthenticatedChannelStatusIndexRoute: typeof AuthenticatedChannelStatusIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
@@ -1392,6 +1413,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedAffiliateAdminIndexRoute: AuthenticatedAffiliateAdminIndexRoute,
   AuthenticatedAffiliateIndexRoute: AuthenticatedAffiliateIndexRoute,
+  AuthenticatedCanvasIndexRoute: AuthenticatedCanvasIndexRoute,
   AuthenticatedChannelMonitorIndexRoute: AuthenticatedChannelMonitorIndexRoute,
   AuthenticatedChannelStatusIndexRoute: AuthenticatedChannelStatusIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,

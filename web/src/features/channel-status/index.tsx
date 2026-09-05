@@ -41,6 +41,7 @@ import { useCountdown } from '@/hooks/use-countdown'
 import { getChannelStatus } from './api'
 import { ChannelStatusDetailDialog } from './components/channel-status-detail-dialog'
 import { StatusCards, type AvailabilityDays } from './components/status-cards'
+import { filterVisibleChannelStatusRows } from './lib/channel-status-visibility'
 import type { ChannelStatusRow } from './types'
 
 const refreshIntervalMs = 60 * 1000
@@ -64,7 +65,9 @@ export function ChannelStatus() {
     start()
   }, [start, statusQuery.dataUpdatedAt])
 
-  const items = statusQuery.data?.data.items ?? []
+  const items = filterVisibleChannelStatusRows(
+    statusQuery.data?.data.items ?? []
+  )
   const hasData = statusQuery.isLoading || items.length > 0
 
   return (

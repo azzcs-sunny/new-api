@@ -2425,6 +2425,7 @@
     "Increased user quota by {{quota}}": "Increased user quota by {{quota}}",
     "Index": "Index",
     "Individual": "Individual",
+    "Infinite Canvas": "Infinite Canvas",
     "Inherit global Auto order": "Inherit global Auto order",
     "Initial quota given to new users": "Initial quota given to new users",
     "Initial quota given to new users ({{formattedQuota}})": "Initial quota given to new users ({{formattedQuota}})",

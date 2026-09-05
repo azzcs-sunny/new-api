@@ -111,14 +111,17 @@ function ApiKeyGroupDisplay(props: ApiKeyGroupDisplayProps) {
 export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
   const { t } = useTranslation()
   const options = props.options ?? []
+  const selectableOptions = options.filter(
+    (option) => option.value !== 'default'
+  )
 
-  if (!props.onGroupChange || options.length === 0) {
+  if (!props.onGroupChange || selectableOptions.length === 0) {
     return <ApiKeyGroupDisplay {...props} />
   }
 
   return (
     <Select
-      items={options.map((option) => ({
+      items={selectableOptions.map((option) => ({
         label: option.label || t('User Group'),
         value: option.value,
       }))}
@@ -149,7 +152,7 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
         className={groupSelectContentClassName}
       >
         <SelectGroup>
-          {options.map((option) => (
+          {selectableOptions.map((option) => (
             <SelectItem
               key={option.value}
               value={option.value}

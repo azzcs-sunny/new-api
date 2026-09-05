@@ -422,6 +422,7 @@ export function ApiKeysMutateDrawer({
                       <ApiKeyGroupCombobox
                         options={groups}
                         value={field.value}
+                        hideDefaultOption
                         onValueChange={(group) => {
                           field.onChange(group)
                           if (group === 'auto') {

@@ -2425,6 +2425,7 @@
     "Increased user quota by {{quota}}": "ユーザーのクォータを {{quota}} 増やしました",
     "Index": "インデックス",
     "Individual": "個人",
+    "Infinite Canvas": "無限キャンバス",
     "Inherit global Auto order": "グローバル Auto 順序を継承",
     "Initial quota given to new users": "新規ユーザーに付与される初期クォータ",
     "Initial quota given to new users ({{formattedQuota}})": "新規ユーザーに付与される初期クォータ（{{formattedQuota}}）",

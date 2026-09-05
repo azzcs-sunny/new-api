@@ -185,6 +185,7 @@ describe('API key group table cell', () => {
 
     await user.click(trigger)
     const vipOption = await screen.findByRole('option', { name: /vip/i })
+    expect(screen.queryByRole('option', { name: /default/i })).toBeNull()
     const popup = document.querySelector<HTMLElement>(
       '[data-slot="select-content"]'
     )

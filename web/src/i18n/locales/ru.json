@@ -2425,6 +2425,7 @@
     "Increased user quota by {{quota}}": "Квота пользователя увеличена на {{quota}}",
     "Index": "Индекс",
     "Individual": "Физическое лицо",
+    "Infinite Canvas": "Бесконечный холст",
     "Inherit global Auto order": "Наследовать глобальный порядок Auto",
     "Initial quota given to new users": "Начальная квота, предоставляемая новым пользователям",
     "Initial quota given to new users ({{formattedQuota}})": "Начальная квота, предоставляемая новым пользователям ({{formattedQuota}})",

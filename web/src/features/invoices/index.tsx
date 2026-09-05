@@ -819,6 +819,7 @@ export function AdminInvoiceTable(props: AdminInvoiceTableProps) {
               <TableHead className='min-w-44'>{t('Tax number')}</TableHead>
               <TableHead className='min-w-52'>{t('Email')}</TableHead>
               <TableHead className='min-w-56'>{t('Top-up orders')}</TableHead>
+              <TableHead className='w-32'>{t('Amount')}</TableHead>
               <TableHead className='w-44'>{t('Submitted at')}</TableHead>
               <TableHead className='bg-muted sticky right-0 z-30 w-80 border-l pr-4 text-right shadow-[-6px_0_8px_-8px_var(--border)]'>
                 {t('Actions')}
@@ -886,6 +887,9 @@ export function AdminInvoiceTable(props: AdminInvoiceTableProps) {
                     <div className='max-w-72 truncate' title={orderNumbers}>
                       {orderNumbers || '-'}
                     </div>
+                  </TableCell>
+                  <TableCell className='whitespace-nowrap tabular-nums'>
+                    {invoice.amount.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     {invoice.create_time

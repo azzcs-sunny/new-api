@@ -48,6 +48,7 @@ import {
   StatusCards,
   type AvailabilityDays,
 } from '@/features/channel-status/components/status-cards'
+import { filterVisibleChannelStatusRows } from '@/features/channel-status/lib/channel-status-visibility'
 import type { ChannelStatusRow } from '@/features/channel-status/types'
 import { useCountdown } from '@/hooks/use-countdown'
 
@@ -84,7 +85,9 @@ export function ChannelMonitor() {
     start()
   }, [start, statusQuery.dataUpdatedAt])
 
-  const items = statusQuery.data?.data.items ?? []
+  const items = filterVisibleChannelStatusRows(
+    statusQuery.data?.data.items ?? []
+  )
   const selectedStatusLabel =
     statusFilterOptions.find((option) => option.value === statusFilter)
       ?.label ?? 'All Status'

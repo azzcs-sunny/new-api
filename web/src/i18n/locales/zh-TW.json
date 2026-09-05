@@ -2425,6 +2425,7 @@
     "Increased user quota by {{quota}}": "增加用戶額度 {{quota}}",
     "Index": "索引",
     "Individual": "個人",
+    "Infinite Canvas": "無限畫布",
     "Inherit global Auto order": "繼承全域 Auto 順序",
     "Initial quota given to new users": "授予新用戶的初始配額",
     "Initial quota given to new users ({{formattedQuota}})": "授予新用戶的初始配額（{{formattedQuota}}）",
