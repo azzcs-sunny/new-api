@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Megaphone } from 'lucide-react'
+import { ChevronRight, Megaphone } from 'lucide-react'
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { NotificationDialog } from '@/components/notification-dialog'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAnnouncements } from '@/features/dashboard/hooks/use-status-data'
@@ -30,7 +31,6 @@ import { formatDateTimeObject } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
 import { PanelWrapper } from '../ui/panel-wrapper'
-import { AnnouncementDetailModal } from './announcement-detail-dialog'
 
 const AnnouncementStatusDot = memo(function AnnouncementStatusDot(props: {
   type?: string
@@ -38,7 +38,7 @@ const AnnouncementStatusDot = memo(function AnnouncementStatusDot(props: {
   return (
     <span
       className={cn(
-        'mt-1.5 inline-block size-2 shrink-0 rounded-full',
+        'ring-card absolute right-0.5 bottom-0.5 inline-block size-2 rounded-full ring-2',
         getAnnouncementColorClass(props.type)
       )}
     />
@@ -61,7 +61,11 @@ export function AnnouncementsPanel() {
     <PanelWrapper
       title={
         <span className='flex items-center gap-2'>
-          <IconBadge tone='warning' size='sm'>
+          <IconBadge
+            tone='warning'
+            size='sm'
+            className='ring-warning/20 ring-1'
+          >
             <Megaphone />
           </IconBadge>
           {t('Announcements')}
@@ -88,11 +92,20 @@ export function AnnouncementsPanel() {
                   idx < list.length - 1 && 'border-border/60 border-b'
                 )}
               >
-                <div className='flex items-start gap-2.5'>
-                  <AnnouncementStatusDot type={item.type} />
+                <div className='flex items-center gap-2.5'>
+                  <span className='relative shrink-0'>
+                    <IconBadge
+                      tone='warning'
+                      size='sm'
+                      className='ring-warning/20 ring-1'
+                    >
+                      <Megaphone />
+                    </IconBadge>
+                    <AnnouncementStatusDot type={item.type} />
+                  </span>
                   <div className='flex min-w-0 flex-1 flex-col gap-1'>
                     <p className='line-clamp-1 text-sm font-medium'>
-                      {getPreviewText(item.content)}
+                      {item.extra?.trim() || getPreviewText(item.content)}
                     </p>
                     <div className='flex items-center justify-between'>
                       {item.publishDate && (
@@ -105,6 +118,10 @@ export function AnnouncementsPanel() {
                       </span>
                     </div>
                   </div>
+                  <ChevronRight
+                    className='text-muted-foreground/60 size-4 shrink-0'
+                    aria-hidden='true'
+                  />
                 </div>
               </button>
             )
@@ -112,10 +129,15 @@ export function AnnouncementsPanel() {
         </div>
       </ScrollArea>
 
-      <AnnouncementDetailModal
+      <NotificationDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        announcement={selectedAnnouncement}
+        item={
+          selectedAnnouncement
+            ? { kind: 'announcement', announcement: selectedAnnouncement }
+            : null
+        }
+        loading={loading}
       />
     </PanelWrapper>
   )

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -22,6 +23,7 @@ const (
 type ChannelStatusItem struct {
 	ChannelId         int                       `json:"channel_id,omitempty"`
 	ChannelName       string                    `json:"channel_name,omitempty"`
+	ChannelType       int                       `json:"channel_type,omitempty"`
 	Provider          string                    `json:"provider,omitempty"`
 	ChannelStatus     int                       `json:"channel_status,omitempty"`
 	Group             string                    `json:"group"`
@@ -90,6 +92,10 @@ func QueryChannelStatus(groups []string) (ChannelStatusResult, error) {
 		item := buildChannelStatusItem(records)
 		applyChannelAvailability(&item, availabilityByChannel[target.ChannelId])
 		item.ChannelId = target.ChannelId
+		item.ChannelName = target.ChannelName
+		item.ChannelType = target.ChannelType
+		item.Provider = target.Provider
+		item.ChannelStatus = target.ChannelStatus
 		item.Group = target.Group
 		item.GroupRatios = map[string]float64{
 			target.Group: ratio_setting.GetGroupRatio(target.Group),
@@ -130,12 +136,21 @@ func QueryAllChannelStatus() (ChannelStatusResult, error) {
 		applyChannelAvailability(&item, availabilityByChannel[channel.Id])
 		item.ChannelId = channel.Id
 		item.ChannelName = channel.Name
+		item.ChannelType = channel.Type
 		item.Provider = constant.GetChannelTypeName(channel.Type)
 		item.ChannelStatus = channel.Status
 		item.Group = channel.Group
 		item.GroupRatios = make(map[string]float64)
+		visibleGroups := make([]string, 0)
 		for _, group := range channel.GetGroups() {
+			if model.IsHiddenChannelStatusGroup(group) {
+				continue
+			}
+			visibleGroups = append(visibleGroups, group)
 			item.GroupRatios[group] = ratio_setting.GetGroupRatio(group)
+		}
+		if len(visibleGroups) > 0 {
+			item.Group = strings.Join(visibleGroups, ",")
 		}
 		item.ModelName = channel.GetTestModel()
 		if len(channelRecords) > 0 {

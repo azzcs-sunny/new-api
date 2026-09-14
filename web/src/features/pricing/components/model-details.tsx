@@ -1135,11 +1135,14 @@ export interface ModelDetailsContentProps {
   usdExchangeRate: number
   tokenUnit: TokenUnit
   showRechargePrice?: boolean
+  showApiTab?: boolean
 }
 
 export function ModelDetailsContent(props: ModelDetailsContentProps) {
   const { t } = useTranslation()
   const showRechargePrice = props.showRechargePrice ?? false
+  const tabValues =
+    props.showApiTab === false ? TAB_VALUES.slice(0, 2) : TAB_VALUES
 
   const isDynamic =
     props.model.billing_mode === 'tiered_expr' &&
@@ -1150,8 +1153,13 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
       <ModelHeader model={props.model} />
 
       <Tabs defaultValue='overview' className='gap-4'>
-        <TabsList className='bg-muted/60 grid w-full grid-cols-3 gap-1 rounded-lg p-1 group-data-horizontal/tabs:h-auto'>
-          {TAB_VALUES.map((value) => {
+        <TabsList
+          className={cn(
+            'bg-muted/60 grid w-full gap-1 rounded-lg p-1 group-data-horizontal/tabs:h-auto',
+            props.showApiTab === false ? 'grid-cols-2' : 'grid-cols-3'
+          )}
+        >
+          {tabValues.map((value) => {
             const Icon = TAB_META[value].icon
             return (
               <TabsTrigger
@@ -1200,12 +1208,14 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
           <ModelDetailsPerformance model={props.model} />
         </TabsContent>
 
-        <TabsContent value='api' className='outline-none'>
-          <ModelDetailsApi
-            model={props.model}
-            endpointMap={props.endpointMap}
-          />
-        </TabsContent>
+        {props.showApiTab !== false && (
+          <TabsContent value='api' className='outline-none'>
+            <ModelDetailsApi
+              model={props.model}
+              endpointMap={props.endpointMap}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

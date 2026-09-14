@@ -22,8 +22,9 @@ import { describe, expect, test } from 'vitest'
 import { buildSidebarData } from '../use-sidebar-data'
 
 describe('sidebar data', () => {
+  const t = ((key: string) => key) as unknown as TFunction
+
   test('puts channel status between dashboard and api keys', () => {
-    const t = ((key: string) => key) as unknown as TFunction
     const sidebarData = buildSidebarData(t)
     const generalGroup = sidebarData.navGroups.find(
       (group) => group.id === 'general'
@@ -51,5 +52,26 @@ describe('sidebar data', () => {
       'Usage Logs',
       'Task Logs',
     ])
+  })
+
+  test('adds the card code purchase entry only when a top-up link is configured', () => {
+    const withoutLink = buildSidebarData(t)
+    const withLink = buildSidebarData(t, undefined, 'https://example.com/topup')
+    const personalWithoutLink = withoutLink.navGroups.find(
+      (group) => group.id === 'personal'
+    )
+    const personalWithLink = withLink.navGroups.find(
+      (group) => group.id === 'personal'
+    )
+
+    expect(personalWithoutLink?.items.map((item) => item.title)).not.toContain(
+      '⭐Purchase Card Codes⭐'
+    )
+    expect(personalWithLink?.items).toContainEqual(
+      expect.objectContaining({
+        title: '⭐Purchase Card Codes⭐',
+        url: '/wallet/card-codes',
+      })
+    )
   })
 })

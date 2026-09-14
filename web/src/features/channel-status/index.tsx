@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Refresh01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -36,21 +36,31 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { DEFAULT_TOKEN_UNIT } from '@/features/pricing/constants'
+import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 import { useCountdown } from '@/hooks/use-countdown'
 
 import { getChannelStatus } from './api'
 import { ChannelStatusDetailDialog } from './components/channel-status-detail-dialog'
-import { StatusCards, type AvailabilityDays } from './components/status-cards'
+import { PlatformStatusTable } from './components/platform-status-table'
+import type { AvailabilityDays } from './components/status-cards'
 import { filterVisibleChannelStatusRows } from './lib/channel-status-visibility'
 import type { ChannelStatusRow } from './types'
 
 const refreshIntervalMs = 60 * 1000
 const availabilityOptions: AvailabilityDays[] = [7, 15, 30]
+const enableChannelDetailClick = false
+const ModelDetailsDrawer = lazy(() =>
+  import('@/features/pricing/components/model-details').then((module) => ({
+    default: module.ModelDetailsDrawer,
+  }))
+)
 
 export function ChannelStatus() {
   const { t } = useTranslation()
   const [availabilityDays, setAvailabilityDays] = useState<AvailabilityDays>(7)
   const [selectedChannel, setSelectedChannel] = useState<ChannelStatusRow>()
+  const [selectedModelName, setSelectedModelName] = useState<string>()
   const { secondsLeft, start } = useCountdown({
     initialSeconds: refreshIntervalMs / 1000,
   })
@@ -72,12 +82,13 @@ export function ChannelStatus() {
 
   return (
     <>
-      <SectionPageLayout>
+      <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>{t('Channel Status')}</SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <div
+            aria-hidden='true'
             aria-label={t('Availability period')}
-            className='bg-muted flex items-center rounded-lg border p-0.5'
+            className='bg-muted hidden items-center rounded-lg border p-0.5'
           >
             {availabilityOptions.map((days) => (
               <Button
@@ -113,32 +124,37 @@ export function ChannelStatus() {
           </Tooltip>
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          {hasData ? (
-            <StatusCards
-              rows={items}
-              loading={statusQuery.isLoading}
-              availabilityDays={availabilityDays}
-              onCardClick={setSelectedChannel}
-            />
-          ) : (
-            <Empty className='min-h-72 border'>
-              <EmptyHeader>
-                <EmptyMedia variant='icon'>
-                  <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {statusQuery.isError
-                    ? t('Failed to load')
-                    : t('Channel Status')}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {statusQuery.isError
-                    ? t('Please try again later.')
-                    : t('No channel test data is available yet.')}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
+          <div className='h-full min-h-0 overflow-hidden'>
+            {hasData ? (
+              <PlatformStatusTable
+                rows={items}
+                loading={statusQuery.isLoading}
+                availabilityDays={availabilityDays}
+                onRowClick={
+                  enableChannelDetailClick ? setSelectedChannel : undefined
+                }
+                onModelClick={setSelectedModelName}
+              />
+            ) : (
+              <Empty className='min-h-72 border'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {statusQuery.isError
+                      ? t('Failed to load')
+                      : t('Channel Status')}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    {statusQuery.isError
+                      ? t('Please try again later.')
+                      : t('No channel test data is available yet.')}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
       {selectedChannel ? (
@@ -149,6 +165,61 @@ export function ChannelStatus() {
           }}
         />
       ) : null}
+      {selectedModelName ? (
+        <ChannelStatusModelDetails
+          modelName={selectedModelName}
+          onOpenChange={(open) => {
+            if (!open) setSelectedModelName(undefined)
+          }}
+        />
+      ) : null}
     </>
+  )
+}
+
+function ChannelStatusModelDetails(props: {
+  modelName: string
+  onOpenChange: (open: boolean) => void
+}) {
+  const {
+    models,
+    groupRatio,
+    usableGroup,
+    endpointMap,
+    autoGroups,
+    priceRate,
+    usdExchangeRate,
+  } = usePricingData()
+
+  const model = useMemo(
+    () =>
+      models.find((item) => item.model_name === props.modelName) ??
+      models.find(
+        (item) =>
+          item.model_name.toLowerCase() === props.modelName.toLowerCase()
+      ),
+    [models, props.modelName]
+  )
+
+  if (!model) return null
+
+  return (
+    <Suspense fallback={null}>
+      <ModelDetailsDrawer
+        open
+        onOpenChange={props.onOpenChange}
+        model={model}
+        groupRatio={groupRatio}
+        usableGroup={usableGroup}
+        endpointMap={
+          endpointMap as Record<string, { path?: string; method?: string }>
+        }
+        autoGroups={autoGroups}
+        priceRate={priceRate}
+        usdExchangeRate={usdExchangeRate}
+        tokenUnit={DEFAULT_TOKEN_UNIT}
+        showApiTab={false}
+      />
+    </Suspense>
   )
 }

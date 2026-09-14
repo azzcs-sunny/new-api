@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { ChevronsUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { GroupBadge } from '@/components/group-badge'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -37,6 +38,7 @@ import {
 import { useMediaQuery } from '@/hooks'
 import { cn } from '@/lib/utils'
 
+import { filterApiKeyGroupOptions } from '../lib/group-options'
 import {
   AUTO_GROUP_FRAME_CLASS_NAME,
   AutoGroupFlowBorder,
@@ -49,6 +51,13 @@ export type ApiKeyGroupOption = {
   desc?: string
   ratio?: number | string
 }
+
+const groupComboboxContentClassName =
+  'max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] w-[440px] max-w-[calc(100vw-2rem)] overflow-hidden overscroll-contain rounded-lg p-0 shadow-lg'
+const groupComboboxListClassName =
+  'max-h-[min(20rem,var(--available-height))] overflow-y-auto overscroll-contain p-1.5'
+const groupComboboxItemClassName =
+  'cursor-pointer items-center gap-1.5 rounded-md py-2.5 pr-1.5 pl-1.5 text-xs whitespace-normal transition-colors hover:bg-accent hover:text-accent-foreground data-selected:bg-accent data-selected:text-accent-foreground'
 
 type ApiKeyGroupComboboxProps = {
   options: ApiKeyGroupOption[]
@@ -76,9 +85,11 @@ export function ApiKeyGroupCombobox({
 
   const filteredOptions = useMemo(() => {
     const search = searchValue.trim().toLowerCase()
-    const selectableOptions = hideDefaultOption
-      ? options.filter((option) => option.value !== 'default')
-      : options
+    const selectableOptions = filterApiKeyGroupOptions(
+      hideDefaultOption
+        ? options.filter((option) => option.value !== 'default')
+        : options
+    )
     if (!search) return selectableOptions
 
     return selectableOptions.filter((option) => {
@@ -110,7 +121,7 @@ export function ApiKeyGroupCombobox({
             data-auto-group-effect={isAutoSelected ? 'trigger' : undefined}
             disabled={disabled}
             className={cn(
-              'border-input bg-muted/40 hover:bg-muted/55 hover:text-foreground active:bg-background data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-auto min-h-14 w-full justify-between gap-2 rounded-lg px-3 py-2 text-start shadow-none transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px] sm:min-h-20 sm:gap-3 sm:px-4 sm:py-3',
+              'border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-9 w-full min-w-0 cursor-pointer justify-between gap-2 px-2.5 text-start shadow-xs transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px] disabled:cursor-not-allowed',
               isAutoSelected &&
                 cn(
                   AUTO_GROUP_FRAME_CLASS_NAME,
@@ -123,24 +134,26 @@ export function ApiKeyGroupCombobox({
         {isAutoSelected && (
           <AutoGroupFlowBorder shouldReduceMotion={shouldReduceMotion} />
         )}
-        <span className='flex min-w-0 flex-1 items-center justify-between gap-2 sm:gap-3'>
-          <span className='min-w-0'>
-            <span className='block truncate font-medium'>
-              {selectedOption?.label || placeholder || t('Select a group')}
-            </span>
-            {selectedOption?.desc && (
-              <span className='text-muted-foreground block truncate text-[11px] sm:text-xs'>
-                {selectedOption.desc}
-              </span>
-            )}
-          </span>
-          <span className='hidden sm:block'>
-            <GroupRatioBadge
-              ratio={selectedOption?.ratio}
-              isAuto={isAutoSelected}
-              shouldReduceMotion={shouldReduceMotion}
+        <span className='flex min-w-0 flex-1 items-center justify-between gap-2'>
+          {selectedOption ? (
+            <GroupBadge
+              group={selectedOption.value}
+              className='h-5 max-w-full px-1.5 text-[11px] leading-none'
             />
-          </span>
+          ) : (
+            <span className='text-muted-foreground min-w-0 truncate text-sm font-normal'>
+              {placeholder || t('Select a group')}
+            </span>
+          )}
+          {selectedOption && (
+            <span className='shrink-0 [&_[data-slot=badge]]:text-[10px]'>
+              <GroupRatioBadge
+                ratio={selectedOption?.ratio}
+                isAuto={isAutoSelected}
+                shouldReduceMotion={shouldReduceMotion}
+              />
+            </span>
+          )}
         </span>
         <ChevronsUpDown
           aria-hidden='true'
@@ -148,20 +161,23 @@ export function ApiKeyGroupCombobox({
         />
       </PopoverTrigger>
       <PopoverContent
-        className='data-closed:zoom-out-100 data-open:zoom-in-100 data-[side=bottom]:slide-in-from-top-0 data-[side=left]:slide-in-from-right-0 data-[side=right]:slide-in-from-left-0 data-[side=top]:slide-in-from-bottom-0 w-[var(--anchor-width)] overflow-hidden rounded-xl p-0 shadow-lg data-closed:duration-75 data-open:duration-100'
+        className={cn(
+          'data-closed:zoom-out-100 data-open:zoom-in-100 data-[side=bottom]:slide-in-from-top-0 data-[side=left]:slide-in-from-right-0 data-[side=right]:slide-in-from-left-0 data-[side=top]:slide-in-from-bottom-0 data-closed:duration-75 data-open:duration-100',
+          groupComboboxContentClassName
+        )}
         onWheel={(event) => event.stopPropagation()}
         onTouchMove={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <Command shouldFilter={false}>
+        <Command shouldFilter={false} className='rounded-lg! p-0'>
           <CommandInput
             placeholder={t('Search...')}
             value={searchValue}
             onValueChange={setSearchValue}
           />
-          <CommandList className='max-h-[360px]'>
+          <CommandList className={groupComboboxListClassName}>
             <CommandEmpty>{t('No group found.')}</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className='p-0'>
               {filteredOptions.map((option) => {
                 const isAutoOption = option.value === 'auto'
 
@@ -169,14 +185,15 @@ export function ApiKeyGroupCombobox({
                   <CommandItem
                     key={option.value}
                     value={option.value}
+                    data-checked={value === option.value ? 'true' : undefined}
                     data-auto-group-effect={isAutoOption ? 'option' : undefined}
                     onSelect={() => handleSelect(option.value)}
                     className={cn(
-                      'data-[selected=true]:bg-muted items-start gap-3 rounded-lg px-3 py-3 transition-colors',
+                      groupComboboxItemClassName,
                       isAutoOption &&
                         cn(
                           AUTO_GROUP_FRAME_CLASS_NAME,
-                          'border-primary/35 data-[selected=true]:border-primary/55'
+                          'border-primary/35 data-selected:border-primary/55 hover:border-primary/55'
                         )
                     )}
                   >
@@ -185,28 +202,32 @@ export function ApiKeyGroupCombobox({
                         shouldReduceMotion={shouldReduceMotion}
                       />
                     )}
-                    <Check
-                      aria-hidden='true'
-                      className={cn(
-                        'mt-0.5 size-4',
-                        value === option.value ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    <span className='min-w-0 flex-1'>
-                      <span className='block truncate font-medium'>
-                        {option.label}
+                    <span
+                      data-api-key-group-option-content='true'
+                      className='flex min-w-0 flex-1 items-center justify-between gap-4 whitespace-normal'
+                    >
+                      <span className='flex min-w-0 flex-1 flex-col items-start gap-1'>
+                        <GroupBadge
+                          group={option.value}
+                          className='h-5 max-w-full px-1.5 text-[11px] leading-none [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal'
+                        />
+                        {option.desc && (
+                          <span className='text-muted-foreground w-full pl-1.5 text-[11px] leading-snug break-words whitespace-normal'>
+                            {option.desc}
+                          </span>
+                        )}
                       </span>
-                      {option.desc && (
-                        <span className='text-muted-foreground block truncate text-xs'>
-                          {option.desc}
-                        </span>
-                      )}
+                      <span
+                        data-api-key-group-option-ratio='true'
+                        className='shrink-0 [&_[data-slot=badge]]:text-[10px]'
+                      >
+                        <GroupRatioBadge
+                          ratio={option.ratio}
+                          isAuto={isAutoOption}
+                          shouldReduceMotion={shouldReduceMotion}
+                        />
+                      </span>
                     </span>
-                    <GroupRatioBadge
-                      ratio={option.ratio}
-                      isAuto={isAutoOption}
-                      shouldReduceMotion={shouldReduceMotion}
-                    />
                   </CommandItem>
                 )
               })}

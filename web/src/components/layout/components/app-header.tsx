@@ -134,11 +134,9 @@ export function AppHeader({
                 open={notifications.popoverOpen}
                 onOpenChange={notifications.setPopoverOpen}
                 unreadCount={notifications.unreadCount}
-                activeTab={notifications.activeTab}
-                onTabChange={notifications.setActiveTab}
-                notice={notifications.notice}
                 announcements={notifications.announcements}
                 loading={notifications.loading}
+                onAnnouncementOpen={notifications.openAnnouncementDetail}
               />
             )}
             <QqGroupButton />
@@ -151,10 +149,7 @@ export function AppHeader({
       <NotificationDialog
         open={notifications.notificationDialogOpen}
         onOpenChange={notifications.setNotificationDialogOpen}
-        activeTab={notifications.activeTab}
-        onTabChange={notifications.setActiveTab}
-        notice={notifications.notice}
-        announcements={notifications.announcements}
+        item={notifications.notificationDialogItem}
         loading={notifications.loading}
       />
     </>

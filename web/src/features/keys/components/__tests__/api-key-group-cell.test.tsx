@@ -181,7 +181,7 @@ describe('API key group table cell', () => {
 
     const trigger = screen.getByRole('combobox', { name: 'Group' })
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    expect(trigger).toHaveClass('border-input', 'bg-muted/40')
+    expect(trigger).toHaveClass('border-input', 'bg-muted/40', 'cursor-pointer')
 
     await user.click(trigger)
     const vipOption = await screen.findByRole('option', { name: /vip/i })
@@ -191,6 +191,7 @@ describe('API key group table cell', () => {
     )
     expect(popup).toHaveClass(
       'max-h-[min(20rem,var(--available-height))]',
+      'min-w-[var(--anchor-width)]',
       'w-[440px]',
       'max-w-[calc(100vw-2rem)]',
       'overflow-y-auto',
@@ -198,6 +199,9 @@ describe('API key group table cell', () => {
       'p-1.5'
     )
     expect(vipOption).toHaveClass(
+      'cursor-pointer',
+      'hover:bg-accent',
+      'hover:text-accent-foreground',
       'whitespace-normal',
       'py-2.5',
       'pl-1.5',
@@ -248,7 +252,10 @@ describe('API key group table cell', () => {
       <CellHarness
         group='default'
         isUpdating
-        options={[{ value: 'default', label: 'default', ratio: 1 }]}
+        options={[
+          { value: 'default', label: 'default', ratio: 1 },
+          { value: 'vip', label: 'vip', ratio: 3 },
+        ]}
         onGroupChange={vi.fn()}
       />
     )
@@ -258,7 +265,7 @@ describe('API key group table cell', () => {
     expect(trigger).toHaveAttribute('aria-busy', 'true')
   })
 
-  test('allows switching back to the empty user group value', async () => {
+  test('filters empty user group values from the selector', async () => {
     const user = userEvent.setup()
     const onGroupChange = vi.fn()
 
@@ -274,8 +281,9 @@ describe('API key group table cell', () => {
     )
 
     await user.click(screen.getByRole('combobox', { name: 'Group' }))
-    await user.click(await screen.findByRole('option', { name: /User Group/i }))
+    expect(screen.queryByRole('option', { name: /User Group/i })).toBeNull()
+    await user.click(await screen.findByRole('option', { name: /vip/i }))
 
-    expect(onGroupChange).toHaveBeenCalledWith('')
+    expect(onGroupChange).not.toHaveBeenCalled()
   })
 })

@@ -29,6 +29,12 @@ vi.mock('../api', () => ({
   getChannelStatus: vi.fn(),
 }))
 
+vi.mock('@/lib/lobe-icon', () => ({
+  getLobeIcon: (iconName: string) => (
+    <span data-testid='lobe-icon'>{iconName}</span>
+  ),
+}))
+
 const emptyResponse = {
   success: true,
   data: { items: [] },
@@ -40,6 +46,8 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
     items: [
       {
         channel_id: 1,
+        channel_type: 1,
+        provider: 'OpenAI',
         group: 'default',
         group_ratios: { default: 1.25 },
         model_name: 'gpt-5.6-sol',
@@ -71,6 +79,8 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
       },
       {
         channel_id: 2,
+        channel_type: 14,
+        provider: 'Anthropic',
         group: 'vip',
         group_ratios: { vip: 2 },
         model_name: 'claude-sonnet',
@@ -241,65 +251,64 @@ describe('channel status page', () => {
     renderPage()
 
     expect(await screen.findByText('legacy-model')).toBeInTheDocument()
-    expect(screen.getByText('Unknown')).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
     expect(screen.getAllByTestId('test-record')).toHaveLength(60)
   })
 
-  test('renders only group, model, status, latency, and test history', async () => {
+  test('renders platform groups, status, ratio, latency, and test history', async () => {
     vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
 
     renderPage()
 
     expect(await screen.findByText('gpt-5.6-sol')).toBeInTheDocument()
+    expect(screen.getByText('OpenAI')).toBeInTheDocument()
+    expect(screen.getByText('Anthropic')).toBeInTheDocument()
     expect(screen.getByText('Healthy')).toBeInTheDocument()
-    expect(screen.getByText('vip')).toBeInTheDocument()
-    expect(screen.getAllByText('Model')).toHaveLength(2)
-    expect(screen.getAllByText('Latency')).toHaveLength(2)
+    expect(screen.queryByText('vip')).toBeNull()
     expect(screen.getByText('898 ms')).toBeInTheDocument()
     expect(screen.getByText('9000 ms')).toBeInTheDocument()
-    expect(
-      within(screen.getAllByTestId('channel-status-card')[0]).getByTestId(
-        'channel-status-card-actions'
-      )
-    ).toHaveClass('max-w-[50%]', 'shrink-0', 'overflow-hidden')
-    expect(screen.getAllByTestId('channel-status-card')[0]).toHaveTextContent(
-      'x1.25'
-    )
-    expect(screen.getAllByTestId('channel-status-card')[1]).toHaveTextContent(
-      'x2'
-    )
-    expect(screen.queryByText('OpenAI')).toBeNull()
+    expect(screen.getByText('x1.25')).toBeInTheDocument()
+    expect(screen.getByText('x2')).toBeInTheDocument()
     expect(screen.queryByText('Conversation latency')).toBeNull()
     expect(screen.queryByText('Availability')).toBeNull()
 
     const cards = screen.getAllByTestId('channel-status-card')
     expect(cards).toHaveLength(2)
-    expect(within(cards[0]).getAllByTestId('test-record')).toHaveLength(60)
+    const openAiCard = cards.find((card) => card.textContent?.includes('x1.25'))
+    const anthropicCard = cards.find((card) => card.textContent?.includes('x2'))
+    expect(openAiCard).toBeDefined()
+    expect(anthropicCard).toBeDefined()
+    expect(within(openAiCard!).getByLabelText('Last 60 tests')).toHaveClass(
+      'h-2.5',
+      'items-stretch'
+    )
+    expect(within(openAiCard!).getAllByTestId('test-record')).toHaveLength(60)
+    expect(within(openAiCard!).getByLabelText('700 ms')).toBeInTheDocument()
+    expect(within(openAiCard!).getByLabelText('898 ms')).toBeInTheDocument()
     expect(
-      within(cards[0])
+      within(openAiCard!)
         .getAllByTestId('test-record')
         .filter((record) => record.dataset.status === 'success')
     ).toHaveLength(2)
     expect(
-      within(cards[1])
+      within(anthropicCard!)
         .getAllByTestId('test-record')
         .filter((record) => record.dataset.status === 'failure')
     ).toHaveLength(1)
-    const degradedRecords = within(cards[1])
+    const degradedRecords = within(anthropicCard!)
       .getAllByTestId('test-record')
       .filter((record) => record.dataset.status === 'degraded')
     expect(degradedRecords).toHaveLength(2)
     for (const record of degradedRecords) {
       expect(record).toHaveClass('bg-warning')
-      expect(record).toHaveStyle({ height: '65%' })
     }
-    expect(within(cards[0]).getAllByTestId('test-record')[0]).toHaveClass(
-      'rounded-[2px]'
+    expect(within(openAiCard!).getAllByTestId('test-record')[0]).toHaveClass(
+      'rounded-l-full'
     )
-    expect(within(cards[0]).getAllByTestId('test-record')[0]).toHaveStyle({
-      height: '15%',
-    })
+    expect(within(openAiCard!).getAllByTestId('test-record')[59]).toHaveClass(
+      'rounded-r-full'
+    )
   })
 
   test('renders cards when the interface uses the internal zhCN code', async () => {
@@ -325,18 +334,20 @@ describe('channel status page', () => {
     expect(screen.getAllByTestId('channel-status-card')).toHaveLength(1)
   })
 
-  test('changes availability period and opens channel details', async () => {
+  test('hides availability period controls and keeps channel details click disabled', async () => {
     vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
     const user = userEvent.setup()
 
     renderPage()
 
     expect(await screen.findByText('80.0%')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '15 days' }))
-    expect(screen.getByText('70.0%')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '15 days' })).toBeNull()
 
-    await user.click(screen.getAllByTestId('channel-status-card')[0])
-    expect(await screen.findByText('Latest status')).toBeInTheDocument()
-    expect(screen.getByText('60.00%')).toBeInTheDocument()
+    const openAiCard = screen
+      .getAllByTestId('channel-status-card')
+      .find((card) => card.textContent?.includes('x1.25'))
+    expect(openAiCard).toBeDefined()
+    await user.click(openAiCard!)
+    expect(screen.queryByText('Latest status')).toBeNull()
   })
 })

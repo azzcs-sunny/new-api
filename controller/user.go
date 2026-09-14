@@ -1244,6 +1244,9 @@ func ManageUser(c *gin.Context) {
 		}
 		user.Role = common.RoleCommonUser
 	case "add_quota":
+		oldQuota := user.Quota
+		adjustmentMode := req.Mode
+		adjustmentDelta := 0
 		switch req.Mode {
 		case "add":
 			if req.Value <= 0 {
@@ -1254,6 +1257,7 @@ func ManageUser(c *gin.Context) {
 				common.ApiError(c, err)
 				return
 			}
+			adjustmentDelta = req.Value
 			recordManageAuditFor(c, user.Id, "user.quota_add", map[string]interface{}{
 				"quota": logger.LogQuota(req.Value),
 			})
@@ -1266,15 +1270,16 @@ func ManageUser(c *gin.Context) {
 				common.ApiError(c, err)
 				return
 			}
+			adjustmentDelta = -req.Value
 			recordManageAuditFor(c, user.Id, "user.quota_subtract", map[string]interface{}{
 				"quota": logger.LogQuota(req.Value),
 			})
 		case "override":
-			oldQuota := user.Quota
 			if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("quota", req.Value).Error; err != nil {
 				common.ApiError(c, err)
 				return
 			}
+			adjustmentDelta = common.QuotaFromFloat(float64(req.Value) - float64(oldQuota))
 			recordManageAuditFor(c, user.Id, "user.quota_override", map[string]interface{}{
 				"from": logger.LogQuota(oldQuota),
 				"to":   logger.LogQuota(req.Value),
@@ -1283,6 +1288,7 @@ func ManageUser(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 			return
 		}
+		model.RecordWalletAdjustmentLog(user.Id, adjustmentMode, adjustmentDelta)
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "",

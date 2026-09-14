@@ -36,6 +36,9 @@ const INFINITE_CANVAS_SANDBOX = [
   'allow-scripts',
 ].join(' ')
 
+const floatingOpenButtonClassName =
+  'bg-background/95 text-foreground shadow-sm backdrop-blur hover:bg-muted dark:bg-background/90 dark:hover:bg-muted'
+
 export const Route = createFileRoute('/_authenticated/canvas/')({
   component: InfiniteCanvasPage,
 })
@@ -54,7 +57,7 @@ function InfiniteCanvasPage() {
 
   return (
     <Main className='relative p-2 sm:p-3'>
-      <div className='relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border-base bg-background'>
+      <div className='border-border-base bg-background relative min-h-0 flex-1 overflow-hidden rounded-lg border'>
         <iframe
           src={canvasUrl}
           title={t('Infinite Canvas')}
@@ -70,6 +73,7 @@ function InfiniteCanvasPage() {
                   type='button'
                   size='icon-sm'
                   variant='outline'
+                  className={floatingOpenButtonClassName}
                   aria-label={t('Open in new tab')}
                   onClick={() => {
                     window.open(canvasUrl, '_blank', 'noopener,noreferrer')

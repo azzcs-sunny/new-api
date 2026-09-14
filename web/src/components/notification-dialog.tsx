@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Megaphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { RichContent } from '@/components/rich-content'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -27,33 +28,38 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { formatDateTimeObject } from '@/lib/time'
+import { cn } from '@/lib/utils'
 
-import {
-  NotificationPanel,
-  type AnnouncementItem,
-} from './notification-popover'
+import type { NotificationDialogItem } from './notification-popover'
 
 interface NotificationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  activeTab: 'notice' | 'announcements'
-  onTabChange: (tab: 'notice' | 'announcements') => void
-  notice: string
-  announcements: AnnouncementItem[]
+  item: NotificationDialogItem | null
   loading: boolean
 }
 
 export function NotificationDialog({
   open,
   onOpenChange,
-  activeTab,
-  onTabChange,
-  notice,
-  announcements,
+  item,
   loading,
 }: NotificationDialogProps) {
   const { t } = useTranslation()
+  const announcement = item?.announcement ?? null
+  const publishDate = announcement?.publishDate
+    ? new Date(announcement.publishDate)
+    : null
+  const formattedPublishDate =
+    publishDate && !Number.isNaN(publishDate.getTime())
+      ? formatDateTimeObject(publishDate)
+      : ''
+  const title = announcement?.extra?.trim() || t('Announcement Details')
+  const content = announcement?.content || ''
 
   return (
     <AlertDialog
@@ -66,32 +72,43 @@ export function NotificationDialog({
     >
       <AlertDialogContent
         size='default'
-        className='max-h-[calc(100vh-2rem)] w-[min(42rem,calc(100%-2rem))] !max-w-none gap-0 overflow-hidden p-0 shadow-xl'
+        className='grid max-h-[70vh] w-[min(42rem,calc(100%-2rem))] !max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 shadow-xl'
       >
         <div className='bg-muted/40 flex items-start gap-3 p-5 sm:gap-4 sm:p-6'>
-          <div className='bg-background ring-foreground/10 flex size-11 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1'>
-            <Megaphone className='text-primary size-5' aria-hidden='true' />
+          <div
+            className={cn(
+              'bg-primary/10 ring-primary/20 flex size-11 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1',
+              'text-primary'
+            )}
+          >
+            <Megaphone className='size-5' aria-hidden='true' />
           </div>
           <div className='flex min-w-0 flex-col gap-1.5 pt-0.5'>
+            <div>
+              <Badge variant='secondary' className='h-6 rounded-md px-2'>
+                {t('Announcements')}
+              </Badge>
+            </div>
             <AlertDialogTitle className='text-lg leading-tight font-semibold'>
-              {t('System Announcements')}
+              {title}
             </AlertDialogTitle>
             <AlertDialogDescription className='text-start text-sm text-pretty'>
-              {t('Latest platform updates and notices')}
+              {formattedPublishDate
+                ? `${t('Published:')} ${formattedPublishDate}`
+                : t('Latest platform updates and notices')}
             </AlertDialogDescription>
           </div>
         </div>
         <Separator />
-        <div className='min-h-0 p-4 sm:p-6'>
-          <NotificationPanel
-            activeTab={activeTab}
-            onTabChange={onTabChange}
-            notice={notice}
-            announcements={announcements}
-            loading={loading}
-            showHeader={false}
-            contentClassName='h-[min(46vh,26rem)]'
-          />
+        <div className='min-h-0 overflow-hidden p-4 sm:p-6'>
+          <ScrollArea className='h-full max-h-[calc(70vh-13rem)] pr-3'>
+            <div className='border-primary/80 bg-muted/25 border-l-4 py-1 pl-4 text-sm leading-7'>
+              <RichContent
+                breaks
+                content={loading ? t('Loading...') : content}
+              />
+            </div>
+          </ScrollArea>
         </div>
         <AlertDialogFooter className='m-0 rounded-none px-4 py-3 sm:px-6 sm:py-4'>
           <AlertDialogCancel className='sm:min-w-24'>

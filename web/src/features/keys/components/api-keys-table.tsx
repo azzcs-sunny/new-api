@@ -54,6 +54,7 @@ import {
 } from '../constants'
 import type { ApiKey } from '../types'
 import { ApiKeyCell, UnlimitedQuotaBadge } from './api-keys-cells'
+import { ApiKeysApiInfoShortcuts } from './api-keys-api-info-shortcuts'
 import { useApiKeysColumns } from './api-keys-columns'
 import { useApiKeys } from './api-keys-provider'
 import { DataTableBulkActions } from './data-table-bulk-actions'
@@ -325,6 +326,7 @@ export function ApiKeysTable() {
             singleSelect: true,
           },
         ],
+        afterFilters: <ApiKeysApiInfoShortcuts />,
       }}
       mobile={<ApiKeysMobileList table={table} isLoading={isLoading} />}
       getRowClassName={(row) =>

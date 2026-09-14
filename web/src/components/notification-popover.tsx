@@ -17,10 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
-import { Bell, Megaphone } from 'lucide-react'
+import { Bell, ChevronRight, Megaphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { RichContent } from '@/components/rich-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,7 +36,6 @@ import {
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getAnnouncementColorClass } from '@/lib/colors'
 import { formatDateTimeObject } from '@/lib/time'
 import { cn } from '@/lib/utils'
@@ -45,29 +43,32 @@ import { cn } from '@/lib/utils'
 export interface AnnouncementItem {
   id?: number | string
   type?: string
+  title?: string
   content?: string
   extra?: string
+  link?: string
   publishDate?: string | Date
+}
+
+export type NotificationDialogItem = {
+  kind: 'announcement'
+  announcement: AnnouncementItem
 }
 
 interface NotificationPopoverProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   unreadCount: number
-  activeTab: 'notice' | 'announcements'
-  onTabChange: (tab: 'notice' | 'announcements') => void
-  notice: string
   announcements: AnnouncementItem[]
   loading: boolean
+  onAnnouncementOpen?: (announcement: AnnouncementItem) => void
   className?: string
 }
 
 export interface NotificationPanelProps {
-  activeTab: 'notice' | 'announcements'
-  onTabChange: (tab: 'notice' | 'announcements') => void
-  notice: string
   announcements: AnnouncementItem[]
   loading: boolean
+  onAnnouncementOpen?: (announcement: AnnouncementItem) => void
   showHeader?: boolean
   contentClassName?: string
 }
@@ -132,16 +133,22 @@ function getRelativeTime(publishDate: string | Date, t: TFunction): string {
 }
 
 /**
- * Announcement status dot indicator
+ * Announcement icon with status indicator
  */
-function AnnouncementDot({ type }: { type?: string }) {
+function AnnouncementIcon({ type }: { type?: string }) {
   return (
     <span
-      className={cn(
-        'mt-1.5 inline-block size-2 shrink-0 rounded-full',
-        getAnnouncementColorClass(type)
-      )}
-    />
+      className='bg-warning/10 text-warning ring-warning/20 relative flex size-9 shrink-0 items-center justify-center rounded-lg ring-1'
+      aria-hidden='true'
+    >
+      <Megaphone className='size-4' />
+      <span
+        className={cn(
+          'ring-background absolute right-1 bottom-1 size-2 rounded-full ring-2',
+          getAnnouncementColorClass(type)
+        )}
+      />
+    </span>
   )
 }
 
@@ -184,50 +191,17 @@ function EmptyState({
 }
 
 /**
- * Notice tab content
- */
-function NoticeContent({
-  notice,
-  loading,
-  t,
-}: {
-  notice: string
-  loading: boolean
-  t: TFunction
-}) {
-  if (loading) {
-    return (
-      <EmptyState
-        icon={<Bell />}
-        title={t('Loading...')}
-        description={t('Latest platform updates and notices')}
-      />
-    )
-  }
-
-  if (!notice) {
-    return (
-      <EmptyState icon={<Bell />} title={t('No announcements at this time')} />
-    )
-  }
-
-  return (
-    <ScrollArea className='h-full pr-3'>
-      <RichContent breaks content={notice} />
-    </ScrollArea>
-  )
-}
-
-/**
- * Announcements tab content
+ * Announcement list content
  */
 function AnnouncementsContent({
   announcements,
   loading,
+  onAnnouncementOpen,
   t,
 }: {
   announcements: AnnouncementItem[]
   loading: boolean
+  onAnnouncementOpen?: (announcement: AnnouncementItem) => void
   t: TFunction
 }) {
   if (loading) {
@@ -260,23 +234,25 @@ function AnnouncementsContent({
           const absoluteTime = publishDate
             ? formatDateTimeObject(publishDate)
             : ''
+          const title =
+            item.extra?.trim() ||
+            item.title?.trim() ||
+            item.content?.trim() ||
+            t('Announcement Details')
 
           return (
             <div key={announcementKey}>
-              <div className='py-3'>
-                <div className='flex items-start gap-3'>
-                  <AnnouncementDot type={item.type} />
-                  <div className='flex min-w-0 flex-1 flex-col gap-2'>
-                    <div className='text-sm'>
-                      <RichContent breaks content={item.content || ''} />
+              <button
+                type='button'
+                className='hover:bg-muted/45 focus-visible:ring-ring/50 -mx-2 block w-[calc(100%+1rem)] rounded-md px-2 py-3 text-left transition-colors outline-none focus-visible:ring-[3px]'
+                onClick={() => onAnnouncementOpen?.(item)}
+              >
+                <div className='flex items-center gap-3'>
+                  <AnnouncementIcon type={item.type} />
+                  <div className='flex min-w-0 flex-1 flex-col gap-1'>
+                    <div className='text-foreground line-clamp-1 text-sm leading-5 font-medium'>
+                      {title}
                     </div>
-
-                    {item.extra ? (
-                      <div className='text-muted-foreground text-xs'>
-                        <RichContent breaks content={item.extra} />
-                      </div>
-                    ) : null}
-
                     {absoluteTime ? (
                       <div className='text-muted-foreground text-xs'>
                         {relativeTime ? `${relativeTime} • ` : null}
@@ -284,8 +260,12 @@ function AnnouncementsContent({
                       </div>
                     ) : null}
                   </div>
+                  <ChevronRight
+                    className='text-muted-foreground size-4 shrink-0'
+                    aria-hidden='true'
+                  />
                 </div>
-              </div>
+              </button>
               {idx < announcements.length - 1 ? <Separator /> : null}
             </div>
           )
@@ -296,25 +276,28 @@ function AnnouncementsContent({
 }
 
 /**
- * Shared notification content used by the header popover and the mandatory
- * first-entry dialog.
+ * Shared announcement content used by the header popover.
  */
 export function NotificationPanel({
-  activeTab,
-  onTabChange,
-  notice,
   announcements,
   loading,
+  onAnnouncementOpen,
   showHeader = true,
-  contentClassName = 'h-[min(52vh,28rem)]',
+  contentClassName = '',
 }: NotificationPanelProps) {
   const { t } = useTranslation()
   return (
     <>
       {showHeader ? (
         <div className='flex flex-col gap-1'>
-          <h2 className='text-base leading-none font-medium'>
-            {t('System Announcements')}
+          <h2 className='flex items-center gap-2 text-base leading-none font-medium'>
+            <span
+              className='bg-warning/10 text-warning ring-warning/20 flex size-7 shrink-0 items-center justify-center rounded-md ring-1'
+              aria-hidden='true'
+            >
+              <Megaphone className='size-3.5' />
+            </span>
+            <span>{t('Announcements')}</span>
           </h2>
           <p className='text-muted-foreground text-xs'>
             {t('Latest platform updates and notices')}
@@ -322,58 +305,28 @@ export function NotificationPanel({
         </div>
       ) : null}
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) =>
-          onTabChange(value as 'notice' | 'announcements')
-        }
-        className='gap-3'
-      >
-        <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='notice' className='gap-1.5'>
-            <Bell className='size-3.5' />
-            {t('Notice')}
-          </TabsTrigger>
-          <TabsTrigger value='announcements' className='gap-1.5'>
-            <Megaphone className='size-3.5' />
-            {t('Timeline')}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          value='notice'
-          className={cn('overflow-hidden', contentClassName)}
-        >
-          <NoticeContent notice={notice} loading={loading} t={t} />
-        </TabsContent>
-
-        <TabsContent
-          value='announcements'
-          className={cn('overflow-hidden', contentClassName)}
-        >
-          <AnnouncementsContent
-            announcements={announcements}
-            loading={loading}
-            t={t}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className={cn('min-h-0 overflow-hidden text-sm', contentClassName)}>
+        <AnnouncementsContent
+          announcements={announcements}
+          loading={loading}
+          onAnnouncementOpen={onAnnouncementOpen}
+          t={t}
+        />
+      </div>
     </>
   )
 }
 
 /**
- * Notification popover with Notice and Announcements tabs
+ * Notification popover for announcements.
  */
 export function NotificationPopover({
   open,
   onOpenChange,
   unreadCount,
-  activeTab,
-  onTabChange,
-  notice,
   announcements,
   loading,
+  onAnnouncementOpen,
   className,
 }: NotificationPopoverProps) {
   const { t } = useTranslation()
@@ -403,14 +356,13 @@ export function NotificationPopover({
       <PopoverContent
         align='end'
         sideOffset={8}
-        className='w-[min(26rem,calc(100vw-1rem))] gap-3 p-3'
+        collisionPadding={8}
+        className='grid max-h-[70vh] w-[min(26rem,calc(100vw-1rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 overflow-hidden p-3'
       >
         <NotificationPanel
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          notice={notice}
           announcements={announcements}
           loading={loading}
+          onAnnouncementOpen={onAnnouncementOpen}
         />
 
         <div className='flex justify-end'>

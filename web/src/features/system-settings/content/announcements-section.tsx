@@ -80,16 +80,16 @@ type AnnouncementsSectionProps = {
 }
 
 const announcementSchema = z.object({
+  extra: z
+    .string()
+    .min(1, 'Title is required')
+    .max(100, 'Title must be at most 100 characters'),
   content: z
     .string()
     .min(1, 'Content is required')
     .max(500, 'Content must be less than 500 characters'),
   publishDate: z.string().min(1, 'Publish date is required'),
   type: z.enum(['default', 'ongoing', 'success', 'warning', 'error']),
-  extra: z
-    .string()
-    .max(100, 'Extra must be less than 100 characters')
-    .optional(),
 })
 
 type AnnouncementFormValues = z.infer<typeof announcementSchema>
@@ -375,6 +375,12 @@ export function AnnouncementsSection({
               ),
             },
             {
+              id: 'extra',
+              header: t('Title'),
+              cellClassName: 'max-w-xs truncate',
+              cell: (announcement) => announcement.extra || '-',
+            },
+            {
               id: 'content',
               header: t('Content'),
               cellClassName: 'max-w-xs truncate',
@@ -412,12 +418,6 @@ export function AnnouncementsSection({
                   copyable={false}
                 />
               ),
-            },
-            {
-              id: 'extra',
-              header: t('Extra'),
-              cellClassName: 'text-muted-foreground max-w-xs truncate',
-              cell: (announcement) => announcement.extra || '-',
             },
             {
               id: 'actions',
@@ -469,6 +469,23 @@ export function AnnouncementsSection({
             onSubmit={form.handleSubmit(handleSubmitForm)}
             className='space-y-4'
           >
+            <FormField
+              control={form.control}
+              name='extra'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Title')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t('Enter announcement title')}
+                      maxLength={100}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name='content'
@@ -558,27 +575,6 @@ export function AnnouncementsSection({
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='extra'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Extra Notes (Optional)')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t('Additional information')}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {t(
-                      'Optional supplementary information (max 100 characters)'
-                    )}
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

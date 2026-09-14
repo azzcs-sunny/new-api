@@ -1,11 +1,13 @@
 package model
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"gorm.io/gorm"
 )
 
@@ -18,10 +20,82 @@ const (
 	ChannelTestTriggerManual    = "manual"
 )
 
+var mediaChannelTestModelKeywords = []string{
+	"image",
+	"video",
+	"dall-e",
+	"dalle",
+	"imagen",
+	"flux",
+	"stable-diffusion",
+	"stable-image",
+	"sdxl",
+	"sd3",
+	"midjourney",
+	"cogview",
+	"cogvideo",
+	"seedance",
+	"seedream",
+	"jimeng",
+	"kling",
+	"vidu",
+	"hailuo",
+	"runway",
+	"pika",
+	"sora",
+	"veo",
+	"hunyuanvideo",
+	"text-to-video",
+	"image-to-video",
+	"doubao-video",
+}
+
+var mediaChannelTestModelPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?:^|[._-])wan(?:x?\d|[._-])`),
+	regexp.MustCompile(`(?:^|[._-])(?:t2v|i2v|s2v)(?:$|[._-])`),
+}
+
+var hiddenChannelStatusGroupKeywords = []string{"image", "video", "图片", "视频"}
+
+func IsMediaChannelTestModel(modelName string) bool {
+	normalizedName := strings.ToLower(strings.TrimSpace(modelName))
+	if normalizedName == "" {
+		return false
+	}
+	for _, keyword := range mediaChannelTestModelKeywords {
+		if strings.Contains(normalizedName, keyword) {
+			return true
+		}
+	}
+	for _, pattern := range mediaChannelTestModelPatterns {
+		if pattern.MatchString(normalizedName) {
+			return true
+		}
+	}
+	return false
+}
+
+func IsHiddenChannelStatusGroup(groupName string) bool {
+	normalizedName := strings.ToLower(strings.TrimSpace(groupName))
+	if normalizedName == "" {
+		return false
+	}
+	for _, keyword := range hiddenChannelStatusGroupKeywords {
+		if strings.Contains(normalizedName, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
 type ChannelStatusTarget struct {
-	ChannelId int
-	Group     string
-	ModelName string
+	ChannelId     int
+	ChannelName   string
+	ChannelType   int
+	ChannelStatus int
+	Provider      string
+	Group         string
+	ModelName     string
 }
 
 // GetChannelStatusTargets returns the highest-priority enabled channel for
@@ -36,7 +110,7 @@ func GetChannelStatusTargets(groups []string) ([]ChannelStatusTarget, error) {
 	}
 
 	var channels []Channel
-	if err := DB.Select("id", "test_model", "models", commonGroupCol, "priority").
+	if err := DB.Select("id", "type", "name", "status", "test_model", "models", commonGroupCol, "priority").
 		Where("status = ?", common.ChannelStatusEnabled).
 		Find(&channels).Error; err != nil {
 		return nil, err
@@ -48,7 +122,14 @@ func GetChannelStatusTargets(groups []string) ([]ChannelStatusTarget, error) {
 	}
 	selected := make(map[string]candidate)
 	for _, channel := range channels {
+		testModel := channel.GetTestModel()
+		if IsMediaChannelTestModel(testModel) {
+			continue
+		}
 		for _, group := range channel.GetGroups() {
+			if IsHiddenChannelStatusGroup(group) {
+				continue
+			}
 			if len(allowed) > 0 {
 				if _, ok := allowed[group]; !ok {
 					continue
@@ -61,9 +142,13 @@ func GetChannelStatusTargets(groups []string) ([]ChannelStatusTarget, error) {
 			}
 			selected[group] = candidate{
 				target: ChannelStatusTarget{
-					ChannelId: channel.Id,
-					Group:     group,
-					ModelName: channel.GetTestModel(),
+					ChannelId:     channel.Id,
+					ChannelName:   channel.Name,
+					ChannelType:   channel.Type,
+					ChannelStatus: channel.Status,
+					Provider:      constant.GetChannelTypeName(channel.Type),
+					Group:         group,
+					ModelName:     testModel,
 				},
 				priority: priority,
 			}
@@ -193,5 +278,25 @@ func GetChannelStatusChannels() ([]Channel, error) {
 	err := DB.Omit("key").
 		Order("id ASC").
 		Find(&channels).Error
-	return channels, err
+	if err != nil {
+		return nil, err
+	}
+	filtered := make([]Channel, 0, len(channels))
+	for _, channel := range channels {
+		if IsMediaChannelTestModel(channel.GetTestModel()) {
+			continue
+		}
+		groups := channel.GetGroups()
+		hasVisibleGroup := len(groups) == 0
+		for _, group := range groups {
+			if !IsHiddenChannelStatusGroup(group) {
+				hasVisibleGroup = true
+				break
+			}
+		}
+		if hasVisibleGroup {
+			filtered = append(filtered, channel)
+		}
+	}
+	return filtered, nil
 }

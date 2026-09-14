@@ -57,11 +57,22 @@ type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 const logTypeValueSet = new Set<string>(
   LOG_TYPE_FILTERS.map((type) => type.value)
 )
+const STREAM_FILTER_ALL_VALUE = 'all' as const
+const STREAM_FILTERS = [
+  { label: 'All', value: STREAM_FILTER_ALL_VALUE },
+  { label: 'Stream', value: 'true' },
+  { label: 'Non-stream', value: 'false' },
+] as const
+type StreamFilterValue = (typeof STREAM_FILTERS)[number]['value']
+const streamFilterValueSet = new Set<string>(
+  STREAM_FILTERS.map((type) => type.value)
+)
 
 type CommonLogDraft = {
   sourceKey: string
   filters: CommonLogFilters
   logType: LogTypeValue
+  stream: StreamFilterValue
 }
 
 function isLogTypeValue(value: string): value is LogTypeValue {
@@ -77,6 +88,12 @@ function getLogTypeValue(value: unknown): LogTypeValue {
     : LOG_TYPE_ALL_VALUE
 }
 
+function getStreamFilterValue(value: unknown): StreamFilterValue {
+  return typeof value === 'string' && streamFilterValueSet.has(value)
+    ? (value as StreamFilterValue)
+    : STREAM_FILTER_ALL_VALUE
+}
+
 function buildSearchSourceKey(values: {
   startTime?: unknown
   endTime?: unknown
@@ -88,6 +105,7 @@ function buildSearchSourceKey(values: {
   requestId?: unknown
   upstreamRequestId?: unknown
   type?: unknown
+  stream?: unknown
 }) {
   return [
     values.startTime,
@@ -100,6 +118,7 @@ function buildSearchSourceKey(values: {
     values.requestId,
     values.upstreamRequestId,
     Array.isArray(values.type) ? values.type.join(',') : values.type,
+    values.stream,
   ]
     .map((value) => String(value ?? ''))
     .join('\u001f')
@@ -133,6 +152,7 @@ export function CommonLogsFilterBar<TData>(
       requestId: searchParams.requestId,
       upstreamRequestId: searchParams.upstreamRequestId,
       type: searchParams.type,
+      stream: searchParams.stream,
     }
     const filters: CommonLogFilters = {
       startTime: searchParams.startTime
@@ -146,11 +166,13 @@ export function CommonLogsFilterBar<TData>(
       username: searchParams.username || undefined,
       requestId: searchParams.requestId || undefined,
       upstreamRequestId: searchParams.upstreamRequestId || undefined,
+      stream: getStreamFilterValue(searchParams.stream),
     }
     return {
       sourceKey: buildSearchSourceKey(sourceValues),
       filters,
       logType: getLogTypeValue(searchParams.type),
+      stream: getStreamFilterValue(searchParams.stream),
     }
   }, [
     searchParams.startTime,
@@ -163,6 +185,7 @@ export function CommonLogsFilterBar<TData>(
     searchParams.requestId,
     searchParams.upstreamRequestId,
     searchParams.type,
+    searchParams.stream,
   ])
   const [draft, setDraft] = useState<CommonLogDraft>(() => searchState)
   const activeDraft =
@@ -179,6 +202,7 @@ export function CommonLogsFilterBar<TData>(
           sourceKey: searchState.sourceKey,
           filters: { ...base.filters, [field]: value },
           logType: base.logType,
+          stream: base.stream,
         }
       })
     },
@@ -193,12 +217,16 @@ export function CommonLogsFilterBar<TData>(
       search: {
         ...filterParams,
         type: [logType],
+        stream:
+          activeDraft.stream === STREAM_FILTER_ALL_VALUE
+            ? undefined
+            : activeDraft.stream,
         page: 1,
       },
     })
     queryClient.invalidateQueries({ queryKey: ['logs'] })
     queryClient.invalidateQueries({ queryKey: ['usage-logs-stats'] })
-  }, [filters, logType, navigate, queryClient])
+  }, [activeDraft.stream, filters, logType, navigate, queryClient])
 
   const handleReset = useCallback(() => {
     const { start, end } = getDefaultTimeRange()
@@ -212,6 +240,7 @@ export function CommonLogsFilterBar<TData>(
       sourceKey: buildSearchSourceKey(resetSearch),
       filters: resetFilters,
       logType: LOG_TYPE_ALL_VALUE,
+      stream: STREAM_FILTER_ALL_VALUE,
     })
 
     navigate({
@@ -241,8 +270,13 @@ export function CommonLogsFilterBar<TData>(
     !!filters.upstreamRequestId
 
   const hasTypeFilter = logType !== LOG_TYPE_ALL_VALUE
+  const hasStreamFilter = activeDraft.stream !== STREAM_FILTER_ALL_VALUE
   const hasAdditionalFilters =
-    !!filters.model || !!filters.group || hasTypeFilter || hasExpandedFilters
+    !!filters.model ||
+    !!filters.group ||
+    hasTypeFilter ||
+    hasStreamFilter ||
+    hasExpandedFilters
 
   const expandedFilterCount = [
     filters.token,
@@ -264,6 +298,17 @@ export function CommonLogsFilterBar<TData>(
   )
   const logTypeLabel =
     logTypeItems.find((type) => type.value === logType)?.label ?? t('All Types')
+  const streamItems = useMemo(
+    () =>
+      STREAM_FILTERS.map((type) => ({
+        value: type.value,
+        label: t(type.label),
+      })),
+    [t]
+  )
+  const streamLabel =
+    streamItems.find((type) => type.value === activeDraft.stream)?.label ??
+    t('All')
 
   const statsBar = (
     <div className='flex flex-wrap items-center gap-2'>
@@ -341,6 +386,7 @@ export function CommonLogsFilterBar<TData>(
               sourceKey: searchState.sourceKey,
               filters: base.filters,
               logType: nextLogType,
+              stream: base.stream,
             }
           })
         }}
@@ -351,6 +397,45 @@ export function CommonLogsFilterBar<TData>(
         <SelectContent alignItemWithTrigger={false}>
           <SelectGroup>
             {LOG_TYPE_FILTERS.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {t(type.label)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </LogsFilterField>
+  )
+  const streamFilter = (
+    <LogsFilterField>
+      <Select
+        items={streamItems}
+        value={activeDraft.stream}
+        onValueChange={(value) => {
+          const nextStream =
+            value !== null && streamFilterValueSet.has(value)
+              ? (value as StreamFilterValue)
+              : STREAM_FILTER_ALL_VALUE
+          setDraft((current) => {
+            const base =
+              current.sourceKey === searchState.sourceKey
+                ? current
+                : searchState
+            return {
+              sourceKey: searchState.sourceKey,
+              filters: { ...base.filters, stream: nextStream },
+              logType: base.logType,
+              stream: nextStream,
+            }
+          })
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue>{streamLabel}</SelectValue>
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {STREAM_FILTERS.map((type) => (
               <SelectItem key={type.value} value={type.value}>
                 {t(type.label)}
               </SelectItem>
@@ -419,6 +504,7 @@ export function CommonLogsFilterBar<TData>(
       primaryFilters={
         <>
           {dateRangeFilter}
+          {streamFilter}
           {modelFilter}
           {groupFilter}
           {typeFilter}
@@ -428,6 +514,7 @@ export function CommonLogsFilterBar<TData>(
       mobilePinnedFilters={dateRangeFilter}
       mobileFilters={
         <>
+          {streamFilter}
           {modelFilter}
           {groupFilter}
           {typeFilter}
@@ -435,8 +522,9 @@ export function CommonLogsFilterBar<TData>(
         </>
       }
       mobileFilterCount={
-        [filters.model, filters.group, hasTypeFilter].filter(Boolean).length +
-        expandedFilterCount
+        [filters.model, filters.group, hasTypeFilter, hasStreamFilter].filter(
+          Boolean
+        ).length + expandedFilterCount
       }
       hasAdvancedActiveFilters={hasExpandedFilters}
       advancedFilterCount={expandedFilterCount}

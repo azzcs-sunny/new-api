@@ -159,3 +159,25 @@ func TestManageUserDeleteReturnsImmediatelyAndUnknownActionFails(t *testing.T) {
 	assert.EqualValues(t, 1, unchanged.AuthVersion)
 	assert.Equal(t, common.UserStatusEnabled, unchanged.Status)
 }
+
+func TestManageUserQuotaChangeCreatesUserVisibleWalletAdjustment(t *testing.T) {
+	db := setupManageUserTestDB(t)
+	user := model.User{
+		Username: "managed-wallet-user", Password: "password", Role: common.RoleCommonUser,
+		Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, Quota: 1000,
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	recorder := performManageUserRequest(t, fmt.Sprintf(
+		`{"id":%d,"action":"add_quota","mode":"subtract","value":250}`,
+		user.Id,
+	))
+	assert.Contains(t, recorder.Body.String(), `"success":true`)
+
+	var adjustment model.Log
+	require.NoError(t, db.Where(
+		"user_id = ? AND type = ?", user.Id, model.LogTypeWalletAdjustment,
+	).First(&adjustment).Error)
+	assert.Equal(t, -250, adjustment.Quota)
+	assert.Contains(t, adjustment.Other, `"mode":"subtract"`)
+}

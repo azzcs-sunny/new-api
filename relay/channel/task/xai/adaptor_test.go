@@ -31,6 +31,13 @@ func TestEstimateBillingUsesSecondsAndResolutionRatios(t *testing.T) {
 	assert.Equal(t, 2.0, ratios["resolution"])
 }
 
+func TestSupportedResolutionDependsOnModel(t *testing.T) {
+	assert.True(t, isSupportedResolution("grok-imagine-video", "480p"))
+	assert.True(t, isSupportedResolution("grok-imagine-video", "720p"))
+	assert.False(t, isSupportedResolution("grok-imagine-video", "1080p"))
+	assert.True(t, isSupportedResolution("grok-imagine-video-1.5", "1080p"))
+}
+
 func TestMultipartRequestIsRebuiltAsXAIJSON(t *testing.T) {
 	var incoming bytes.Buffer
 	writer := multipart.NewWriter(&incoming)

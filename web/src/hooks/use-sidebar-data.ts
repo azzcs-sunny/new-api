@@ -41,6 +41,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import type { SidebarData } from '@/components/layout/types'
+import { useTopupInfo } from '@/features/wallet/hooks/use-topup-info'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -52,7 +53,8 @@ import { useAuthStore } from '@/stores/auth-store'
  */
 export function buildSidebarData(
   t: TFunction,
-  role: number = ROLE.USER
+  role: number = ROLE.USER,
+  topupLink?: string
 ): SidebarData {
   return {
     navGroups: [
@@ -124,6 +126,15 @@ export function buildSidebarData(
             url: '/wallet',
             icon: Wallet,
           },
+          ...(topupLink?.trim()
+            ? [
+                {
+                  title: t('⭐Purchase Card Codes⭐'),
+                  url: '/wallet/card-codes',
+                  icon: Ticket,
+                },
+              ]
+            : []),
           {
             title: t('Referral Program'),
             url: '/affiliate',
@@ -205,5 +216,6 @@ export function buildSidebarData(
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
   const role = useAuthStore((state) => state.auth.user?.role ?? ROLE.GUEST)
-  return buildSidebarData(t, role)
+  const { topupInfo } = useTopupInfo()
+  return buildSidebarData(t, role, topupInfo?.topup_link)
 }

@@ -42,11 +42,12 @@ import {
   GroupRatioBadge,
   type GroupRatio,
 } from './auto-group-visuals'
+import { filterApiKeyGroupOptions } from '../lib/group-options'
 
 const groupSelectContentClassName =
-  'max-h-[min(20rem,var(--available-height))] w-[440px] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-1.5'
+  'max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] w-[440px] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-1.5'
 const groupSelectItemClassName =
-  'items-center py-2.5 pr-10 pl-1.5 text-xs whitespace-normal [&_[data-slot=select-item-text]]:min-w-0 [&_[data-slot=select-item-text]]:shrink [&_[data-slot=select-item-text]]:whitespace-normal'
+  'cursor-pointer items-center py-2.5 pr-10 pl-1.5 text-xs whitespace-normal hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground [&_[data-slot=select-item-text]]:min-w-0 [&_[data-slot=select-item-text]]:shrink [&_[data-slot=select-item-text]]:whitespace-normal'
 
 type ApiKeyGroupCellProps = {
   crossGroupRetry: boolean
@@ -111,8 +112,8 @@ function ApiKeyGroupDisplay(props: ApiKeyGroupDisplayProps) {
 export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
   const { t } = useTranslation()
   const options = props.options ?? []
-  const selectableOptions = options.filter(
-    (option) => option.value !== 'default'
+  const selectableOptions = filterApiKeyGroupOptions(
+    options.filter((option) => option.value !== 'default')
   )
 
   if (!props.onGroupChange || selectableOptions.length === 0) {
@@ -137,7 +138,7 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
         aria-label={t('Group')}
         aria-busy={props.isUpdating}
         disabled={props.isUpdating}
-        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 w-full min-w-0 px-2.5 shadow-xs data-popup-open:ring-[3px]'
+        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 w-full min-w-0 cursor-pointer px-2.5 shadow-xs data-popup-open:ring-[3px] disabled:cursor-not-allowed'
       >
         <SelectValue className='min-w-0'>
           <ApiKeyGroupDisplay {...props} />

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/types"
+	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -158,6 +160,39 @@ func makeTask(userId, channelId, quota, tokenId int, billingSource string, subsc
 			},
 		},
 	}
+}
+
+func TestLogTaskConsumptionRecordsSubmitDuration(t *testing.T) {
+	truncate(t)
+	const userID, tokenID, channelID = 101, 102, 103
+	seedUser(t, userID, 10000)
+	seedToken(t, tokenID, userID, "task-duration-token", 10000)
+	seedChannel(t, channelID)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/videos", nil)
+	c.Set("username", "test_user")
+	c.Set("token_name", "test_token")
+
+	LogTaskConsumption(c, &relaycommon.RelayInfo{
+		UserId:          userID,
+		TokenId:         tokenID,
+		OriginModelName: "grok-imagine-video",
+		UsingGroup:      "default",
+		StartTime:       time.Now().Add(-5 * time.Second),
+		ChannelMeta:     &relaycommon.ChannelMeta{ChannelId: channelID},
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{Action: "generate"},
+		PriceData: types.PriceData{
+			Quota:          100,
+			ModelPrice:     0.08,
+			GroupRatioInfo: types.GroupRatioInfo{GroupRatio: 1},
+		},
+	})
+
+	var log model.Log
+	require.NoError(t, model.LOG_DB.Order("id DESC").First(&log).Error)
+	assert.GreaterOrEqual(t, log.UseTime, 5)
+	assert.Less(t, log.UseTime, 10)
 }
 
 func TestPriceDataOtherRatiosFilterAndSnapshot(t *testing.T) {

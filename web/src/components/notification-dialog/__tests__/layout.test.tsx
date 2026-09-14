@@ -16,16 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest'
 
 import { NotificationDialog } from '../../notification-dialog'
+import { NotificationPopover } from '../../notification-popover'
 
 const announcements = [
   {
     id: 1,
-    content: 'Scheduled maintenance',
+    extra: 'Maintenance window',
+    content: '<strong>HTML notice</strong>\n\n**Markdown notice**',
     publishDate: '2026-08-21T08:00:00.000Z',
   },
 ]
@@ -41,43 +43,85 @@ afterAll(() => {
 })
 
 describe('NotificationDialog layout', () => {
-  test('keeps the content height stable when switching notification tabs', async () => {
+  test('renders announcement extra as title and supports HTML plus Markdown body', () => {
+    render(
+      <NotificationDialog
+        open
+        onOpenChange={() => undefined}
+        item={{ kind: 'announcement', announcement: announcements[0] }}
+        loading={false}
+      />
+    )
+
+    expect(screen.getByText('Announcements')).toBeInTheDocument()
+    expect(screen.getByText('Maintenance window')).toBeInTheDocument()
+    expect(screen.getByText('HTML notice').tagName).toBe('STRONG')
+    expect(screen.getByText('Markdown notice').tagName).toBe('STRONG')
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+  })
+
+  test('caps the announcement detail content height', () => {
+    render(
+      <NotificationDialog
+        open
+        onOpenChange={() => undefined}
+        item={{ kind: 'announcement', announcement: announcements[0] }}
+        loading={false}
+      />
+    )
+
+    expect(
+      screen.getByText('Markdown notice').closest('[data-slot="scroll-area"]')
+    ).toHaveClass('max-h-[calc(70vh-13rem)]')
+
+    expect(screen.getByRole('alertdialog')).toHaveClass('max-h-[70vh]')
+  })
+
+  test('opens announcement details from an announcement item with title, time, and icons', async () => {
     const user = userEvent.setup()
-    const onTabChange = vi.fn()
-    const rendered = render(
-      <NotificationDialog
+    const onAnnouncementOpen = vi.fn()
+    render(
+      <NotificationPopover
         open
         onOpenChange={() => undefined}
-        activeTab='notice'
-        onTabChange={onTabChange}
-        notice='Welcome to the dashboard'
+        unreadCount={1}
+        announcements={announcements}
+        loading={false}
+        onAnnouncementOpen={onAnnouncementOpen}
+      />
+    )
+
+    expect(screen.getByText('Announcements')).toBeInTheDocument()
+    expect(screen.queryByText('Timeline')).not.toBeInTheDocument()
+    expect(screen.queryByText('HTML notice')).not.toBeInTheDocument()
+
+    const itemButton = screen.getByRole('button', {
+      name: /Maintenance window/,
+    })
+    expect(within(itemButton).getByText(/2026/)).toBeInTheDocument()
+    expect(itemButton.querySelector('.lucide-megaphone')).toBeInTheDocument()
+    expect(
+      itemButton.querySelector('.lucide-chevron-right')
+    ).toBeInTheDocument()
+
+    await user.click(itemButton)
+
+    expect(onAnnouncementOpen).toHaveBeenCalledWith(announcements[0])
+  })
+
+  test('caps the notification center popover height', () => {
+    render(
+      <NotificationPopover
+        open
+        onOpenChange={() => undefined}
+        unreadCount={1}
         announcements={announcements}
         loading={false}
       />
     )
 
-    expect(screen.getByRole('tabpanel', { name: 'Notice' })).toHaveClass(
-      'h-[min(46vh,26rem)]',
-      'overflow-hidden'
-    )
-
-    await user.click(screen.getByRole('tab', { name: 'Timeline' }))
-    expect(onTabChange).toHaveBeenCalledWith('announcements')
-
-    rendered.rerender(
-      <NotificationDialog
-        open
-        onOpenChange={() => undefined}
-        activeTab='announcements'
-        onTabChange={onTabChange}
-        notice='Welcome to the dashboard'
-        announcements={announcements}
-        loading={false}
-      />
-    )
-
-    expect(screen.getByRole('tabpanel', { name: 'Timeline' })).toHaveClass(
-      'h-[min(46vh,26rem)]',
+    expect(screen.getByRole('dialog')).toHaveClass(
+      'max-h-[70vh]',
       'overflow-hidden'
     )
   })

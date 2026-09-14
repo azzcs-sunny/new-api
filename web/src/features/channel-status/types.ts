@@ -29,6 +29,7 @@ export type ChannelTestRecord = {
 export type ChannelStatusRow = {
   channel_id?: number
   channel_name?: string
+  channel_type?: number
   provider?: string
   channel_status?: number
   group: string

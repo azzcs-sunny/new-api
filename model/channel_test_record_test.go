@@ -14,18 +14,91 @@ func TestGetChannelStatusTargetsUsesTestModelAndPriority(t *testing.T) {
 	truncateTables(t)
 	lowPriority := int64(1)
 	highPriority := int64(5)
+	mediaPriority := int64(9)
 	configuredModel := "configured-model"
+	imageModel := "gpt-image-2"
 	channels := []Channel{
 		{Id: 1, Type: 1, Status: common.ChannelStatusEnabled, Models: "first-model,second-model", Group: "default", Priority: &lowPriority},
 		{Id: 2, Type: 2, Status: common.ChannelStatusEnabled, Models: "other-model", Group: "default,vip", TestModel: &configuredModel, Priority: &highPriority},
+		{Id: 3, Type: 1, Status: common.ChannelStatusEnabled, Models: "gpt-4o", Group: "default", TestModel: &imageModel, Priority: &mediaPriority},
 	}
 	require.NoError(t, DB.Create(&channels).Error)
 
 	targets, err := GetChannelStatusTargets([]string{"default", "vip"})
 	require.NoError(t, err)
 	require.Len(t, targets, 2)
-	assert.Equal(t, ChannelStatusTarget{ChannelId: 2, Group: "default", ModelName: configuredModel}, targets[0])
-	assert.Equal(t, ChannelStatusTarget{ChannelId: 2, Group: "vip", ModelName: configuredModel}, targets[1])
+	assert.Equal(t, ChannelStatusTarget{
+		ChannelId:     2,
+		ChannelType:   2,
+		ChannelStatus: common.ChannelStatusEnabled,
+		Provider:      "Midjourney",
+		Group:         "default",
+		ModelName:     configuredModel,
+	}, targets[0])
+	assert.Equal(t, ChannelStatusTarget{
+		ChannelId:     2,
+		ChannelType:   2,
+		ChannelStatus: common.ChannelStatusEnabled,
+		Provider:      "Midjourney",
+		Group:         "vip",
+		ModelName:     configuredModel,
+	}, targets[1])
+}
+
+func TestChannelStatusVisibilityHelpersDetectMediaModelsAndGroups(t *testing.T) {
+	mediaModels := []string{
+		"gpt-image-2",
+		"grok-imagine-image-quality",
+		"grok-imagine-video-1.5",
+		"sora-2",
+		"veo-3.1-fast-generate-preview",
+		"wanx2.1-t2v",
+	}
+	for _, modelName := range mediaModels {
+		assert.True(t, IsMediaChannelTestModel(modelName), modelName)
+	}
+
+	regularModels := []string{"gpt-5.6-sol", "claude-sonnet", "gemini-2.5-pro-vision"}
+	for _, modelName := range regularModels {
+		assert.False(t, IsMediaChannelTestModel(modelName), modelName)
+	}
+
+	assert.True(t, IsHiddenChannelStatusGroup("image-generation"))
+	assert.True(t, IsHiddenChannelStatusGroup("视频"))
+	assert.False(t, IsHiddenChannelStatusGroup("default"))
+}
+
+func TestGetChannelStatusTargetsFiltersMediaModelsAndHiddenGroups(t *testing.T) {
+	truncateTables(t)
+	imageModel := "gpt-image-2"
+	require.NoError(t, DB.Create(&[]Channel{
+		{Id: 1, Type: 1, Status: common.ChannelStatusEnabled, Group: "default", Models: "gpt-4o"},
+		{Id: 2, Type: 1, Status: common.ChannelStatusEnabled, Group: "vip", Models: "gpt-4o", TestModel: &imageModel},
+		{Id: 3, Type: 1, Status: common.ChannelStatusEnabled, Group: "image", Models: "gpt-4o"},
+	}).Error)
+
+	targets, err := GetChannelStatusTargets(nil)
+	require.NoError(t, err)
+	require.Len(t, targets, 1)
+	assert.Equal(t, 1, targets[0].ChannelId)
+	assert.Equal(t, "default", targets[0].Group)
+}
+
+func TestGetChannelStatusChannelsFiltersMediaModelsAndHiddenGroups(t *testing.T) {
+	truncateTables(t)
+	imageModel := "gpt-image-2"
+	require.NoError(t, DB.Create(&[]Channel{
+		{Id: 1, Type: 1, Status: common.ChannelStatusEnabled, Group: "default", Models: "gpt-4o"},
+		{Id: 2, Type: 1, Status: common.ChannelStatusEnabled, Group: "vip", Models: "gpt-4o", TestModel: &imageModel},
+		{Id: 3, Type: 1, Status: common.ChannelStatusEnabled, Group: "image,video", Models: "gpt-4o"},
+		{Id: 4, Type: 1, Status: common.ChannelStatusEnabled, Group: "image,default", Models: "gpt-4o"},
+	}).Error)
+
+	channels, err := GetChannelStatusChannels()
+	require.NoError(t, err)
+	require.Len(t, channels, 2)
+	assert.Equal(t, 1, channels[0].Id)
+	assert.Equal(t, 4, channels[1].Id)
 }
 
 func TestGetLatestChannelTestRecordsReturnsLatestSixtyWhileHistoryExceedsDisplayLimit(t *testing.T) {

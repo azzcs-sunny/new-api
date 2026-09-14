@@ -80,6 +80,7 @@ import {
   getApiKeyFormDefaultValues,
   transformFormDataToPayload,
   transformApiKeyToFormDefaults,
+  filterApiKeyGroupOptions,
 } from '../lib'
 import type { ApiKey } from '../types'
 import {
@@ -157,12 +158,14 @@ export function ApiKeysMutateDrawer({
   const models = modelsData?.data || []
   const groups = useMemo<ApiKeyGroupOption[]>(
     () =>
-      Object.entries(groupsData?.data || {}).map(([key, info]) => ({
-        value: key,
-        label: key,
-        desc: info.desc || key,
-        ratio: info.ratio,
-      })),
+      filterApiKeyGroupOptions(
+        Object.entries(groupsData?.data || {}).map(([key, info]) => ({
+          value: key,
+          label: key,
+          desc: info.desc || key,
+          ratio: info.ratio,
+        }))
+      ),
     [groupsData]
   )
   const backendHasAuto = groups.some((g) => g.value === 'auto')

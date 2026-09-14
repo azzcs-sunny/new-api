@@ -62,6 +62,7 @@ function installApiFixtures(createdPayloads: Array<Record<string, unknown>>) {
               auto: { desc: 'Automatic routing', ratio: 'auto' },
               default: { desc: 'Standard access', ratio: 1 },
               vip: { desc: 'Priority access', ratio: 2 },
+              legacy: { desc: '用户分组', ratio: 1 },
             },
           },
         }
@@ -69,7 +70,7 @@ function installApiFixtures(createdPayloads: Array<Record<string, unknown>>) {
         return {
           data: {
             success: true,
-            data: { groups: ['vip', 'default'], max_count: 3 },
+            data: { groups: ['vip', 'legacy', 'default'], max_count: 3 },
           },
         }
       default:
@@ -107,6 +108,7 @@ async function renderCreateDrawer(): Promise<void> {
         auto: { desc: 'Automatic routing', ratio: 'auto' },
         default: { desc: 'Standard access', ratio: 1 },
         vip: { desc: 'Priority access', ratio: 2 },
+        legacy: { desc: '用户分组', ratio: 1 },
       },
     },
     { updatedAt: freshAt }
@@ -115,7 +117,7 @@ async function renderCreateDrawer(): Promise<void> {
     ['token-auto-groups'],
     {
       success: true,
-      data: { groups: ['vip', 'default'], max_count: 3 },
+      data: { groups: ['vip', 'legacy', 'default'], max_count: 3 },
     },
     { updatedAt: freshAt }
   )
@@ -210,7 +212,7 @@ describe('API keys mutate drawer Auto group integration', () => {
     await renderCreateDrawer()
 
     const groupTrigger = getControlByLabel('Group')
-    expect(groupTrigger.textContent?.includes('auto')).toBe(true)
+    expect(groupTrigger.textContent?.includes('Auto')).toBe(true)
     expect(
       document.body.textContent?.includes(
         'Using the complete global Auto order (2 groups)'
@@ -221,6 +223,16 @@ describe('API keys mutate drawer Auto group integration', () => {
         ...document.querySelectorAll('[data-slot="global-auto-order-name"]'),
       ].map((item) => item.textContent)
     ).toEqual(['vip', 'default'])
+    selectComboboxOption(groupTrigger, 'Priority access')
+    fireEvent.click(groupTrigger)
+    expect(document.body.textContent?.includes('用户分组')).toBe(false)
+    const autoOption = [
+      ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
+    ].find((candidate) => candidate.textContent?.includes('Automatic routing'))
+    if (!autoOption) {
+      throw new Error('Expected option containing "Automatic routing"')
+    }
+    fireEvent.click(autoOption)
     expect(findButton('Restore global Auto', true).disabled).toBe(true)
 
     changeInput(getControlByLabel('Name'), 'batch')
@@ -260,7 +272,7 @@ describe('API keys mutate drawer Auto group integration', () => {
     expect(findButton('Restore global Auto', true).disabled).toBe(false)
 
     const groupTrigger = getControlByLabel('Group')
-    selectComboboxOption(groupTrigger, 'Standard access')
+    selectComboboxOption(groupTrigger, 'Priority access')
     expect(document.querySelector('button[aria-label="Remove vip"]')).toBe(null)
     selectComboboxOption(groupTrigger, 'Automatic routing')
 

@@ -196,10 +196,17 @@ export function buildApiParams(config: {
   }
 
   // Build base params from search params
+  const stream =
+    searchParams.stream === 'true'
+      ? true
+      : searchParams.stream === 'false'
+        ? false
+        : undefined
   const params: GetLogsParams = {
     p: page,
     page_size: pageSize,
     ...(searchParams.type ? { type: processType(searchParams.type) } : {}),
+    ...(stream !== undefined ? { stream } : {}),
     ...(searchParams.model ? { model_name: String(searchParams.model) } : {}),
     ...(searchParams.token ? { token_name: String(searchParams.token) } : {}),
     ...(searchParams.group ? { group: String(searchParams.group) } : {}),

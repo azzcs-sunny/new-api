@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, test, vi } from 'vitest'
 
 import { getAffiliateRewards } from '@/features/wallet/api'
@@ -71,7 +71,7 @@ describe('affiliate page layout', () => {
         request_count: 0,
         aff_quota: 0,
         aff_history_quota: 0,
-        aff_count: 1,
+        aff_count: 0,
         group: 'default',
       },
     })
@@ -112,5 +112,8 @@ describe('affiliate page layout', () => {
       .closest('[data-slot="card"]')
     expect(summary).toHaveClass('w-full')
     expect(summary).not.toHaveClass('max-w-7xl')
+
+    const inviteCount = screen.getByText('Invites').parentElement
+    await waitFor(() => expect(inviteCount).toHaveTextContent('1'))
   })
 })

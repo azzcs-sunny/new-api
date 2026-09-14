@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -30,6 +31,7 @@ import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialo
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
+import { WalletTransactionsCard } from './components/wallet-transactions-card'
 import { DEFAULT_DISCOUNT_RATE, PAYMENT_TYPES } from './constants'
 import {
   useTopupInfo,
@@ -39,6 +41,7 @@ import {
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
+import { walletTransactionsQueryKey } from './hooks/use-wallet-transactions'
 import {
   getDefaultPaymentType,
   getMinTopupAmount,
@@ -58,6 +61,7 @@ interface WalletProps {
 
 export function Wallet(props: WalletProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
   const [topupAmount, setTopupAmount] = useState(0)
@@ -197,7 +201,10 @@ export function Wallet(props: WalletProps) {
 
     if (success) {
       setConfirmDialogOpen(false)
-      await fetchUser()
+      await Promise.all([
+        fetchUser(),
+        queryClient.invalidateQueries({ queryKey: walletTransactionsQueryKey }),
+      ])
     }
   }
 
@@ -208,7 +215,10 @@ export function Wallet(props: WalletProps) {
     const success = await redeemCode(redemptionCode)
     if (success) {
       setRedemptionCode('')
-      await fetchUser()
+      await Promise.all([
+        fetchUser(),
+        queryClient.invalidateQueries({ queryKey: walletTransactionsQueryKey }),
+      ])
     }
   }
 
@@ -226,7 +236,10 @@ export function Wallet(props: WalletProps) {
     if (success) {
       setCreemDialogOpen(false)
       setSelectedCreemProduct(null)
-      await fetchUser()
+      await Promise.all([
+        fetchUser(),
+        queryClient.invalidateQueries({ queryKey: walletTransactionsQueryKey }),
+      ])
     }
   }
 
@@ -320,6 +333,7 @@ export function Wallet(props: WalletProps) {
               />
             </div>
 
+            <WalletTransactionsCard />
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>

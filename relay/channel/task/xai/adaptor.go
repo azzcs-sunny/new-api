@@ -94,7 +94,10 @@ func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycom
 		return service.TaskErrorWrapperLocal(err, "invalid_seconds", http.StatusBadRequest)
 	}
 	resolution := resolveResolution(request)
-	if !isSupportedResolution(resolution) {
+	if !isSupportedResolution(info.OriginModelName, resolution) {
+		if resolution == "1080p" && info.OriginModelName == "grok-imagine-video" {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("resolution 1080p is not supported by model grok-imagine-video; use grok-imagine-video-1.5"), "invalid_resolution", http.StatusBadRequest)
+		}
 		return service.TaskErrorWrapperLocal(fmt.Errorf("resolution %s is not supported by model %s", resolution, info.OriginModelName), "invalid_resolution", http.StatusBadRequest)
 	}
 	return nil
@@ -470,11 +473,11 @@ func greatestCommonDivisor(a, b int) int {
 	return a
 }
 
-func isSupportedResolution(resolution string) bool {
-	// Keep the gateway's validation aligned with the pricing dimensions. The
-	// upstream model remains the source of truth for whether a particular
-	// resolution is currently enabled for that model.
-	return resolution == "480p" || resolution == "720p" || resolution == "1080p"
+func isSupportedResolution(modelName, resolution string) bool {
+	if resolution == "480p" || resolution == "720p" {
+		return true
+	}
+	return resolution == "1080p" && modelName == "grok-imagine-video-1.5"
 }
 
 func resolutionRatio(resolution string) float64 {

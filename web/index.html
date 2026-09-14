@@ -26,14 +26,11 @@
           /(?:^|;\s*)theme_preset=([^;]+)/
         )
         const preset = presetMatch ? decodeURIComponent(presetMatch[1]) : ''
-        if (preset === 'default') {
+        if (!preset || preset === 'default') {
           document.body.removeAttribute('data-theme-preset')
           return
         }
-        document.body.setAttribute(
-          'data-theme-preset',
-          preset || 'lavender-dream'
-        )
+        document.body.setAttribute('data-theme-preset', preset)
       })()
     </script>
     <div id="root" translate="no" class="notranslate"></div>

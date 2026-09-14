@@ -234,7 +234,7 @@ export function Affiliate() {
                       {t('Invites')}
                     </div>
                     <div className='font-semibold tabular-nums'>
-                      {user?.aff_count ?? 0}
+                      {rewardsQuery.data?.total ?? 0}
                     </div>
                   </div>
                   <div>

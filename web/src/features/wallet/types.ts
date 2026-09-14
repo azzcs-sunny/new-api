@@ -349,6 +349,32 @@ export interface BillingHistoryResponse {
   total: number
 }
 
+export type WalletTransactionSource =
+  | 'online_topup'
+  | 'redemption'
+  | 'admin_adjustment'
+
+export interface WalletTransaction {
+  id: string
+  source: WalletTransactionSource
+  amount: number
+  money?: number
+  trade_no?: string
+  payment_method?: string
+  status: TopupStatus
+  create_time: number
+  complete_time?: number
+  adjustment_mode?: 'add' | 'subtract' | 'override'
+  invoice_issued?: boolean
+}
+
+export interface WalletTransactionsResponse {
+  items: WalletTransaction[]
+  total: number
+  page: number
+  page_size: number
+}
+
 /**
  * Complete order request (admin only)
  */

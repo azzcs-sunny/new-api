@@ -44,6 +44,7 @@ import type {
   AffiliateRelationsResponse,
   AffiliateRewardDetailsResponse,
   AffiliateRewardAdminDetailsResponse,
+  WalletTransactionsResponse,
 } from './types'
 
 // ============================================================================
@@ -277,6 +278,20 @@ export async function getUserBillingHistory(
     params.append('keyword', keyword)
   }
   const res = await api.get(`/api/user/topup/self?${params.toString()}`)
+  return res.data
+}
+
+export async function getWalletTransactions(
+  page: number,
+  pageSize: number
+): Promise<ApiResponse<WalletTransactionsResponse>> {
+  const params = new URLSearchParams({
+    p: page.toString(),
+    page_size: pageSize.toString(),
+  })
+  const res = await api.get(
+    `/api/user/wallet/transactions?${params.toString()}`
+  )
   return res.data
 }
 

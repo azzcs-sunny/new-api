@@ -48,6 +48,9 @@ function Harness() {
       <button type='button' onClick={() => setPreset(THEME_BASE_PRESET)}>
         Base preset
       </button>
+      <button type='button' onClick={() => setPreset('lavender-dream')}>
+        Lavender preset
+      </button>
       <button type='button' onClick={resetCustomization}>
         Reset preset
       </button>
@@ -61,7 +64,7 @@ afterEach(() => {
 })
 
 describe('ThemeCustomizationProvider', () => {
-  test('uses lavender-dream as the default preset', () => {
+  test('uses the base preset as the default preset', () => {
     render(
       <ThemeCustomizationProvider>
         <Harness />
@@ -74,14 +77,11 @@ describe('ThemeCustomizationProvider', () => {
     expect(screen.getByTestId('current-preset')).toHaveTextContent(
       DEFAULT_THEME_CUSTOMIZATION.preset
     )
-    expect(document.body).toHaveAttribute(
-      'data-theme-preset',
-      DEFAULT_THEME_CUSTOMIZATION.preset
-    )
+    expect(document.body).not.toHaveAttribute('data-theme-preset')
     expect(document.cookie).not.toContain(`${THEME_COOKIE_KEYS.preset}=`)
   })
 
-  test('still allows the base preset to be selected and reset back', async () => {
+  test('resets a custom preset back to the base preset', async () => {
     const user = userEvent.setup()
 
     render(
@@ -90,21 +90,20 @@ describe('ThemeCustomizationProvider', () => {
       </ThemeCustomizationProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: 'Base preset' }))
+    await user.click(screen.getByRole('button', { name: 'Lavender preset' }))
     expect(screen.getByTestId('current-preset')).toHaveTextContent(
-      THEME_BASE_PRESET
+      'lavender-dream'
     )
-    expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.cookie).toContain(`${THEME_COOKIE_KEYS.preset}=default`)
+    expect(document.body).toHaveAttribute('data-theme-preset', 'lavender-dream')
+    expect(document.cookie).toContain(
+      `${THEME_COOKIE_KEYS.preset}=lavender-dream`
+    )
 
     await user.click(screen.getByRole('button', { name: 'Reset preset' }))
     expect(screen.getByTestId('current-preset')).toHaveTextContent(
       DEFAULT_THEME_CUSTOMIZATION.preset
     )
-    expect(document.body).toHaveAttribute(
-      'data-theme-preset',
-      DEFAULT_THEME_CUSTOMIZATION.preset
-    )
+    expect(document.body).not.toHaveAttribute('data-theme-preset')
     expect(document.cookie).not.toContain(`${THEME_COOKIE_KEYS.preset}=`)
   })
 })

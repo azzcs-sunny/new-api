@@ -67,6 +67,7 @@ func VideoProxy(c *gin.Context) {
 	}
 
 	var videoURL string
+	trustedProviderURL := false
 	proxy := channel.GetSetting().Proxy
 	client := service.GetSSRFProtectedHTTPClient()
 	if proxy != "" {
@@ -114,6 +115,23 @@ func VideoProxy(c *gin.Context) {
 	case constant.ChannelTypeOpenAI, constant.ChannelTypeSora:
 		videoURL = fmt.Sprintf("%s/v1/videos/%s/content", baseURL, task.GetUpstreamTaskID())
 		req.Header.Set("Authorization", "Bearer "+channel.Key)
+	case constant.ChannelTypeXai:
+		videoURL, trustedProviderURL, err = resolveVideoResultURL(baseURL, task.GetResultURL())
+		if err != nil {
+			logger.LogError(c.Request.Context(), fmt.Sprintf("Failed to resolve xAI video URL for task %s: %s", taskID, err.Error()))
+			videoProxyError(c, http.StatusBadGateway, "server_error", "Failed to resolve xAI video URL")
+			return
+		}
+		if trustedProviderURL {
+			apiKey := task.PrivateData.Key
+			if apiKey == "" {
+				apiKey = channel.Key
+			}
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+			if proxy == "" {
+				client = service.GetHttpClient()
+			}
+		}
 	default:
 		// Video URL is stored in PrivateData.ResultURL (fallback to FailReason for old data)
 		videoURL = task.GetResultURL()
@@ -134,17 +152,19 @@ func VideoProxy(c *gin.Context) {
 		return
 	}
 
-	var validateErr error
-	if proxy == "" {
-		validateErr = service.ValidateSSRFProtectedFetchURL(videoURL)
-	} else {
-		fetchSetting := system_setting.GetFetchSetting()
-		validateErr = common.ValidateURLWithFetchSetting(videoURL, fetchSetting.EnableSSRFProtection, fetchSetting.AllowPrivateIp, fetchSetting.DomainFilterMode, fetchSetting.IpFilterMode, fetchSetting.DomainList, fetchSetting.IpList, fetchSetting.AllowedPorts, fetchSetting.ApplyIPFilterForDomain)
-	}
-	if validateErr != nil {
-		logger.LogError(c.Request.Context(), fmt.Sprintf("Video URL blocked for task %s: %v", taskID, validateErr))
-		videoProxyError(c, http.StatusForbidden, "server_error", fmt.Sprintf("request blocked: %v", validateErr))
-		return
+	if !trustedProviderURL {
+		var validateErr error
+		if proxy == "" {
+			validateErr = service.ValidateSSRFProtectedFetchURL(videoURL)
+		} else {
+			fetchSetting := system_setting.GetFetchSetting()
+			validateErr = common.ValidateURLWithFetchSetting(videoURL, fetchSetting.EnableSSRFProtection, fetchSetting.AllowPrivateIp, fetchSetting.DomainFilterMode, fetchSetting.IpFilterMode, fetchSetting.DomainList, fetchSetting.IpList, fetchSetting.AllowedPorts, fetchSetting.ApplyIPFilterForDomain)
+		}
+		if validateErr != nil {
+			logger.LogError(c.Request.Context(), fmt.Sprintf("Video URL blocked for task %s: %v", taskID, validateErr))
+			videoProxyError(c, http.StatusForbidden, "server_error", fmt.Sprintf("request blocked: %v", validateErr))
+			return
+		}
 	}
 
 	req.URL, err = url.Parse(videoURL)
@@ -180,6 +200,31 @@ func VideoProxy(c *gin.Context) {
 	if _, err = io.Copy(c.Writer, resp.Body); err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Failed to stream video content: %s", err.Error()))
 	}
+}
+
+func resolveVideoResultURL(baseURL, resultURL string) (string, bool, error) {
+	resultURL = strings.TrimSpace(resultURL)
+	if resultURL == "" {
+		return "", false, fmt.Errorf("video URL is empty")
+	}
+	reference, err := url.Parse(resultURL)
+	if err != nil {
+		return "", false, fmt.Errorf("parse video URL: %w", err)
+	}
+	if reference.IsAbs() || reference.Host != "" {
+		return reference.String(), false, nil
+	}
+	base, err := url.Parse(strings.TrimRight(baseURL, "/") + "/")
+	if err != nil {
+		return "", false, fmt.Errorf("parse channel base URL: %w", err)
+	}
+	if base.Scheme != "http" && base.Scheme != "https" {
+		return "", false, fmt.Errorf("channel base URL must use http or https")
+	}
+	if base.Host == "" {
+		return "", false, fmt.Errorf("channel base URL has no host")
+	}
+	return base.ResolveReference(reference).String(), true, nil
 }
 
 func writeVideoDataURL(c *gin.Context, dataURL string) error {

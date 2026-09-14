@@ -63,8 +63,9 @@ const options = [
     desc: 'Global automatic routing',
     ratio: '自动',
   },
-  { value: 'default', label: 'default', desc: 'User group', ratio: 1 },
+  { value: 'default', label: 'default', desc: 'Standard group', ratio: 1 },
   { value: 'vip', label: 'vip', desc: 'Priority group', ratio: 3 },
+  { value: 'legacy', label: 'legacy', desc: '用户分组', ratio: 1 },
 ]
 
 function Harness(props: { initialValue: string; hideDefaultOption?: boolean }) {
@@ -105,6 +106,7 @@ describe('API key group combobox Auto effect', () => {
     const trigger = getTrigger()
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
     expect(trigger).toHaveAttribute('data-auto-group-effect', 'trigger')
+    expect(trigger).toHaveClass('cursor-pointer', 'h-9')
     expect(trigger).not.toHaveClass('bg-linear-to-r', 'overflow-hidden')
     expect(trigger).toHaveClass('overflow-visible')
 
@@ -135,11 +137,40 @@ describe('API key group combobox Auto effect', () => {
     fireEvent.click(trigger)
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
+    const popup = document.querySelector<HTMLElement>(
+      '[data-slot="popover-content"]'
+    )
+    expect(popup).toHaveClass(
+      'min-w-[var(--anchor-width)]',
+      'w-[440px]',
+      'max-w-[calc(100vw-2rem)]',
+      'overflow-hidden',
+      'rounded-lg',
+      'p-0'
+    )
+    expect(
+      document.querySelector<HTMLElement>('[data-slot="command"]')
+    ).toHaveClass('rounded-lg!', 'p-0')
+    expect(
+      document.querySelector<HTMLElement>('[data-slot="command-list"]')
+    ).toHaveClass(
+      'max-h-[min(20rem,var(--available-height))]',
+      'overflow-y-auto',
+      'overscroll-contain',
+      'p-1.5'
+    )
+
     const autoOption = getCommandItem('Global automatic routing')
     expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
+    expect(autoOption).toHaveAttribute('data-checked', 'true')
     expect(autoOption).toHaveAttribute('aria-selected', 'true')
     expect(autoOption).not.toHaveClass('bg-linear-to-r')
-    expect(autoOption).toHaveClass('overflow-visible')
+    expect(autoOption).toHaveClass(
+      'cursor-pointer',
+      'hover:bg-accent',
+      'data-selected:bg-accent',
+      'overflow-visible'
+    )
     expect(
       autoOption.querySelector('[data-auto-group-flow-border]')
     ).toBeInTheDocument()
@@ -151,7 +182,7 @@ describe('API key group combobox Auto effect', () => {
       optionRatio?.querySelector('[data-auto-group-flow-border]')
     ).toBeInTheDocument()
 
-    const defaultOption = getCommandItem('User group')
+    const defaultOption = getCommandItem('Standard group')
     expect(defaultOption).not.toHaveAttribute('data-auto-group-effect')
     expect(defaultOption.querySelector('[data-auto-group-flow-border]')).toBe(
       null
@@ -200,8 +231,20 @@ describe('API key group combobox Auto effect', () => {
     expect(trigger).toHaveTextContent('default')
 
     fireEvent.click(trigger)
-    expect(() => getCommandItem('User group')).toThrow(
-      'Expected command item containing "User group"'
+    expect(() => getCommandItem('Standard group')).toThrow(
+      'Expected command item containing "Standard group"'
+    )
+    expect(getCommandItem('Priority group')).toBeInTheDocument()
+  })
+
+  test('filters user-group-only options from the selectable list', () => {
+    setReducedMotion(false)
+    render(<Harness initialValue='vip' />)
+
+    fireEvent.click(getTrigger())
+
+    expect(() => getCommandItem('用户分组')).toThrow(
+      'Expected command item containing "用户分组"'
     )
     expect(getCommandItem('Priority group')).toBeInTheDocument()
   })

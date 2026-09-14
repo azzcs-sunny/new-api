@@ -210,6 +210,8 @@ export const STATIC_I18N_KEYS = [
   'Not set yet',
 
   // Models section-registry nav (dynamic titleKey)
+  'Chinese Models',
+  'GPT',
   'Grok',
 
   // Channel Affinity section
@@ -559,6 +561,9 @@ export const STATIC_I18N_KEYS = [
   'Regenerate',
   'Untitled',
   'Open in new tab',
+  'Open in new window',
+  '⭐Purchase Card Codes⭐',
+  'Top-up link is not configured',
   'Failed to load',
   'Expired at',
   'Cancelled at',

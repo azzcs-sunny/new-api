@@ -36,6 +36,7 @@ import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { API_KEY_STATUSES } from '../constants'
+import { filterApiKeyGroupOptions } from '../lib'
 import type { ApiKey } from '../types'
 import type { ApiKeyGroupOption } from './api-key-group-combobox'
 import { ApiKeyGroupTableCell } from './api-key-group-table-cell'
@@ -81,7 +82,7 @@ function useApiKeyGroupData(): ApiKeyGroupData {
           ratio: info.ratio,
         })
       }
-      return { options, ratios }
+      return { options: filterApiKeyGroupOptions(options), ratios }
     },
   })
 
