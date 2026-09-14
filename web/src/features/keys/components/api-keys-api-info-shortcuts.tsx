@@ -41,10 +41,7 @@ type ApiKeysApiInfoShortcutsViewProps = {
   onTest: (url: string) => void
 }
 
-function getStatusForUrl(
-  pingStatus: PingStatusMap,
-  url: string
-): PingStatus {
+function getStatusForUrl(pingStatus: PingStatusMap, url: string): PingStatus {
   return pingStatus[url] || getDefaultPingStatus()
 }
 
@@ -64,7 +61,7 @@ export function ApiKeysApiInfoShortcutsView(
         return (
           <div
             key={`${item.route}:${item.url}`}
-            className='border-border bg-muted/40 text-foreground flex h-9 min-w-0 max-w-full items-center gap-2 rounded-lg border px-2.5 text-xs shadow-xs sm:max-w-[28rem]'
+            className='border-border bg-muted/40 text-foreground flex h-9 max-w-full min-w-0 items-center gap-2 rounded-lg border px-2.5 text-xs shadow-xs sm:max-w-[28rem]'
             title={item.description || title}
           >
             <span className='max-w-[11rem] min-w-0 truncate font-medium'>

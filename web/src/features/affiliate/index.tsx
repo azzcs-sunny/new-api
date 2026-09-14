@@ -16,10 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
-import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { ViewIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { useQuery } from '@tanstack/react-query'
+import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { Copy, Gift, Share2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -95,7 +95,9 @@ export function Affiliate() {
         accessorKey: 'invitee_id',
         header: t('Invited User ID'),
         cell: ({ row }) => (
-          <span className='font-mono tabular-nums'>{row.original.invitee_id}</span>
+          <span className='font-mono tabular-nums'>
+            {row.original.invitee_id}
+          </span>
         ),
       },
       {

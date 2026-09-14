@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { render, screen } from '@testing-library/react'
 import type { AnchorHTMLAttributes, ReactNode } from 'react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
+
 import { AuthLayout } from '../auth-layout'
 import { ForgotPassword } from '../forgot-password'
 import { SignIn } from '../sign-in'
@@ -71,9 +72,12 @@ vi.mock('@/features/auth/sign-in/components/user-auth-form', () => ({
   UserAuthForm: () => <div data-testid='user-auth-form' />,
 }))
 
-vi.mock('@/features/auth/forgot-password/components/forgot-password-form', () => ({
-  ForgotPasswordForm: () => <div data-testid='forgot-password-form' />,
-}))
+vi.mock(
+  '@/features/auth/forgot-password/components/forgot-password-form',
+  () => ({
+    ForgotPasswordForm: () => <div data-testid='forgot-password-form' />,
+  })
+)
 
 describe('auth pages', () => {
   test('auth layout keeps the form centered without the side panel', () => {
@@ -101,9 +105,7 @@ describe('auth pages', () => {
     expect(
       screen.getByRole('link', { name: 'Forgot password?' })
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: 'Sign up' })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument()
     expect(screen.getByTestId('user-auth-form')).toBeInTheDocument()
   })
 

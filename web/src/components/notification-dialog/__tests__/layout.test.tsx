@@ -85,6 +85,9 @@ describe('NotificationDialog layout', () => {
         open
         onOpenChange={() => undefined}
         unreadCount={1}
+        activeTab='announcements'
+        onTabChange={() => undefined}
+        notice=''
         announcements={announcements}
         loading={false}
         onAnnouncementOpen={onAnnouncementOpen}
@@ -115,6 +118,9 @@ describe('NotificationDialog layout', () => {
         open
         onOpenChange={() => undefined}
         unreadCount={1}
+        activeTab='announcements'
+        onTabChange={() => undefined}
+        notice=''
         announcements={announcements}
         loading={false}
       />

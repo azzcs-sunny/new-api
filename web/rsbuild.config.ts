@@ -21,7 +21,7 @@ export default defineConfig(({ envMode }) => {
 
   const isProd = envMode === 'production'
   const devProxy = Object.fromEntries(
-    (['/api', '/mj', '/pg'] as const).map((key) => [
+    (['/api', '/v1', '/mj', '/pg'] as const).map((key) => [
       key,
       { target: serverUrl, changeOrigin: true },
     ])
@@ -61,9 +61,8 @@ export default defineConfig(({ envMode }) => {
         index: './src/main.tsx',
       },
       define: {
-        'import.meta.env.VITE_INFINITE_CANVAS_URL': JSON.stringify(
-          infiniteCanvasUrl
-        ),
+        'import.meta.env.VITE_INFINITE_CANVAS_URL':
+          JSON.stringify(infiniteCanvasUrl),
       },
     },
     resolve: {

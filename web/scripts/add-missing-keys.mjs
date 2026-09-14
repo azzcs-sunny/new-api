@@ -1119,14 +1119,12 @@ const newKeys = {
       'Разрешить этому коду создавать заказ для счёта после погашения.',
     'Batch invoice settings': 'Массовые настройки счёта',
     'Enter invoice amount': 'Введите сумму счёта',
-    'Failed to update invoice settings':
-      'Не удалось обновить настройки счёта',
+    'Failed to update invoice settings': 'Не удалось обновить настройки счёта',
     Invoice: 'Счёт',
     'Invoice amount': 'Сумма счёта',
     'Invoice amount cannot be negative':
       'Сумма счёта не может быть отрицательной',
-    'Invoice amount must be greater than 0':
-      'Сумма счёта должна быть больше 0',
+    'Invoice amount must be greater than 0': 'Сумма счёта должна быть больше 0',
     'Not allowed': 'Не разрешено',
     'Orders already in an invoice request will be skipped automatically.':
       'Заказы, уже включённые в запрос счёта, будут автоматически пропущены.',

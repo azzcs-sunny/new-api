@@ -17,7 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { FileText, X, User, UserPlus, Wallet, LogOut } from 'lucide-react'
+import {
+  FileText,
+  LogOut,
+  ShieldCheck,
+  User,
+  UserPlus,
+  Wallet,
+  X,
+} from 'lucide-react'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 
@@ -28,7 +36,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import useDialogState from '@/hooks/use-dialog'
 import { useIsSidebarModuleVisible } from '@/hooks/use-sidebar-config'
 import { useUserDisplay } from '@/hooks/use-user-display'
-import { ROLE } from '@/lib/roles'
 import type { AuthUser } from '@/stores/auth-store'
 
 import { MOBILE_DRAWER_ANIMATION, MOBILE_DRAWER_CONFIG } from '../constants'
@@ -85,6 +92,7 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
   const { displayName, initials, roleLabel } = useUserDisplay(user)
   const isInvoiceVisible = useIsSidebarModuleVisible('/invoices')
   const isAffiliateVisible = useIsSidebarModuleVisible('/affiliate')
+  const isSecurityVisible = useIsSidebarModuleVisible('/security')
 
   if (!user) return null
 
@@ -126,6 +134,17 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
           {t('Profile')}
         </Link>
 
+        {isSecurityVisible && (
+          <Link
+            to='/security'
+            onClick={onNavigate}
+            className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
+          >
+            <ShieldCheck className='size-4' />
+            {t('Security & Access')}
+          </Link>
+        )}
+
         <Link
           to='/wallet'
           onClick={onNavigate}
@@ -153,11 +172,7 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
             className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
           >
             <FileText className='size-4' />
-            {t(
-              (user.role ?? 0) >= ROLE.ADMIN
-                ? 'Invoice Management'
-                : 'My invoice requests'
-            )}
+            {t('My invoice requests')}
           </Link>
         )}
 

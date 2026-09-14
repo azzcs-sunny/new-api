@@ -41,7 +41,7 @@ export function ForgotPassword() {
 
         <Link
           to='/sign-in'
-          className='inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground'
+          className='text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm font-medium transition-colors'
         >
           <ArrowLeft className='h-4 w-4' />
           {t('Back to login')}

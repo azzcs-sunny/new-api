@@ -50,14 +50,14 @@ import {
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useEmailVerification } from '@/features/auth/hooks/use-email-verification'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
-import { getLegalDocuments } from '@/features/auth/lib/legal-documents'
 import {
   getAffiliateCode,
   saveAffiliateCode,
 } from '@/features/auth/lib/storage'
 import { useStatus } from '@/hooks/use-status'
-import { isAuthBundle } from '@/lib/api'
-import { getServerErrorMessageKey } from '@/lib/server-error-message'
+import { handleServerError } from '@/lib/handle-server-error'
+import { AuthOperationError } from '@/lib/secure-verification'
+import { createServerError } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 export function SignUpForm({
@@ -82,7 +82,7 @@ export function SignUpForm({
     setTurnstileToken,
     validateTurnstile,
   } = useTurnstile()
-  const { redirectToLogin, handleLoginSuccess } = useAuthRedirect()
+  const { redirectToLogin, handleLoginResult } = useAuthRedirect()
   const {
     isSending: isSendingCode,
     secondsLeft,
@@ -105,7 +105,9 @@ export function SignUpForm({
 
   const emailValue = form.watch('email')
   const emailVerificationRequired = !!status?.email_verification
-  const requiresLegalConsent = getLegalDocuments(status).length > 0
+  const hasUserAgreement = Boolean(status?.user_agreement_enabled)
+  const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
+  const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
   const oauthRegisterEnabled =
     status?.oauth_register_enabled ??
     status?.data?.oauth_register_enabled ??
@@ -177,10 +179,12 @@ export function SignUpForm({
         toast.success(t('Account created! Please sign in'))
         redirectToLogin()
       } else {
-        toast.error(res?.message || t('Failed to create account'))
+        handleServerError(createServerError(res, t('Failed to create account')))
       }
-    } catch {
-      // Errors are handled by global interceptor
+    } catch (error) {
+      handleServerError(
+        AuthOperationError.from(error, t('Failed to create account'))
+      )
     } finally {
       setIsLoading(false)
     }
@@ -219,17 +223,18 @@ export function SignUpForm({
     setIsWeChatSubmitting(true)
     try {
       const res = await wechatLoginByCode(wechatCode)
-      if (res?.success && isAuthBundle(res.data)) {
-        await handleLoginSuccess(res.data)
-        toast.success(t('Signed in via WeChat'))
+      if (res?.success) {
         handleWeChatDialogChange(false)
+        if (await handleLoginResult(res.data)) {
+          toast.success(t('Signed in via WeChat'))
+        }
       } else {
-        if (getServerErrorMessageKey(res)) return
-        toast.error(res?.message || t('Login failed'))
+        handleServerError(createServerError(res, t('Login failed')))
       }
     } catch (error: unknown) {
-      if (getServerErrorMessageKey(error)) return
-      toast.error(t('Login failed'))
+      handleServerError(
+        new AuthOperationError(t('Login failed'), undefined, { cause: error })
+      )
     } finally {
       setIsWeChatSubmitting(false)
     }
@@ -279,7 +284,7 @@ export function SignUpForm({
               <FormLabel>{t('Password')}</FormLabel>
               <FormControl>
                 <PasswordInput
-                  placeholder={t('Enter password (8-20 characters)')}
+                  placeholder={t('Enter password (8–128 characters)')}
                   className={AUTH_PASSWORD_INPUT_CLASSNAME}
                   inputClassName={AUTH_INPUT_CLASSNAME}
                   {...field}
@@ -326,7 +331,6 @@ export function SignUpForm({
                     <Input
                       placeholder={t('name@example.com')}
                       type='email'
-                      className={AUTH_INPUT_CLASSNAME}
                       {...field}
                     />
                   </FormControl>
@@ -340,7 +344,6 @@ export function SignUpForm({
               <div className='flex-1'>
                 <Input
                   placeholder={t('Verification code')}
-                  className={AUTH_INPUT_CLASSNAME}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                 />
@@ -348,7 +351,6 @@ export function SignUpForm({
               <Button
                 variant='outline'
                 type='button'
-                className={AUTH_BUTTON_CLASSNAME}
                 disabled={
                   isLoading ||
                   isSendingCode ||
@@ -385,10 +387,7 @@ export function SignUpForm({
         {/* Submit Button */}
         <Button
           type='submit'
-          className={cn(
-            AUTH_BUTTON_CLASSNAME,
-            'mt-2 w-full justify-center gap-2'
-          )}
+          className={cn(AUTH_BUTTON_CLASSNAME, 'mt-2')}
           disabled={
             isLoading ||
             (requiresLegalConsent && !agreedToLegal) ||
@@ -429,7 +428,6 @@ export function SignUpForm({
                 variant='outline'
                 onClick={() => handleWeChatDialogChange(false)}
                 disabled={isWeChatSubmitting}
-                className={AUTH_BUTTON_CLASSNAME}
               >
                 {t('Cancel')}
               </Button>
@@ -441,7 +439,7 @@ export function SignUpForm({
                   !wechatCode.trim() ||
                   (requiresLegalConsent && !agreedToLegal)
                 }
-                className={cn(AUTH_BUTTON_CLASSNAME, 'gap-2')}
+                className='gap-2'
               >
                 {isWeChatSubmitting ? (
                   <Loader2 className='h-4 w-4 animate-spin' />
@@ -469,7 +467,6 @@ export function SignUpForm({
             <Input
               id='wechat-code'
               placeholder={t('Enter the verification code')}
-              className={AUTH_INPUT_CLASSNAME}
               value={wechatCode}
               onChange={(event) => setWeChatCode(event.target.value)}
               autoComplete='one-time-code'

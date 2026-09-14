@@ -37,13 +37,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { sendPasswordResetEmail } from '@/features/auth/api'
 import {
-  AUTH_BUTTON_CLASSNAME,
-  AUTH_INPUT_CLASSNAME,
   forgotPasswordFormSchema,
   PASSWORD_RESET_COUNTDOWN,
 } from '@/features/auth/constants'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { useCountdown } from '@/hooks/use-countdown'
+import { handleServerError } from '@/lib/handle-server-error'
+import { AuthOperationError } from '@/lib/secure-verification'
+import { createServerError } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 export function ForgotPasswordForm({
@@ -83,10 +84,14 @@ export function ForgotPasswordForm({
         startCountdown()
         toast.success(t('Reset email sent, please check your inbox'))
       } else {
-        toast.error(res?.message || t('Failed to send reset email'))
+        handleServerError(
+          createServerError(res, t('Failed to send reset email'))
+        )
       }
-    } catch {
-      // Errors are handled by global interceptor
+    } catch (_error) {
+      handleServerError(
+        AuthOperationError.from(_error, t('Failed to send reset email'))
+      )
     } finally {
       setIsLoading(false)
     }
@@ -106,11 +111,7 @@ export function ForgotPasswordForm({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input
-                  placeholder='name@example.com'
-                  className={AUTH_INPUT_CLASSNAME}
-                  {...field}
-                />
+                <Input placeholder='name@example.com' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -119,10 +120,7 @@ export function ForgotPasswordForm({
 
         <Button
           type='submit'
-          className={cn(
-            AUTH_BUTTON_CLASSNAME,
-            'w-full justify-center gap-2'
-          )}
+          className='mt-2'
           disabled={isLoading || isActive || !turnstileReady}
         >
           {isActive

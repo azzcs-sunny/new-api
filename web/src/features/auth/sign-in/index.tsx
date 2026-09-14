@@ -58,7 +58,7 @@ export function SignIn() {
         >
           <Link
             to='/forgot-password'
-            className='inline-flex h-12 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground'
+            className='border-border bg-background text-muted-foreground hover:border-primary hover:text-foreground inline-flex h-12 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-colors'
           >
             {t('Forgot password?')}
           </Link>
@@ -66,7 +66,7 @@ export function SignIn() {
           {canSignUp && (
             <Link
               to='/sign-up'
-              className='inline-flex h-12 items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/10'
+              className='border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 inline-flex h-12 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-colors'
             >
               {t('Sign up')}
             </Link>

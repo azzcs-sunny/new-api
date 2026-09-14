@@ -70,8 +70,7 @@ export interface AffiliateRewardDetailItem {
   created_at: number
 }
 
-export interface AffiliateRewardAdminDetailItem
-  extends AffiliateRewardDetailItem {
+export interface AffiliateRewardAdminDetailItem extends AffiliateRewardDetailItem {
   top_up_id: number
   trade_no: string
   base_quota: number
@@ -101,9 +100,8 @@ export interface AffiliateRewardsResponse {
   frozen_quota: number
   ratio: number
 }
-export type AffiliateRewardDetailsResponse = ApiResponse<
-  AffiliateRewardDetailsPage
->
+export type AffiliateRewardDetailsResponse =
+  ApiResponse<AffiliateRewardDetailsPage>
 export type AffiliateRewardAdminDetailsResponse = ApiResponse<
   AffiliateRewardDetailsPage<AffiliateRewardAdminDetailItem>
 >

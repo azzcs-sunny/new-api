@@ -22,9 +22,8 @@ import { describe, expect, test, vi } from 'vitest'
 const { createInstance } = await import('i18next')
 const { I18nextProvider, initReactI18next } = await import('react-i18next')
 const { TooltipProvider } = await import('@/components/ui/tooltip')
-const { ApiKeysApiInfoShortcutsView } = await import(
-  '../api-keys-api-info-shortcuts'
-)
+const { ApiKeysApiInfoShortcutsView } =
+  await import('../api-keys-api-info-shortcuts')
 
 const i18n = createInstance()
 await i18n.use(initReactI18next).init({

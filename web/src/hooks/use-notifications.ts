@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type {
@@ -23,6 +24,8 @@ import type {
   NotificationDialogItem,
 } from '@/components/notification-popover'
 import { useStatus } from '@/hooks/use-status'
+import { getNotice } from '@/lib/api'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { useNotificationStore } from '@/stores/notification-store'
 
 function hashString(input: string): string {
@@ -84,34 +87,59 @@ export function useNotifications({
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
   const [selectedDialogItem, setSelectedDialogItem] =
     useState<NotificationDialogItem | null>(null)
+  const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
+    'notice'
+  )
   const autoPromptShown = useRef(false)
+
+  // Fetch Notice from API
+  const {
+    data: noticeResponse,
+    isLoading: noticeLoading,
+    refetch: refetchNotice,
+  } = useQuery({
+    queryKey: ['notice'],
+    queryFn: async () => requireServerSuccess(await getNotice()),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
 
   // Fetch Announcements from status
   const { status, loading: statusLoading } = useStatus()
   const announcementsEnabled = status?.announcements_enabled ?? false
-  const announcements = useMemo<AnnouncementItem[]>(
-    () =>
-      announcementsEnabled
-        ? ((status?.announcements || []) as AnnouncementItem[]).slice(0, 20)
-        : [],
-    [announcementsEnabled, status?.announcements]
-  )
+  const announcements = useMemo<AnnouncementItem[]>(() => {
+    if (!announcementsEnabled) return []
+    return ((status?.announcements || []) as AnnouncementItem[]).slice(0, 20)
+  }, [announcementsEnabled, status?.announcements])
 
   // Notification store
-  const { markAnnouncementsRead, isAnnouncementRead } = useNotificationStore()
+  const {
+    lastReadNotice,
+    markNoticeRead,
+    markAnnouncementsRead,
+    isAnnouncementRead,
+  } = useNotificationStore()
+
+  // Extract notice content
+  const noticeContent = noticeResponse?.success
+    ? (noticeResponse.data || '').trim()
+    : ''
 
   // Calculate unread counts
   const unreadCounts = useMemo(() => {
+    const noticeUnread =
+      noticeContent && noticeContent !== lastReadNotice ? 1 : 0
+
     const announcementsUnread = getUnreadAnnouncements(
       announcements,
       isAnnouncementRead
     ).length
 
     return {
+      notice: noticeUnread,
       announcements: announcementsUnread,
-      total: announcementsUnread,
+      total: noticeUnread + announcementsUnread,
     }
-  }, [announcements, isAnnouncementRead])
+  }, [noticeContent, lastReadNotice, announcements, isAnnouncementRead])
 
   const firstUnreadDialogItem = useMemo<NotificationDialogItem | null>(() => {
     const firstAnnouncement = getUnreadAnnouncements(
@@ -160,39 +188,71 @@ export function useNotifications({
     setNotificationDialogOpen(true)
   }, [autoPrompt, firstUnreadDialogItem, statusLoading])
 
+  const markAnnouncementsAsRead = () => {
+    if (announcements.length > 0) {
+      const allKeys = announcements.map((item) => getAnnouncementKey(item))
+      markAnnouncementsRead(allKeys)
+    }
+  }
+
   // Handle popover open
-  const handleOpenPopover = () => {
+  const handleOpenPopover = (tab?: 'notice' | 'announcements') => {
+    const nextTab = tab || activeTab
+
+    // Mark currently visible content as read when opening the notification center
+    if (noticeContent) {
+      markNoticeRead(noticeContent)
+    }
+    if (nextTab === 'announcements') {
+      markAnnouncementsAsRead()
+    }
+
+    setActiveTab(nextTab)
     setPopoverOpen(true)
   }
 
   const handlePopoverOpenChange = (open: boolean) => {
     if (open) {
-      handleOpenPopover()
+      handleOpenPopover(activeTab)
       return
     }
 
     setPopoverOpen(false)
   }
 
+  // Handle tab change - mark announcements as read when switching to that tab
+  const handleTabChange = (tab: 'notice' | 'announcements') => {
+    setActiveTab(tab)
+
+    if (tab === 'announcements') {
+      markAnnouncementsAsRead()
+    }
+  }
+
   return {
     // Data
+    notice: noticeContent,
     announcements,
-    loading: statusLoading,
+    loading: noticeLoading || statusLoading,
 
     // Unread counts
     unreadCount: unreadCounts.total,
+    unreadNoticeCount: unreadCounts.notice,
     unreadAnnouncementsCount: unreadCounts.announcements,
 
     // Popover state
     popoverOpen,
     setPopoverOpen: handlePopoverOpenChange,
+    activeTab,
+    setActiveTab: handleTabChange,
 
     // Actions
     openPopover: handleOpenPopover,
     closePopover: () => setPopoverOpen(false),
-    openAnnouncementDetail,
+    refetchNotice,
     notificationDialogOpen,
     setNotificationDialogOpen: handleNotificationDialogOpenChange,
     notificationDialogItem: dialogItem,
+    openAnnouncementDetail,
   }
 }

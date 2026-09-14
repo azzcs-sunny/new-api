@@ -1,4 +1,3 @@
-import { Loader2 } from 'lucide-react'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell, TruncatedCell } from '@/components/data-table'
@@ -35,14 +35,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useMediaQuery } from '@/hooks'
+import { cn } from '@/lib/utils'
 
-import type { ApiKeyGroupOption } from './api-key-group-combobox'
-import {
-  // AutoGroupBadge,
-  GroupRatioBadge,
-  type GroupRatio,
-} from './auto-group-visuals'
 import { filterApiKeyGroupOptions } from '../lib/group-options'
+import type { ApiKeyGroupOption } from './api-key-group-combobox'
+import { GroupRatioBadge, type GroupRatio } from './auto-group-visuals'
 
 const groupSelectContentClassName =
   'max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] w-[440px] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-1.5'
@@ -66,16 +64,26 @@ type ApiKeyGroupDisplayProps = Pick<
 
 function ApiKeyGroupDisplay(props: ApiKeyGroupDisplayProps) {
   const { t } = useTranslation()
+  const isMobile = useMediaQuery('(max-width: 640px)')
 
-  if (props.group !== 'auto') {
-    const ratio = typeof props.ratio === 'number' ? props.ratio : undefined
+  const group = props.group?.trim() || ''
+  if (group !== 'auto') {
+    const ratio =
+      group && typeof props.ratio === 'number' ? props.ratio : undefined
     return (
       <TruncatedCell
-        className='-ml-1.5'
-        tooltipContent={props.group || '-'}
+        className={isMobile ? 'w-full' : 'max-w-50'}
+        tabIndex={0}
+        tooltipContent={group || t('Follow user group')}
         tooltipClassName='break-all'
       >
-        <GroupBadge group={props.group} ratio={ratio} />
+        <GroupBadge
+          group={group}
+          ratio={ratio}
+          ratioLabel={group ? undefined : t('Inherited')}
+          className='px-0'
+          containerClassName={cn('gap-3', isMobile && 'w-full justify-between')}
+        />
       </TruncatedCell>
     )
   }
@@ -86,12 +94,20 @@ function ApiKeyGroupDisplay(props: ApiKeyGroupDisplayProps) {
         render={
           <BadgeCell
             data-api-key-group-cell='auto'
-            className='gap-1.5 overflow-visible text-xs'
+            tabIndex={0}
+            className={cn(
+              'ml-0 gap-3 overflow-visible text-xs',
+              isMobile ? 'w-full justify-between' : 'max-w-50'
+            )}
           />
         }
       >
-        <StatusBadge label={t('Cross-group')} variant='info' copyable={false} />
-        {/*<AutoGroupBadge shouldReduceMotion={props.shouldReduceMotion} />*/}
+        <StatusBadge
+          label={t('Cross-group')}
+          variant='info'
+          copyable={false}
+          className='px-0'
+        />
         <GroupRatioBadge
           ratio={props.ratio}
           isAuto
@@ -138,7 +154,7 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
         aria-label={t('Group')}
         aria-busy={props.isUpdating}
         disabled={props.isUpdating}
-        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 w-full min-w-0 cursor-pointer px-2.5 shadow-xs data-popup-open:ring-[3px] disabled:cursor-not-allowed'
+        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 w-full min-w-0 cursor-pointer px-2.5 shadow-xs disabled:cursor-not-allowed data-popup-open:ring-[3px]'
       >
         <SelectValue className='min-w-0'>
           <ApiKeyGroupDisplay {...props} />

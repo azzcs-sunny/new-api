@@ -37,8 +37,7 @@ const {
   getEligibleOrders,
   processInvoice,
   updateInvoiceSettings,
-} =
-  await import('../api')
+} = await import('../api')
 
 describe('invoice API', () => {
   beforeEach(() => {
@@ -71,9 +70,7 @@ describe('invoice API', () => {
       data: { success: true, message: '', data: invoices },
     })
 
-    await expect(getAdminInvoices(2, 'pending', 100)).resolves.toEqual(
-      invoices
-    )
+    await expect(getAdminInvoices(2, 'pending', 100)).resolves.toEqual(invoices)
     expect(getMock).toHaveBeenCalledWith('/api/invoice/admin', {
       params: { p: 2, page_size: 100, status: 'pending' },
     })

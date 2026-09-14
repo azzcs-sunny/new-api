@@ -65,6 +65,7 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     channelStatus: true,
     token: true,
     log: true,
+    audit: true,
     midjourney: true,
     task: true,
   },
@@ -74,6 +75,7 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     affiliate: true,
     invoices: true,
     personal: true,
+    security: true,
   },
   admin: {
     enabled: true,

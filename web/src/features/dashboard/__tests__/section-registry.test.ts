@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { describe, expect, test } from 'vitest'
 import type { TFunction } from 'i18next'
+import { describe, expect, test } from 'vitest'
 
 import {
   DASHBOARD_SECTION_IDS,
@@ -31,8 +31,6 @@ describe('dashboard section registry', () => {
 
     expect(DASHBOARD_SECTION_IDS).not.toContain('channel-status')
     expect(navItems.map((item) => item.title)).not.toContain('Channel Status')
-    expect(navItems.map((item) => item.title)).not.toContain(
-      'User Analytics'
-    )
+    expect(navItems.map((item) => item.title)).not.toContain('User Analytics')
   })
 })

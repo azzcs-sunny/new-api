@@ -16,12 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useMutation } from '@tanstack/react-query'
 import type { Table } from '@tanstack/react-table'
-import { ReceiptText } from 'lucide-react'
+import { ReceiptText, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CopyButton } from '@/components/copy-button'
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -36,56 +38,90 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { handleServerError } from '@/lib/handle-server-error'
+import { createServerError } from '@/lib/server-error-message'
 
-import { batchUpdateRedemptionInvoiceSettings } from '../api'
+import {
+  batchDeleteRedemptions,
+  batchUpdateRedemptionInvoiceSettings,
+} from '../api'
 import type { Redemption } from '../types'
 import { useRedemptions } from './redemptions-provider'
 
-type DataTableBulkActionsProps<TData> = {
-  table: Table<TData>
+type DataTableBulkActionsProps = {
+  table: Table<Redemption>
 }
 
-export function DataTableBulkActions<TData>({
-  table,
-}: DataTableBulkActionsProps<TData>) {
+export function DataTableBulkActions(props: DataTableBulkActionsProps) {
   const { t } = useTranslation()
   const { triggerRefresh } = useRedemptions()
-  const selectedRows = table.getSelectedRowModel().rows
-  const selectedIds = useMemo(
-    () => selectedRows.map((row) => (row.original as Redemption).id),
-    [selectedRows]
-  )
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteTargets, setDeleteTargets] = useState<Redemption[] | null>(null)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [invoiceEnabled, setInvoiceEnabled] = useState(true)
   const [invoiceAmount, setInvoiceAmount] = useState(0)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const selectedRows = props.table.getFilteredSelectedRowModel().rows
+  const selectedIds = useMemo(
+    () => selectedRows.map((row) => row.original.id),
+    [selectedRows]
+  )
 
   const contentToCopy = useMemo(() => {
     const selectedCodes = selectedRows.map((row) => {
-      const redemption = row.original as Redemption
+      const redemption = row.original
       return `${redemption.name}\t${redemption.key}`
     })
     return selectedCodes.join('\n')
   }, [selectedRows])
 
-  const handleBatchUpdate = async () => {
-    if (selectedIds.length === 0) return
-    if (invoiceEnabled && invoiceAmount <= 0) {
-      toast.error(t('Invoice amount must be greater than 0'))
-      return
-    }
-    setIsSubmitting(true)
-    try {
+  const deletion = useMutation({
+    mutationFn: async (targets: Redemption[]) => {
+      const result = await batchDeleteRedemptions(
+        targets.map((code) => code.id)
+      )
+      if (!result.success) throw createServerError(result)
+      return result.data ?? 0
+    },
+    onSuccess: (count, targets) => {
+      toast.success(
+        t('Successfully deleted {{count}} redemption codes', { count })
+      )
+      props.table.setRowSelection((previous) => {
+        const next = { ...previous }
+        for (const code of targets) delete next[String(code.id)]
+        return next
+      })
+      setDeleteTargets(null)
+      triggerRefresh()
+    },
+    onError: (_error, targets) => {
+      handleServerError(
+        _error,
+        t('Failed to delete {{count}} redemption codes', {
+          count: targets.length,
+        })
+      )
+    },
+  })
+
+  const invoiceUpdate = useMutation({
+    mutationFn: async () => {
+      if (invoiceEnabled && invoiceAmount <= 0) {
+        throw new Error(t('Invoice amount must be greater than 0'))
+      }
       const result = await batchUpdateRedemptionInvoiceSettings({
         ids: selectedIds,
         invoice_enabled: invoiceEnabled,
         invoice_amount: invoiceEnabled ? invoiceAmount : 0,
       })
-      if (!result.success) {
-        toast.error(result.message || t('Failed to update invoice settings'))
-        return
-      }
-      const data = result.data
+      if (!result.success) throw createServerError(result)
+      return result.data
+    },
+    onSuccess: (data) => {
       toast.success(
         t(
           'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)',
@@ -96,27 +132,18 @@ export function DataTableBulkActions<TData>({
           }
         )
       )
-      table.resetRowSelection()
-      setDialogOpen(false)
+      props.table.resetRowSelection()
+      setInvoiceDialogOpen(false)
       triggerRefresh()
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+    },
+    onError: (error) => {
+      handleServerError(error, t('Failed to update invoice settings'))
+    },
+  })
 
   return (
     <>
-      <BulkActionsToolbar table={table} entityName={t('redemption code')}>
-        <Button
-          variant='outline'
-          size='icon'
-          className='size-8'
-          onClick={() => setDialogOpen(true)}
-          aria-label={t('Batch invoice settings')}
-          title={t('Batch invoice settings')}
-        >
-          <ReceiptText className='h-4 w-4' />
-        </Button>
+      <BulkActionsToolbar table={props.table} entityName={t('redemption code')}>
         <CopyButton
           value={contentToCopy}
           variant='outline'
@@ -126,9 +153,65 @@ export function DataTableBulkActions<TData>({
           successTooltip={t('Codes copied!')}
           aria-label={t('Copy selected codes')}
         />
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant='outline'
+                size='icon'
+                className='size-8'
+                onClick={() => setInvoiceDialogOpen(true)}
+                aria-label={t('Batch invoice settings')}
+                disabled={invoiceUpdate.isPending}
+              />
+            }
+          >
+            <ReceiptText aria-hidden='true' />
+          </TooltipTrigger>
+          <TooltipContent>{t('Batch invoice settings')}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant='destructive'
+                size='icon'
+                className='size-8'
+                aria-label={t('Delete selected redemption codes')}
+                disabled={deletion.isPending}
+                onClick={() =>
+                  setDeleteTargets(selectedRows.map((row) => row.original))
+                }
+              />
+            }
+          >
+            <Trash2 aria-hidden='true' />
+          </TooltipTrigger>
+          <TooltipContent>
+            {t('Delete selected redemption codes')}
+          </TooltipContent>
+        </Tooltip>
       </BulkActionsToolbar>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <ConfirmDialog
+        destructive
+        open={deleteTargets !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletion.isPending) setDeleteTargets(null)
+        }}
+        title={t('Delete {{count}} redemption codes?', {
+          count: deleteTargets?.length ?? 0,
+        })}
+        desc={t('This action cannot be undone.')}
+        confirmText={deletion.isPending ? t('Deleting...') : t('Delete')}
+        isLoading={deletion.isPending}
+        disabled={!deleteTargets?.length}
+        handleConfirm={() => {
+          if (deleteTargets?.length && !deletion.isPending) {
+            deletion.mutate(deleteTargets)
+          }
+        }}
+      />
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>{t('Batch invoice settings')}</DialogTitle>
@@ -163,9 +246,7 @@ export function DataTableBulkActions<TData>({
                 disabled={!invoiceEnabled}
                 value={invoiceAmount}
                 onChange={(event) =>
-                  setInvoiceAmount(
-                    Number.parseFloat(event.target.value) || 0
-                  )
+                  setInvoiceAmount(Number.parseFloat(event.target.value) || 0)
                 }
                 placeholder={t('Enter invoice amount')}
               />
@@ -179,13 +260,16 @@ export function DataTableBulkActions<TData>({
           <DialogFooter>
             <Button
               variant='outline'
-              onClick={() => setDialogOpen(false)}
-              disabled={isSubmitting}
+              onClick={() => setInvoiceDialogOpen(false)}
+              disabled={invoiceUpdate.isPending}
             >
               {t('Cancel')}
             </Button>
-            <Button onClick={handleBatchUpdate} disabled={isSubmitting}>
-              {isSubmitting ? t('Saving...') : t('Save changes')}
+            <Button
+              onClick={() => invoiceUpdate.mutate()}
+              disabled={invoiceUpdate.isPending || selectedIds.length === 0}
+            >
+              {invoiceUpdate.isPending ? t('Saving...') : t('Save changes')}
             </Button>
           </DialogFooter>
         </DialogContent>

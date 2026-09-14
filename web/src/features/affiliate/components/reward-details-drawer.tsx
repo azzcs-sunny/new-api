@@ -115,68 +115,64 @@ export function RewardDetailsDrawer(props: RewardDetailsDrawerProps) {
     enabled: props.open && inviteeId > 0 && (!props.admin || inviterId > 0),
   })
 
-  const columns = useMemo<ColumnDef<AffiliateRewardDetailItem, unknown>[]>(
-    () => {
-      const detailColumns: ColumnDef<AffiliateRewardDetailItem, unknown>[] = []
-      if (props.admin) {
-        detailColumns.push(
-          {
-            id: 'trade_no',
-            header: t('Order Number'),
-            cell: ({ row }) => (
-              <span className='block max-w-48 truncate font-mono text-xs'>
-                {(row.original as AffiliateRewardAdminDetailItem).trade_no ||
-                  '-'}
-              </span>
+  const columns = useMemo<
+    ColumnDef<AffiliateRewardDetailItem, unknown>[]
+  >(() => {
+    const detailColumns: ColumnDef<AffiliateRewardDetailItem, unknown>[] = []
+    if (props.admin) {
+      detailColumns.push(
+        {
+          id: 'trade_no',
+          header: t('Order Number'),
+          cell: ({ row }) => (
+            <span className='block max-w-48 truncate font-mono text-xs'>
+              {(row.original as AffiliateRewardAdminDetailItem).trade_no || '-'}
+            </span>
+          ),
+        },
+        {
+          id: 'base_quota',
+          header: t('Credited Amount'),
+          cell: ({ row }) =>
+            formatQuota(
+              (row.original as AffiliateRewardAdminDetailItem).base_quota
             ),
-          },
-          {
-            id: 'base_quota',
-            header: t('Credited Amount'),
-            cell: ({ row }) =>
-              formatQuota(
-                (row.original as AffiliateRewardAdminDetailItem).base_quota
-              ),
-          }
-        )
-      }
-      detailColumns.push({
-        id: 'sequence',
-        header: t('Top-up No.'),
-        cell: ({ row }) => row.original.sequence,
-      })
-      detailColumns.push({
-        id: 'reward_quota',
-        header: t('Amount Earned'),
-        cell: ({ row }) => formatQuota(row.original.reward_quota),
-      })
-      detailColumns.push({
-        id: 'ratio',
-        header: t('Reward Ratio'),
-        cell: ({ row }) => `${(row.original.ratio * 100).toFixed(2)}%`,
-      })
-      detailColumns.push({
-        id: 'status',
-        header: t('Status'),
-        cell: ({ row }) => (
-          <Badge
-            variant={row.original.status === 'frozen' ? 'warning' : 'outline'}
-          >
-            {row.original.status === 'frozen'
-              ? t('Frozen')
-              : t('Available')}
-          </Badge>
-        ),
-      })
-      detailColumns.push({
-        id: 'created_at',
-        header: t('Earned At'),
-        cell: ({ row }) => formatTimestampToDate(row.original.created_at),
-      })
-      return detailColumns
-    },
-    [props.admin, t]
-  )
+        }
+      )
+    }
+    detailColumns.push({
+      id: 'sequence',
+      header: t('Top-up No.'),
+      cell: ({ row }) => row.original.sequence,
+    })
+    detailColumns.push({
+      id: 'reward_quota',
+      header: t('Amount Earned'),
+      cell: ({ row }) => formatQuota(row.original.reward_quota),
+    })
+    detailColumns.push({
+      id: 'ratio',
+      header: t('Reward Ratio'),
+      cell: ({ row }) => `${(row.original.ratio * 100).toFixed(2)}%`,
+    })
+    detailColumns.push({
+      id: 'status',
+      header: t('Status'),
+      cell: ({ row }) => (
+        <Badge
+          variant={row.original.status === 'frozen' ? 'warning' : 'outline'}
+        >
+          {row.original.status === 'frozen' ? t('Frozen') : t('Available')}
+        </Badge>
+      ),
+    })
+    detailColumns.push({
+      id: 'created_at',
+      header: t('Earned At'),
+      cell: ({ row }) => formatTimestampToDate(row.original.created_at),
+    })
+    return detailColumns
+  }, [props.admin, t])
 
   const { table } = useDataTable({
     data: detailsQuery.data?.items ?? [],

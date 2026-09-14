@@ -83,7 +83,7 @@ func TestMultipartRequestIsRebuiltAsXAIJSON(t *testing.T) {
 }
 
 func TestParseTaskResultDoneIncludesVideoURL(t *testing.T) {
-	result, err := (&TaskAdaptor{}).ParseTaskResult([]byte(`{
+	result, err := (&TaskAdaptor{}).ParseTaskResult(&model.Task{}, &http.Response{}, []byte(`{
 		"status":"done",
 		"model":"grok-imagine-video",
 		"progress":100,
@@ -97,7 +97,7 @@ func TestParseTaskResultDoneIncludesVideoURL(t *testing.T) {
 }
 
 func TestParseTaskResultFailureReturnsProviderReason(t *testing.T) {
-	result, err := (&TaskAdaptor{}).ParseTaskResult([]byte(`{
+	result, err := (&TaskAdaptor{}).ParseTaskResult(&model.Task{}, &http.Response{}, []byte(`{
 		"status":"failed",
 		"error":{"code":"moderation","message":"request rejected"}
 	}`))

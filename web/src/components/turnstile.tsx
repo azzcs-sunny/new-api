@@ -43,7 +43,11 @@ export function Turnstile({
 
   useEffect(() => {
     const render = () => {
-      if (!ref.current || !window.turnstile || ref.current.childElementCount > 0)
+      if (
+        !ref.current ||
+        !window.turnstile ||
+        ref.current.childElementCount > 0
+      )
         return
       try {
         window.turnstile.render(ref.current, {

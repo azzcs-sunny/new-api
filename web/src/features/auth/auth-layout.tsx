@@ -32,7 +32,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   const { systemName, logo, loading } = useSystemConfig()
 
   return (
-    <div className='relative min-h-svh overflow-hidden bg-background'>
+    <div className='bg-background relative min-h-svh overflow-hidden'>
       <div
         className='pointer-events-none absolute inset-0 opacity-80'
         aria-hidden='true'
@@ -44,7 +44,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       />
       <Link
         to='/'
-        className='absolute top-4 left-4 z-20 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full border border-border/70 bg-background/75 px-3 py-2 shadow-sm backdrop-blur transition-opacity hover:opacity-80 sm:top-6 sm:left-6 sm:max-w-none'
+        className='border-border/70 bg-background/75 absolute top-4 left-4 z-20 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full border px-3 py-2 shadow-sm backdrop-blur transition-opacity hover:opacity-80 sm:top-6 sm:left-6 sm:max-w-none'
       >
         <div className='relative h-8 w-8'>
           {loading ? (
@@ -65,7 +65,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       </Link>
 
       <div className='relative mx-auto flex min-h-svh w-full max-w-3xl items-center justify-center px-4 py-20 sm:px-6 lg:px-8 lg:py-10'>
-        <div className='w-full max-w-[560px] rounded-3xl border border-border/70 bg-background/80 p-5 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6'>
+        <div className='border-border/70 bg-background/80 w-full max-w-[560px] rounded-3xl border p-5 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6'>
           {children}
         </div>
       </div>
