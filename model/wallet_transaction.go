@@ -49,9 +49,11 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 	if err = DB.Model(&TopUp{}).Where("user_id = ? AND amount > ?", userId, 0).Count(&topUpCount).Error; err != nil {
 		return nil, 0, err
 	}
+	redemptionWithoutTopUp := DB.Model(&TopUp{}).Select("1").Where("top_ups.redemption_id = redemptions.id")
 	var redemptionCount int64
 	if err = DB.Unscoped().Model(&Redemption{}).
 		Where("used_user_id = ? AND status = ?", userId, common.RedemptionCodeStatusUsed).
+		Where("NOT EXISTS (?)", redemptionWithoutTopUp).
 		Count(&redemptionCount).Error; err != nil {
 		return nil, 0, err
 	}
@@ -73,6 +75,7 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 	}
 	var redemptions []*Redemption
 	if err = DB.Unscoped().Where("used_user_id = ? AND status = ?", userId, common.RedemptionCodeStatusUsed).
+		Where("NOT EXISTS (?)", redemptionWithoutTopUp).
 		Order("redeemed_time desc, id desc").Limit(fetchLimit).Find(&redemptions).Error; err != nil {
 		return nil, 0, err
 	}
@@ -91,6 +94,11 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 	for _, topUp := range topUps {
 		money := topUp.Money
 		amount := common.QuotaFromDecimal(decimal.NewFromInt(topUp.Amount).Mul(quotaPerUnit))
+		source := WalletTransactionSourceTopUp
+		if topUp.PaymentProvider == PaymentProviderRedemption || topUp.PaymentMethod == PaymentMethodRedemption {
+			amount = int(topUp.Amount)
+			source = WalletTransactionSourceRedemption
+		}
 		if topUp.PaymentProvider == PaymentProviderStripe || topUp.PaymentMethod == PaymentMethodStripe {
 			amount = common.QuotaFromDecimal(decimal.NewFromFloat(topUp.Money).Mul(quotaPerUnit))
 		}
@@ -103,7 +111,7 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 		}
 		transactions = append(transactions, &WalletTransaction{
 			Id:            fmt.Sprintf("topup-%d", topUp.Id),
-			Source:        WalletTransactionSourceTopUp,
+			Source:        source,
 			Amount:        int64(amount),
 			Money:         &money,
 			TradeNo:       topUp.TradeNo,

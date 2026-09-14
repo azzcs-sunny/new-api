@@ -25,6 +25,8 @@ import type {
   GetRedemptionsResponse,
   SearchRedemptionsParams,
   RedemptionFormData,
+  RedemptionInvoiceBatchPayload,
+  RedemptionInvoiceBatchResult,
 } from './types'
 
 // ============================================================================
@@ -84,6 +86,13 @@ export async function updateRedemptionStatus(
   status: number
 ): Promise<ApiResponse<Redemption>> {
   const res = await api.put('/api/redemption/?status_only=true', { id, status })
+  return res.data
+}
+
+export async function batchUpdateRedemptionInvoiceSettings(
+  data: RedemptionInvoiceBatchPayload
+): Promise<ApiResponse<RedemptionInvoiceBatchResult>> {
+  const res = await api.put('/api/redemption/invoice-settings/batch', data)
   return res.data
 }
 

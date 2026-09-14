@@ -29,6 +29,8 @@ export const redemptionSchema = z.object({
   key: z.string(),
   status: z.number(), // 1: enabled, 2: disabled, 3: used
   quota: z.number(),
+  invoice_enabled: z.boolean(),
+  invoice_amount: z.number(),
   created_time: z.number(),
   redeemed_time: z.number(),
   expired_time: z.number(), // 0 for never expires
@@ -75,8 +77,24 @@ export interface RedemptionFormData {
   name: string
   quota: number
   expired_time: number
+  invoice_enabled?: boolean
+  invoice_amount?: number
   count?: number // Only for create
   status?: number // Only for status update
+}
+
+export interface RedemptionInvoiceBatchPayload {
+  ids: number[]
+  invoice_enabled: boolean
+  invoice_amount: number
+}
+
+export interface RedemptionInvoiceBatchResult {
+  updated: number
+  created_orders: number
+  updated_orders: number
+  skipped_invoiced: number
+  skipped_invalid: number
 }
 
 // ============================================================================

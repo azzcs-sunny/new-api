@@ -76,6 +76,8 @@ function redemption(id: number, quota = 500001): Redemption {
     key: `key-${id}`,
     status: 1,
     quota,
+    invoice_enabled: false,
+    invoice_amount: 0,
     created_time: 1,
     redeemed_time: 0,
     expired_time: 0,

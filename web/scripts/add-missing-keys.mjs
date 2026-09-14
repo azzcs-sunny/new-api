@@ -188,6 +188,30 @@ const newKeys = {
       'This order will no longer be available for invoice requests.',
     'This order will become available for invoice requests again.':
       'This order will become available for invoice requests again.',
+    'Allow invoice': 'Allow invoice',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      'Allow this redemption code to create an invoiceable order after redemption.',
+    'Batch invoice settings': 'Batch invoice settings',
+    'Enter invoice amount': 'Enter invoice amount',
+    'Failed to update invoice settings': 'Failed to update invoice settings',
+    Invoice: 'Invoice',
+    'Invoice amount': 'Invoice amount',
+    'Invoice amount cannot be negative': 'Invoice amount cannot be negative',
+    'Invoice amount must be greater than 0':
+      'Invoice amount must be greater than 0',
+    'Not allowed': 'Not allowed',
+    'Orders already in an invoice request will be skipped automatically.':
+      'Orders already in an invoice request will be skipped automatically.',
+    'Selected codes can be used for invoice requests.':
+      'Selected codes can be used for invoice requests.',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      'This amount is used for invoice requests and does not change the redemption quota.',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)',
+    'Used redemption codes can only be updated through batch invoice settings':
+      'Used redemption codes can only be updated through batch invoice settings',
   },
   zh: {
     Title: '标题',
@@ -341,6 +365,29 @@ const newKeys = {
       '该订单将不再提供给用户申请开票。',
     'This order will become available for invoice requests again.':
       '该订单将重新提供给用户申请开票。',
+    'Allow invoice': '允许开票',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      '允许该兑换码兑换后生成可开票订单。',
+    'Batch invoice settings': '批量开票设置',
+    'Enter invoice amount': '请输入开票金额',
+    'Failed to update invoice settings': '更新开票设置失败',
+    Invoice: '发票',
+    'Invoice amount': '开票金额',
+    'Invoice amount cannot be negative': '开票金额不能为负数',
+    'Invoice amount must be greater than 0': '开票金额必须大于 0',
+    'Not allowed': '不允许',
+    'Orders already in an invoice request will be skipped automatically.':
+      '已进入发票申请流程的订单会自动跳过。',
+    'Selected codes can be used for invoice requests.':
+      '选中的兑换码可用于申请开票。',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      '该金额仅用于申请开票，不会改变兑换额度。',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      '更新选中兑换码的开票资格。已使用的兑换码会在可行时生成兑换订单。',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      '已更新 {{updated}} 个兑换码，创建 {{created}} 个订单，跳过 {{skipped}} 个已开票兑换码',
+    'Used redemption codes can only be updated through batch invoice settings':
+      '已使用的兑换码只能通过批量开票设置更新',
   },
   'zh-TW': {
     Title: '標題',
@@ -495,6 +542,29 @@ const newKeys = {
       '該訂單將不再提供給使用者申請開票。',
     'This order will become available for invoice requests again.':
       '該訂單將重新提供給使用者申請開票。',
+    'Allow invoice': '允許開票',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      '允許此兌換碼兌換後建立可開票訂單。',
+    'Batch invoice settings': '批量開票設定',
+    'Enter invoice amount': '請輸入開票金額',
+    'Failed to update invoice settings': '更新開票設定失敗',
+    Invoice: '發票',
+    'Invoice amount': '開票金額',
+    'Invoice amount cannot be negative': '開票金額不能為負數',
+    'Invoice amount must be greater than 0': '開票金額必須大於 0',
+    'Not allowed': '不允許',
+    'Orders already in an invoice request will be skipped automatically.':
+      '已進入發票申請流程的訂單會自動跳過。',
+    'Selected codes can be used for invoice requests.':
+      '選取的兌換碼可用於申請開票。',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      '此金額僅用於申請開票，不會變更兌換額度。',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      '更新選取兌換碼的開票資格。已使用的兌換碼會在可行時建立兌換訂單。',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      '已更新 {{updated}} 個兌換碼，建立 {{created}} 個訂單，跳過 {{skipped}} 個已開票兌換碼',
+    'Used redemption codes can only be updated through batch invoice settings':
+      '已使用的兌換碼只能透過批量開票設定更新',
   },
   fr: {
     Title: 'Titre',
@@ -664,6 +734,32 @@ const newKeys = {
       'Cette commande ne sera plus disponible pour les demandes de facture.',
     'This order will become available for invoice requests again.':
       'Cette commande sera de nouveau disponible pour les demandes de facture.',
+    'Allow invoice': 'Autoriser la facture',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      'Autoriser ce code à créer une commande facturable après son utilisation.',
+    'Batch invoice settings': 'Paramètres de facture en lot',
+    'Enter invoice amount': 'Saisir le montant facturable',
+    'Failed to update invoice settings':
+      'Échec de la mise à jour des paramètres de facture',
+    Invoice: 'Facture',
+    'Invoice amount': 'Montant facturable',
+    'Invoice amount cannot be negative':
+      'Le montant facturable ne peut pas être négatif',
+    'Invoice amount must be greater than 0':
+      'Le montant facturable doit être supérieur à 0',
+    'Not allowed': 'Non autorisé',
+    'Orders already in an invoice request will be skipped automatically.':
+      'Les commandes déjà liées à une demande de facture seront ignorées automatiquement.',
+    'Selected codes can be used for invoice requests.':
+      'Les codes sélectionnés peuvent être utilisés pour des demandes de facture.',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      'Ce montant sert aux demandes de facture et ne change pas le quota du code.',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      'Mettre à jour l’éligibilité à la facture des codes sélectionnés. Les codes utilisés recevront une commande si possible.',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      '{{updated}} code(s) mis à jour, {{created}} commande(s) créée(s), {{skipped}} code(s) déjà facturé(s) ignoré(s)',
+    'Used redemption codes can only be updated through batch invoice settings':
+      'Les codes déjà utilisés ne peuvent être mis à jour que via les paramètres de facture en lot',
   },
   ja: {
     Title: 'タイトル',
@@ -828,6 +924,30 @@ const newKeys = {
       'この注文は請求申請の対象外になります。',
     'This order will become available for invoice requests again.':
       'この注文は再び請求申請の対象になります。',
+    'Allow invoice': '請求書を許可',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      'この引換コードの使用後に請求可能な注文を作成できるようにします。',
+    'Batch invoice settings': '請求設定の一括変更',
+    'Enter invoice amount': '請求金額を入力',
+    'Failed to update invoice settings': '請求設定の更新に失敗しました',
+    Invoice: '請求書',
+    'Invoice amount': '請求金額',
+    'Invoice amount cannot be negative': '請求金額を負の値にはできません',
+    'Invoice amount must be greater than 0':
+      '請求金額は0より大きくしてください',
+    'Not allowed': '許可しない',
+    'Orders already in an invoice request will be skipped automatically.':
+      'すでに請求申請中の注文は自動的にスキップされます。',
+    'Selected codes can be used for invoice requests.':
+      '選択したコードを請求申請に使用できます。',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      'この金額は請求申請に使用され、引換額には影響しません。',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      '選択した引換コードの請求対象可否を更新します。使用済みコードには可能な場合、引換注文が作成されます。',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      '{{updated}} 件のコードを更新し、{{created}} 件の注文を作成、請求済み {{skipped}} 件をスキップしました',
+    'Used redemption codes can only be updated through batch invoice settings':
+      '使用済みの引換コードは請求設定の一括変更でのみ更新できます',
   },
   ru: {
     Title: 'Заголовок',
@@ -994,6 +1114,32 @@ const newKeys = {
       'Заказ больше не будет доступен для запроса счёта.',
     'This order will become available for invoice requests again.':
       'Заказ снова будет доступен для запроса счёта.',
+    'Allow invoice': 'Разрешить счёт',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      'Разрешить этому коду создавать заказ для счёта после погашения.',
+    'Batch invoice settings': 'Массовые настройки счёта',
+    'Enter invoice amount': 'Введите сумму счёта',
+    'Failed to update invoice settings':
+      'Не удалось обновить настройки счёта',
+    Invoice: 'Счёт',
+    'Invoice amount': 'Сумма счёта',
+    'Invoice amount cannot be negative':
+      'Сумма счёта не может быть отрицательной',
+    'Invoice amount must be greater than 0':
+      'Сумма счёта должна быть больше 0',
+    'Not allowed': 'Не разрешено',
+    'Orders already in an invoice request will be skipped automatically.':
+      'Заказы, уже включённые в запрос счёта, будут автоматически пропущены.',
+    'Selected codes can be used for invoice requests.':
+      'Выбранные коды можно использовать для запросов счёта.',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      'Эта сумма используется для запросов счёта и не меняет квоту кода.',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      'Обновите право на счёт для выбранных кодов. Для использованных кодов будет создан заказ, если это возможно.',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      'Обновлено кодов: {{updated}}, создано заказов: {{created}}, пропущено выставленных: {{skipped}}',
+    'Used redemption codes can only be updated through batch invoice settings':
+      'Использованные коды можно обновлять только через массовые настройки счёта',
   },
   vi: {
     Title: 'Tiêu đề',
@@ -1156,6 +1302,29 @@ const newKeys = {
       'Đơn hàng này sẽ không còn khả dụng để yêu cầu hóa đơn.',
     'This order will become available for invoice requests again.':
       'Đơn hàng này sẽ khả dụng trở lại để yêu cầu hóa đơn.',
+    'Allow invoice': 'Cho phép hóa đơn',
+    'Allow this redemption code to create an invoiceable order after redemption.':
+      'Cho phép mã đổi thưởng này tạo đơn hàng có thể xuất hóa đơn sau khi đổi.',
+    'Batch invoice settings': 'Cài đặt hóa đơn hàng loạt',
+    'Enter invoice amount': 'Nhập số tiền hóa đơn',
+    'Failed to update invoice settings': 'Không thể cập nhật cài đặt hóa đơn',
+    Invoice: 'Hóa đơn',
+    'Invoice amount': 'Số tiền hóa đơn',
+    'Invoice amount cannot be negative': 'Số tiền hóa đơn không được âm',
+    'Invoice amount must be greater than 0': 'Số tiền hóa đơn phải lớn hơn 0',
+    'Not allowed': 'Không cho phép',
+    'Orders already in an invoice request will be skipped automatically.':
+      'Các đơn hàng đã nằm trong yêu cầu hóa đơn sẽ được tự động bỏ qua.',
+    'Selected codes can be used for invoice requests.':
+      'Các mã đã chọn có thể dùng để yêu cầu hóa đơn.',
+    'This amount is used for invoice requests and does not change the redemption quota.':
+      'Số tiền này dùng cho yêu cầu hóa đơn và không thay đổi hạn mức đổi thưởng.',
+    'Update invoice eligibility for selected redemption codes. Used codes will get a redemption order when possible.':
+      'Cập nhật khả năng xuất hóa đơn cho các mã đã chọn. Mã đã dùng sẽ được tạo đơn đổi thưởng khi có thể.',
+    'Updated {{updated}} code(s), created {{created}} order(s), skipped {{skipped}} invoiced code(s)':
+      'Đã cập nhật {{updated}} mã, tạo {{created}} đơn hàng, bỏ qua {{skipped}} mã đã xuất hóa đơn',
+    'Used redemption codes can only be updated through batch invoice settings':
+      'Mã đổi thưởng đã dùng chỉ có thể cập nhật qua cài đặt hóa đơn hàng loạt',
   },
 }
 

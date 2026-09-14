@@ -36,25 +36,34 @@ import type { RedemptionFormData, Redemption } from '../types'
 
 export function getRedemptionFormSchema(t: TFunction) {
   const msg = getRedemptionFormErrorMessages(t)
-  return z.object({
-    name: z
-      .string()
-      .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
-      .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
-    quota_dollars: z.number().min(0, t('Quota must be a positive number')),
-    expired_time: z.date().optional(),
-    count: z
-      .number()
-      .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
-      .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
-      .optional(),
-  })
+  return z
+    .object({
+      name: z
+        .string()
+        .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
+        .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
+      quota_dollars: z.number().min(0, t('Quota must be a positive number')),
+      expired_time: z.date().optional(),
+      invoice_enabled: z.boolean(),
+      invoice_amount: z.number().min(0, t('Invoice amount cannot be negative')),
+      count: z
+        .number()
+        .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
+        .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
+        .optional(),
+    })
+    .refine((data) => !data.invoice_enabled || data.invoice_amount > 0, {
+      path: ['invoice_amount'],
+      message: t('Invoice amount must be greater than 0'),
+    })
 }
 
 export type RedemptionFormValues = {
   name: string
   quota_dollars: number
   expired_time?: Date
+  invoice_enabled: boolean
+  invoice_amount: number
   count?: number
 }
 
@@ -66,6 +75,8 @@ export const REDEMPTION_FORM_DEFAULT_VALUES: RedemptionFormValues = {
   name: '',
   quota_dollars: 10,
   expired_time: undefined,
+  invoice_enabled: false,
+  invoice_amount: 0,
   count: 1,
 }
 
@@ -85,6 +96,8 @@ export function transformFormDataToPayload(
     expired_time: data.expired_time
       ? Math.floor(data.expired_time.getTime() / 1000)
       : 0,
+    invoice_enabled: data.invoice_enabled,
+    invoice_amount: data.invoice_enabled ? data.invoice_amount : 0,
     count: data.count || 1,
   }
 }
@@ -102,6 +115,8 @@ export function transformRedemptionToFormDefaults(
       redemption.expired_time > 0
         ? new Date(redemption.expired_time * 1000)
         : undefined,
+    invoice_enabled: redemption.invoice_enabled,
+    invoice_amount: redemption.invoice_amount,
     count: 1,
   }
 }

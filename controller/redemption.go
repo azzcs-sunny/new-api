@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"unicode/utf8"
@@ -89,16 +90,21 @@ func AddRedemption(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
 		return
 	}
+	if !validateRedemptionInvoiceSettings(c, &redemption) {
+		return
+	}
 	var keys []string
 	for i := 0; i < redemption.Count; i++ {
 		key := common.GetUUID()
 		cleanRedemption := model.Redemption{
-			UserId:      c.GetInt("id"),
-			Name:        redemption.Name,
-			Key:         key,
-			CreatedTime: common.GetTimestamp(),
-			Quota:       redemption.Quota,
-			ExpiredTime: redemption.ExpiredTime,
+			UserId:         c.GetInt("id"),
+			Name:           redemption.Name,
+			Key:            key,
+			CreatedTime:    common.GetTimestamp(),
+			Quota:          redemption.Quota,
+			ExpiredTime:    redemption.ExpiredTime,
+			InvoiceEnabled: redemption.InvoiceEnabled,
+			InvoiceAmount:  redemption.InvoiceAmount,
 		}
 		err = cleanRedemption.Insert()
 		if err != nil {
@@ -157,10 +163,19 @@ func UpdateRedemption(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
 			return
 		}
+		if cleanRedemption.Status == common.RedemptionCodeStatusUsed {
+			common.ApiErrorMsg(c, "Used redemption codes can only be updated through batch invoice settings")
+			return
+		}
+		if !validateRedemptionInvoiceSettings(c, &redemption) {
+			return
+		}
 		// If you add more fields, please also update redemption.Update()
 		cleanRedemption.Name = redemption.Name
 		cleanRedemption.Quota = redemption.Quota
 		cleanRedemption.ExpiredTime = redemption.ExpiredTime
+		cleanRedemption.InvoiceEnabled = redemption.InvoiceEnabled
+		cleanRedemption.InvoiceAmount = redemption.InvoiceAmount
 	}
 	if statusOnly != "" {
 		cleanRedemption.Status = redemption.Status
@@ -176,6 +191,34 @@ func UpdateRedemption(c *gin.Context) {
 		"data":    cleanRedemption,
 	})
 	return
+}
+
+type batchUpdateRedemptionInvoiceRequest struct {
+	Ids            []int   `json:"ids"`
+	InvoiceEnabled bool    `json:"invoice_enabled"`
+	InvoiceAmount  float64 `json:"invoice_amount"`
+}
+
+func BatchUpdateRedemptionInvoiceSettings(c *gin.Context) {
+	var req batchUpdateRedemptionInvoiceRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if req.InvoiceEnabled && req.InvoiceAmount <= 0 {
+		common.ApiErrorMsg(c, "Invoice amount must be greater than 0")
+		return
+	}
+	result, err := model.UpdateRedemptionInvoiceSettings(req.Ids, req.InvoiceEnabled, req.InvoiceAmount)
+	if err != nil {
+		if errors.Is(err, model.ErrInvoiceOrderInvalid) {
+			common.ApiErrorMsg(c, "One or more orders are not eligible for invoicing")
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, result)
 }
 
 func DeleteInvalidRedemption(c *gin.Context) {
@@ -197,4 +240,16 @@ func validateExpiredTime(c *gin.Context, expired int64) (bool, string) {
 		return false, i18n.T(c, i18n.MsgRedemptionExpireTimeInvalid)
 	}
 	return true, ""
+}
+
+func validateRedemptionInvoiceSettings(c *gin.Context, redemption *model.Redemption) bool {
+	if !redemption.InvoiceEnabled {
+		redemption.InvoiceAmount = 0
+		return true
+	}
+	if redemption.InvoiceAmount <= 0 {
+		common.ApiErrorMsg(c, "Invoice amount must be greater than 0")
+		return false
+	}
+	return true
 }

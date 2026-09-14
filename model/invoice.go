@@ -138,6 +138,8 @@ func eligibleInvoiceOrdersQuery(userId int) *gorm.DB {
 	return DB.Model(&TopUp{}).
 		Select("top_ups.id as top_up_id, top_ups.trade_no, top_ups.amount, top_ups.money, top_ups.create_time").
 		Where("top_ups.user_id = ? AND top_ups.status = ?", userId, common.TopUpStatusSuccess).
+		Where("((top_ups.payment_provider <> ? AND top_ups.payment_method <> ?) OR top_ups.invoice_available = ? OR top_ups.invoice_available IS NULL)", PaymentProviderRedemption, PaymentMethodRedemption, true).
+		Where("top_ups.money > ?", 0).
 		Where("(top_ups.invoice_issued = ? OR top_ups.invoice_issued IS NULL)", false).
 		Where("NOT EXISTS (?)", DB.Model(&InvoiceOrder{}).Select("1").Where("invoice_orders.top_up_id = top_ups.id").Joins("JOIN invoices ON invoices.id = invoice_orders.invoice_id").Where("invoices.status IN ?", []string{InvoiceStatusPending, InvoiceStatusProcessing, InvoiceStatusIssued}))
 }

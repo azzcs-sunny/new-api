@@ -102,10 +102,16 @@ func TestSearchRedemptionsFiltersAndPaginates(t *testing.T) {
 
 func setupRedeemFixture(t *testing.T, quota int) (userId int, key string) {
 	t.Helper()
-	require.NoError(t, DB.AutoMigrate(&Redemption{}))
+	require.NoError(t, DB.AutoMigrate(&Redemption{}, &TopUp{}, &Invoice{}, &InvoiceOrder{}))
 	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	require.NoError(t, DB.Exec("DELETE FROM invoice_orders").Error)
+	require.NoError(t, DB.Exec("DELETE FROM invoices").Error)
+	require.NoError(t, DB.Exec("DELETE FROM top_ups").Error)
 	t.Cleanup(func() {
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+		DB.Exec("DELETE FROM invoice_orders")
+		DB.Exec("DELETE FROM invoices")
+		DB.Exec("DELETE FROM top_ups")
 		DB.Exec("DELETE FROM users")
 		DB.Exec("DELETE FROM logs")
 	})
@@ -115,11 +121,13 @@ func setupRedeemFixture(t *testing.T, quota int) (userId int, key string) {
 
 	key = "10000000000000000000000000000001"
 	redemption := &Redemption{
-		Name:        "redeem-test",
-		Key:         key,
-		Status:      common.RedemptionCodeStatusEnabled,
-		Quota:       quota,
-		CreatedTime: common.GetTimestamp(),
+		Name:           "redeem-test",
+		Key:            key,
+		Status:         common.RedemptionCodeStatusEnabled,
+		Quota:          quota,
+		CreatedTime:    common.GetTimestamp(),
+		InvoiceEnabled: true,
+		InvoiceAmount:  12.34,
 	}
 	require.NoError(t, DB.Create(redemption).Error)
 	return user.Id, key
@@ -140,6 +148,14 @@ func TestRedeemCreditsQuotaExactlyOnce(t *testing.T) {
 	require.NoError(t, DB.First(&redemption, "name = ?", "redeem-test").Error)
 	assert.Equal(t, common.RedemptionCodeStatusUsed, redemption.Status)
 	assert.Equal(t, userId, redemption.UsedUserId)
+
+	var topUp TopUp
+	require.NoError(t, DB.First(&topUp, "redemption_id = ?", redemption.Id).Error)
+	assert.Equal(t, userId, topUp.UserId)
+	assert.Equal(t, int64(500), topUp.Amount)
+	assert.Equal(t, 12.34, topUp.Money)
+	assert.Equal(t, PaymentMethodRedemption, topUp.PaymentMethod)
+	assert.True(t, topUp.InvoiceAvailable)
 
 	// Redeeming the same code again must fail and must not credit quota.
 	_, err = Redeem(key, userId)
@@ -178,4 +194,88 @@ func TestRedeemConcurrentSingleSuccess(t *testing.T) {
 	var user User
 	require.NoError(t, DB.First(&user, "id = ?", userId).Error)
 	assert.Equal(t, 300, user.Quota, "quota must be credited exactly once")
+
+	var topUpCount int64
+	require.NoError(t, DB.Model(&TopUp{}).Where("user_id = ?", userId).Count(&topUpCount).Error)
+	assert.EqualValues(t, 1, topUpCount, "redemption order must be created exactly once")
+}
+
+func TestUpdateRedemptionInvoiceSettingsBackfillsUsedOrder(t *testing.T) {
+	truncateTables(t)
+	require.NoError(t, DB.AutoMigrate(&Redemption{}, &TopUp{}, &Invoice{}, &InvoiceOrder{}))
+	t.Cleanup(func() {
+		DB.Exec("DELETE FROM invoice_orders")
+		DB.Exec("DELETE FROM invoices")
+		DB.Exec("DELETE FROM top_ups")
+		DB.Exec("DELETE FROM users")
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	})
+
+	const userId = 910
+	require.NoError(t, DB.Create(&User{Id: userId, Username: "redemption-invoice-user"}).Error)
+	redemption := &Redemption{
+		UserId: 1, UsedUserId: userId, Name: "historical-invoice-code", Key: "20000000000000000000000000000001",
+		Quota: 1500, Status: common.RedemptionCodeStatusUsed, CreatedTime: 100, RedeemedTime: 200,
+	}
+	require.NoError(t, DB.Create(redemption).Error)
+
+	result, err := UpdateRedemptionInvoiceSettings([]int{redemption.Id}, true, 88.66)
+	require.NoError(t, err)
+	assert.Equal(t, 1, result.Updated)
+	assert.Equal(t, 1, result.CreatedOrders)
+
+	var topUp TopUp
+	require.NoError(t, DB.First(&topUp, "redemption_id = ?", redemption.Id).Error)
+	assert.Equal(t, userId, topUp.UserId)
+	assert.Equal(t, int64(1500), topUp.Amount)
+	assert.Equal(t, 88.66, topUp.Money)
+	assert.Equal(t, common.TopUpStatusSuccess, topUp.Status)
+	assert.True(t, topUp.InvoiceAvailable)
+
+	items, err := GetEligibleInvoiceOrders(userId)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, topUp.Id, items[0].TopUpId)
+	assert.Equal(t, 88.66, items[0].Money)
+}
+
+func TestUpdateRedemptionInvoiceSettingsSkipsInvoicedOrder(t *testing.T) {
+	truncateTables(t)
+	require.NoError(t, DB.AutoMigrate(&Redemption{}, &TopUp{}, &Invoice{}, &InvoiceOrder{}))
+	t.Cleanup(func() {
+		DB.Exec("DELETE FROM invoice_orders")
+		DB.Exec("DELETE FROM invoices")
+		DB.Exec("DELETE FROM top_ups")
+		DB.Exec("DELETE FROM users")
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	})
+
+	const userId = 911
+	require.NoError(t, DB.Create(&User{Id: userId, Username: "redemption-invoiced-user"}).Error)
+	redemption := &Redemption{
+		UserId: 1, UsedUserId: userId, Name: "already-invoiced-code", Key: "30000000000000000000000000000001",
+		Quota: 1500, Status: common.RedemptionCodeStatusUsed, CreatedTime: 100, RedeemedTime: 200,
+		InvoiceEnabled: true, InvoiceAmount: 10,
+	}
+	require.NoError(t, DB.Create(redemption).Error)
+	redemptionId := redemption.Id
+	topUp := &TopUp{
+		UserId: userId, Amount: 1500, Money: 10, TradeNo: redemptionTopUpTradeNo(redemption.Id),
+		PaymentMethod: PaymentMethodRedemption, PaymentProvider: PaymentProviderRedemption,
+		Status: common.TopUpStatusSuccess, CreateTime: 200, CompleteTime: 200,
+		InvoiceAvailable: true, RedemptionId: &redemptionId,
+	}
+	require.NoError(t, DB.Create(topUp).Error)
+	invoice := &Invoice{UserId: userId, Status: InvoiceStatusPending, Amount: 10, CreateTime: 300}
+	require.NoError(t, DB.Create(invoice).Error)
+	require.NoError(t, DB.Create(&InvoiceOrder{InvoiceId: invoice.Id, TopUpId: topUp.Id}).Error)
+
+	result, err := UpdateRedemptionInvoiceSettings([]int{redemption.Id}, true, 99)
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.Updated)
+	assert.Equal(t, 1, result.SkippedInvoiced)
+
+	var unchanged TopUp
+	require.NoError(t, DB.First(&unchanged, "id = ?", topUp.Id).Error)
+	assert.Equal(t, 10.0, unchanged.Money)
 }

@@ -49,6 +49,11 @@ const APP_CONFIGS = {
     defaultName: 'My Gemini',
     modelFields: [{ key: 'model', labelKey: 'Primary Model', required: true }],
   },
+  grokbuild: {
+    label: 'Grok',
+    defaultName: 'My Grok',
+    modelFields: [{ key: 'model', labelKey: 'Primary Model', required: true }],
+  },
 } as const
 
 type AppType = keyof typeof APP_CONFIGS
@@ -66,14 +71,21 @@ function getServerAddress(): string {
   return window.location.origin
 }
 
-function buildCCSwitchURL(
+function getEndpointForApp(app: string, serverAddress: string): string {
+  if (app === 'codex' || app === 'grokbuild' || app === 'grok') {
+    return serverAddress + '/v1'
+  }
+  return serverAddress
+}
+
+export function buildCCSwitchURL(
   app: string,
   name: string,
   models: Record<string, string>,
   apiKey: string
 ): string {
   const serverAddress = getServerAddress()
-  const endpoint = app === 'codex' ? serverAddress + '/v1' : serverAddress
+  const endpoint = getEndpointForApp(app, serverAddress)
   const params = new URLSearchParams()
   params.set('resource', 'provider')
   params.set('app', app)

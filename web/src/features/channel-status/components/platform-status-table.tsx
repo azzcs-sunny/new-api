@@ -451,7 +451,7 @@ function TestRecordBar({
   const { t } = useTranslation()
   const display = recordDisplay(record)
   const latency = formatLatencyMs(record.latency_ms)
-  const testedAt = formatTimestampToDate(record.tested_at, 'milliseconds')
+  const testedAt = formatTimestampToMinute(record.tested_at)
   const statusLabel = getRecordStatusLabel(record, t)
 
   return (
@@ -536,6 +536,12 @@ function formatLatency(row: ChannelStatusRow) {
 function formatLatencyMs(latencyMs: number) {
   if (!Number.isFinite(latencyMs)) return '—'
   return `${Math.round(Math.max(0, latencyMs))} ms`
+}
+
+function formatTimestampToMinute(timestamp?: number) {
+  const formattedTime = formatTimestampToDate(timestamp, 'milliseconds')
+  if (formattedTime === '-') return formattedTime
+  return formattedTime.replace(/:\d{2}$/, ':00')
 }
 
 function formatSuccessRate(row: ChannelStatusRow) {
