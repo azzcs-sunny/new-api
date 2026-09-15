@@ -17,9 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { StatusBadgeProps } from '@/components/status-badge'
+import {
+  formatCurrencyFromUSD,
+  formatQuotaWithCurrency,
+  type CurrencyFormatOptions,
+} from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
-import type { TopupStatus } from '../types'
+import type { TopupRecord, TopupStatus } from '../types'
 
 // ============================================================================
 // Billing Utility Functions
@@ -28,6 +33,12 @@ import type { TopupStatus } from '../types'
 interface StatusConfig {
   variant: StatusBadgeProps['variant']
   label: string
+}
+
+const TOPUP_AMOUNT_OPTIONS: CurrencyFormatOptions = {
+  digitsLarge: 2,
+  digitsSmall: 2,
+  abbreviate: false,
 }
 
 /**
@@ -82,6 +93,39 @@ export function getPaymentMethodName(
 ): string {
   const name = PAYMENT_METHOD_NAMES[method] || method
   return t ? t(name) : name
+}
+
+function isRawQuotaAmount(
+  record: Pick<
+    TopupRecord,
+    'payment_method' | 'payment_provider' | 'redemption_id'
+  >
+): boolean {
+  return (
+    record.payment_method === 'redemption' ||
+    record.payment_provider === 'redemption' ||
+    record.redemption_id != null ||
+    record.payment_method === 'creem' ||
+    record.payment_provider === 'creem'
+  )
+}
+
+export function formatTopupRecordAmount(
+  record: Pick<
+    TopupRecord,
+    'amount' | 'payment_method' | 'payment_provider' | 'redemption_id'
+  >
+): string {
+  if (isRawQuotaAmount(record)) {
+    return formatQuotaWithCurrency(record.amount, TOPUP_AMOUNT_OPTIONS)
+  }
+  return formatCurrencyFromUSD(record.amount, TOPUP_AMOUNT_OPTIONS)
+}
+
+export function canShowTopupInvoiceStatus(
+  record: Pick<TopupRecord, 'status' | 'invoice_available'>
+): boolean {
+  return record.status === 'success' && record.invoice_available
 }
 
 /**

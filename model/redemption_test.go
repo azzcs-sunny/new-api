@@ -1,6 +1,7 @@
 package model
 
 import (
+	"regexp"
 	"sync"
 	"testing"
 
@@ -156,6 +157,7 @@ func TestRedeemCreditsQuotaExactlyOnce(t *testing.T) {
 	assert.Equal(t, 12.34, topUp.Money)
 	assert.Equal(t, PaymentMethodRedemption, topUp.PaymentMethod)
 	assert.True(t, topUp.InvoiceAvailable)
+	assert.Regexp(t, regexp.MustCompile(`^USR\d+NO[A-Za-z0-9]{6}\d+$`), topUp.TradeNo)
 
 	// Redeeming the same code again must fail and must not credit quota.
 	_, err = Redeem(key, userId)
@@ -289,7 +291,7 @@ func TestUpdateRedemptionInvoiceSettingsSkipsInvoicedOrder(t *testing.T) {
 	require.NoError(t, DB.Create(redemption).Error)
 	redemptionId := redemption.Id
 	topUp := &TopUp{
-		UserId: userId, Amount: 1500, Money: 10, TradeNo: redemptionTopUpTradeNo(redemption.Id),
+		UserId: userId, Amount: 1500, Money: 10, TradeNo: "USR911NOmanual200",
 		PaymentMethod: PaymentMethodRedemption, PaymentProvider: PaymentProviderRedemption,
 		Status: common.TopUpStatusSuccess, CreateTime: 200, CompleteTime: 200,
 		InvoiceAvailable: true, RedemptionId: &redemptionId,

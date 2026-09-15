@@ -43,6 +43,20 @@ const emptyResponse = {
 const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
   success: true,
   data: {
+    notices: [
+      {
+        channel_type: 1,
+        level: 'warning',
+        content: 'OpenAI maintenance is in progress.',
+        enabled: true,
+      },
+      {
+        channel_type: 14,
+        level: 'error',
+        content: 'Anthropic requests are currently unavailable.',
+        enabled: true,
+      },
+    ],
     items: [
       {
         channel_id: 1,
@@ -51,6 +65,7 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
         group: 'default',
         group_ratios: { default: 1.25 },
         model_name: 'gpt-5.6-sol',
+        models: ['gpt-5.6-sol', 'gpt-4.1'],
         health: 'healthy' as const,
         latency_ms: 898,
         availability_7d: 80,
@@ -84,6 +99,7 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
         group: 'vip',
         group_ratios: { vip: 2 },
         model_name: 'claude-sonnet',
+        models: ['claude-sonnet', 'claude-opus'],
         health: 'warning' as const,
         latency_ms: 9000,
         records: [
@@ -263,7 +279,7 @@ describe('channel status page', () => {
 
     expect(await screen.findByText('gpt-5.6-sol')).toBeInTheDocument()
     expect(screen.getByText('OpenAI')).toBeInTheDocument()
-    expect(screen.getByText('Anthropic')).toBeInTheDocument()
+    expect(screen.getByText('Claude')).toBeInTheDocument()
     expect(screen.getByText('Healthy')).toBeInTheDocument()
     expect(screen.queryByText('vip')).toBeNull()
     expect(screen.getByText('898 ms')).toBeInTheDocument()
@@ -273,42 +289,204 @@ describe('channel status page', () => {
     expect(screen.queryByText('Conversation latency')).toBeNull()
     expect(screen.queryByText('Availability')).toBeNull()
 
+    const notices = screen.getAllByTestId('channel-status-notice')
+    expect(notices).toHaveLength(2)
+    expect(
+      notices.find((notice) => notice.dataset.level === 'warning')
+    ).toHaveTextContent('OpenAI maintenance is in progress.')
+    expect(
+      notices.find((notice) => notice.dataset.level === 'error')
+    ).toHaveTextContent('Anthropic requests are currently unavailable.')
+
     const cards = screen.getAllByTestId('channel-status-card')
     expect(cards).toHaveLength(2)
     const openAiCard = cards.find((card) => card.textContent?.includes('x1.25'))
     const anthropicCard = cards.find((card) => card.textContent?.includes('x2'))
     expect(openAiCard).toBeDefined()
     expect(anthropicCard).toBeDefined()
-    expect(within(openAiCard!).getByLabelText('Last 60 tests')).toHaveClass(
+    if (!openAiCard || !anthropicCard) {
+      throw new Error('Expected OpenAI and Anthropic channel status rows')
+    }
+    expect(within(openAiCard).getByLabelText('Last 60 tests')).toHaveClass(
       'h-2.5',
       'items-stretch'
     )
-    expect(within(openAiCard!).getAllByTestId('test-record')).toHaveLength(60)
-    expect(within(openAiCard!).getByLabelText('700 ms')).toBeInTheDocument()
-    expect(within(openAiCard!).getByLabelText('898 ms')).toBeInTheDocument()
+    expect(within(openAiCard).getAllByTestId('test-record')).toHaveLength(60)
+    expect(within(openAiCard).getByLabelText('700 ms')).toBeInTheDocument()
+    expect(within(openAiCard).getByLabelText('898 ms')).toBeInTheDocument()
     expect(
-      within(openAiCard!)
+      within(openAiCard)
         .getAllByTestId('test-record')
         .filter((record) => record.dataset.status === 'success')
     ).toHaveLength(2)
     expect(
-      within(anthropicCard!)
+      within(anthropicCard)
         .getAllByTestId('test-record')
         .filter((record) => record.dataset.status === 'failure')
     ).toHaveLength(1)
-    const degradedRecords = within(anthropicCard!)
+    const degradedRecords = within(anthropicCard)
       .getAllByTestId('test-record')
       .filter((record) => record.dataset.status === 'degraded')
     expect(degradedRecords).toHaveLength(2)
     for (const record of degradedRecords) {
       expect(record).toHaveClass('bg-warning')
     }
-    expect(within(openAiCard!).getAllByTestId('test-record')[0]).toHaveClass(
+    expect(within(openAiCard).getAllByTestId('test-record')[0]).toHaveClass(
       'rounded-l-full'
     )
-    expect(within(openAiCard!).getAllByTestId('test-record')[59]).toHaveClass(
+    expect(within(openAiCard).getAllByTestId('test-record')[59]).toHaveClass(
       'rounded-r-full'
     )
+  })
+
+  test('shows the distinct supported-model list for each status group row', async () => {
+    vi.mocked(getChannelStatus).mockResolvedValue({
+      success: true,
+      data: {
+        items: [
+          populatedResponse.data.items[0],
+          {
+            ...populatedResponse.data.items[0],
+            channel_id: 3,
+            channel_name: 'second-openai-channel',
+            group: 'vip',
+            models: ['gpt-4.1', 'o3', 'o4-mini'],
+          },
+        ],
+      },
+    })
+    const user = userEvent.setup()
+    const clipboard = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue()
+
+    renderPage()
+
+    const defaultGroupTrigger = await screen.findByRole('button', {
+      name: 'Supported models (2)',
+    })
+    await user.click(defaultGroupTrigger)
+
+    const defaultGroupModels = screen.getByRole('dialog', {
+      name: 'Supported models (2)',
+    })
+    expect(within(defaultGroupModels).getByText('gpt-4.1')).toBeInTheDocument()
+    expect(
+      within(defaultGroupModels).getByText('gpt-5.6-sol')
+    ).toBeInTheDocument()
+    expect(within(defaultGroupModels).queryByText('o3')).toBeNull()
+    expect(
+      within(defaultGroupModels).getByTestId('model-list-scroll-area')
+    ).toHaveClass('max-h-64', 'overflow-y-auto')
+    await user.click(
+      within(defaultGroupModels).getByRole('button', {
+        name: 'Copy model name: gpt-4.1',
+      })
+    )
+    expect(clipboard).toHaveBeenLastCalledWith('gpt-4.1')
+    await user.click(
+      within(defaultGroupModels).getByRole('button', {
+        name: 'Copy model names',
+      })
+    )
+    expect(clipboard).toHaveBeenLastCalledWith('gpt-4.1\ngpt-5.6-sol')
+
+    await user.click(defaultGroupTrigger)
+    await user.click(
+      screen.getByRole('button', { name: 'Supported models (3)' })
+    )
+
+    const vipGroupModels = screen.getByRole('dialog', {
+      name: 'Supported models (3)',
+    })
+    expect(within(vipGroupModels).getByText('gpt-4.1')).toBeInTheDocument()
+    expect(within(vipGroupModels).getByText('o3')).toBeInTheDocument()
+    expect(within(vipGroupModels).getByText('o4-mini')).toBeInTheDocument()
+    expect(within(vipGroupModels).queryByText('gpt-5.6-sol')).toBeNull()
+    clipboard.mockRestore()
+  })
+
+  test('orders major platforms as OpenAI, Claude, and DeepSeek before remaining providers', async () => {
+    const baseRow = populatedResponse.data.items[0]
+    vi.mocked(getChannelStatus).mockResolvedValue({
+      success: true,
+      data: {
+        items: [
+          { ...baseRow, channel_id: 10, provider: 'Zulu' },
+          { ...baseRow, channel_id: 11, provider: 'DeepSeek' },
+          { ...baseRow, channel_id: 12, provider: 'Anthropic' },
+          { ...baseRow, channel_id: 13, provider: 'OpenAI' },
+          { ...baseRow, channel_id: 14, provider: 'Alpha' },
+        ],
+      },
+    })
+
+    renderPage()
+
+    await screen.findByText('Claude')
+    expect(
+      screen
+        .getAllByTestId('channel-status-platform')
+        .map(
+          (platform) =>
+            within(platform).getByRole('heading', { level: 2 }).textContent
+        )
+    ).toEqual(['OpenAI', 'Claude', 'DeepSeek', 'Alpha', 'Zulu'])
+  })
+
+  test('orders rows in each platform by the lowest group ratio and puts missing ratios last', async () => {
+    const baseRow = populatedResponse.data.items[0]
+    vi.mocked(getChannelStatus).mockResolvedValue({
+      success: true,
+      data: {
+        items: [
+          {
+            ...baseRow,
+            channel_id: 10,
+            channel_name: 'ratio-two',
+            group: 'vip',
+            group_ratios: { vip: 2 },
+          },
+          {
+            ...baseRow,
+            channel_id: 11,
+            channel_name: 'ratio-half',
+            group: 'discount',
+            group_ratios: { discount: 0.5 },
+          },
+          {
+            ...baseRow,
+            channel_id: 12,
+            channel_name: 'ratio-one',
+            group: 'default,vip',
+            group_ratios: { default: 1, vip: 3 },
+          },
+          {
+            ...baseRow,
+            channel_id: 13,
+            channel_name: 'ratio-missing',
+            group: 'legacy',
+            group_ratios: {},
+          },
+        ],
+      },
+    })
+
+    renderPage()
+
+    const platform = (
+      await screen.findByRole('heading', {
+        name: 'OpenAI',
+      })
+    ).closest('section')
+    expect(platform).not.toBeNull()
+    if (!platform) throw new Error('Expected OpenAI platform group')
+    const rows = within(platform).getAllByTestId('channel-status-card')
+    expect(rows).toHaveLength(4)
+    expect(rows[0]).toHaveTextContent('ratio-half')
+    expect(rows[1]).toHaveTextContent('ratio-one')
+    expect(rows[2]).toHaveTextContent('ratio-two')
+    expect(rows[3]).toHaveTextContent('ratio-missing')
   })
 
   test('renders cards when the interface uses the internal zhCN code', async () => {
@@ -347,7 +525,8 @@ describe('channel status page', () => {
       .getAllByTestId('channel-status-card')
       .find((card) => card.textContent?.includes('x1.25'))
     expect(openAiCard).toBeDefined()
-    await user.click(openAiCard!)
+    if (!openAiCard) throw new Error('Expected OpenAI channel status row')
+    await user.click(openAiCard)
     expect(screen.queryByText('Latest status')).toBeNull()
   })
 })

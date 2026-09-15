@@ -36,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import useDialogState from '@/hooks/use-dialog'
 import { useIsSidebarModuleVisible } from '@/hooks/use-sidebar-config'
 import { useUserDisplay } from '@/hooks/use-user-display'
+import { ROLE } from '@/lib/roles'
 import type { AuthUser } from '@/stores/auth-store'
 
 import { MOBILE_DRAWER_ANIMATION, MOBILE_DRAWER_CONFIG } from '../constants'
@@ -168,6 +169,7 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
         {isInvoiceVisible && (
           <Link
             to='/invoices'
+            search={user.role >= ROLE.ADMIN ? { tab: 'mine' } : undefined}
             onClick={onNavigate}
             className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
           >

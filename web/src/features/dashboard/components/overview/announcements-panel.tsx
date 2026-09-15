@@ -17,18 +17,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { ChevronRight, Megaphone } from 'lucide-react'
-import { memo, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { NotificationDialog } from '@/components/notification-dialog'
+import { Badge } from '@/components/ui/badge'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAnnouncements } from '@/features/dashboard/hooks/use-status-data'
 import { getPreviewText } from '@/features/dashboard/lib'
 import type { AnnouncementItem } from '@/features/dashboard/types'
+import { getAnnouncementKey } from '@/lib/announcement'
 import { getAnnouncementColorClass } from '@/lib/colors'
 import { formatDateTimeObject } from '@/lib/time'
 import { cn } from '@/lib/utils'
+import { useNotificationStore } from '@/stores/notification-store'
 
 import { PanelWrapper } from '../ui/panel-wrapper'
 
@@ -51,10 +54,28 @@ export function AnnouncementsPanel() {
   const [selectedAnnouncement, setSelectedAnnouncement] =
     useState<AnnouncementItem | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const readAnnouncementKeys = useNotificationStore(
+    (state) => state.readAnnouncementKeys
+  )
+  const markAnnouncementsRead = useNotificationStore(
+    (state) => state.markAnnouncementsRead
+  )
+  const isAnnouncementRead = useCallback(
+    (announcement: AnnouncementItem) =>
+      readAnnouncementKeys.includes(getAnnouncementKey(announcement)),
+    [readAnnouncementKeys]
+  )
 
   const handleAnnouncementClick = (item: AnnouncementItem) => {
     setSelectedAnnouncement(item)
     setIsDialogOpen(true)
+  }
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open && selectedAnnouncement) {
+      markAnnouncementsRead([getAnnouncementKey(selectedAnnouncement)])
+    }
+    setIsDialogOpen(open)
   }
 
   return (
@@ -82,13 +103,14 @@ export function AnnouncementsPanel() {
         <div>
           {list.map((item: AnnouncementItem, idx: number) => {
             const key = item.id ?? `announcement-${idx}`
+            const read = isAnnouncementRead(item)
             return (
               <button
                 key={key}
                 type='button'
                 onClick={() => handleAnnouncementClick(item)}
                 className={cn(
-                  'group hover:bg-muted/40 w-full px-3 py-3 text-left transition-colors sm:px-5 sm:py-3.5',
+                  'hover:bg-muted/40 w-full px-3 py-3 text-left transition-colors sm:px-5 sm:py-3.5',
                   idx < list.length - 1 && 'border-border/60 border-b'
                 )}
               >
@@ -107,17 +129,18 @@ export function AnnouncementsPanel() {
                     <p className='line-clamp-1 text-sm font-medium'>
                       {item.extra?.trim() || getPreviewText(item.content)}
                     </p>
-                    <div className='flex items-center justify-between'>
-                      {item.publishDate && (
-                        <time className='text-muted-foreground/60 text-xs'>
-                          {formatDateTimeObject(new Date(item.publishDate))}
-                        </time>
-                      )}
-                      <span className='text-muted-foreground/40 text-xs opacity-0 transition-opacity group-hover:opacity-100'>
-                        {t('Click for details')}
-                      </span>
-                    </div>
+                    {item.publishDate && (
+                      <time className='text-muted-foreground/60 text-xs'>
+                        {formatDateTimeObject(new Date(item.publishDate))}
+                      </time>
+                    )}
                   </div>
+                  <Badge
+                    variant={read ? 'outline' : 'warning'}
+                    className='h-5 rounded-md px-1.5 text-[10px]'
+                  >
+                    {t(read ? 'Read' : 'Unread')}
+                  </Badge>
                   <ChevronRight
                     className='text-muted-foreground/60 size-4 shrink-0'
                     aria-hidden='true'
@@ -131,13 +154,18 @@ export function AnnouncementsPanel() {
 
       <NotificationDialog
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         item={
           selectedAnnouncement
             ? { kind: 'announcement', announcement: selectedAnnouncement }
             : null
         }
         loading={loading}
+        read={
+          selectedAnnouncement
+            ? isAnnouncementRead(selectedAnnouncement)
+            : false
+        }
       />
     </PanelWrapper>
   )

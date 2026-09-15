@@ -10,7 +10,15 @@ import (
 	"unicode/utf16"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 )
+
+type ChannelStatusNotice struct {
+	ChannelType int    `json:"channel_type"`
+	Level       string `json:"level"`
+	Content     string `json:"content"`
+	Enabled     bool   `json:"enabled"`
+}
 
 var (
 	urlRegex       = regexp.MustCompile(`^https?://(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?|(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(?:\:[0-9]{1,5})?(?:/.*)?$`)
@@ -75,6 +83,8 @@ func ValidateConsoleSettings(settingsStr string, settingType string) error {
 		return validateApiInfo(settingsStr)
 	case "Announcements":
 		return validateAnnouncements(settingsStr)
+	case "ChannelStatusNotices":
+		return validateChannelStatusNotices(settingsStr)
 	case "FAQ":
 		return validateFAQ(settingsStr)
 	case "UptimeKumaGroups":
@@ -82,6 +92,69 @@ func ValidateConsoleSettings(settingsStr string, settingType string) error {
 	default:
 		return fmt.Errorf("未知的设置类型：%s", settingType)
 	}
+}
+
+func validateChannelStatusNotices(noticesStr string) error {
+	var notices []ChannelStatusNotice
+	if err := common.UnmarshalJsonStr(noticesStr, &notices); err != nil {
+		return fmt.Errorf("渠道状态提示格式错误：%s", err.Error())
+	}
+	if len(notices) > len(constant.ChannelTypeNames) {
+		return fmt.Errorf("渠道状态提示数量不能超过%d个", len(constant.ChannelTypeNames))
+	}
+
+	validLevels := map[string]bool{"normal": true, "warning": true, "error": true}
+	seenChannelTypes := make(map[int]bool, len(notices))
+	for i, notice := range notices {
+		if notice.ChannelType == constant.ChannelTypeUnknown {
+			return fmt.Errorf("第%d个渠道状态提示缺少平台", i+1)
+		}
+		if _, ok := constant.ChannelTypeNames[notice.ChannelType]; !ok {
+			return fmt.Errorf("第%d个渠道状态提示的平台不存在", i+1)
+		}
+		if seenChannelTypes[notice.ChannelType] {
+			return fmt.Errorf("第%d个渠道状态提示的平台与其他提示重复", i+1)
+		}
+		seenChannelTypes[notice.ChannelType] = true
+		if !validLevels[notice.Level] {
+			return fmt.Errorf("第%d个渠道状态提示的类型不合法", i+1)
+		}
+		content := strings.TrimSpace(notice.Content)
+		if content == "" {
+			return fmt.Errorf("第%d个渠道状态提示缺少内容", i+1)
+		}
+		if exceedsMaxCharacters(content, 200) {
+			return fmt.Errorf("第%d个渠道状态提示的内容长度不能超过200字符", i+1)
+		}
+	}
+	return nil
+}
+
+func GetChannelStatusNotices() []ChannelStatusNotice {
+	settings := GetConsoleSetting()
+	if settings.ChannelStatusNotices == "" {
+		return []ChannelStatusNotice{}
+	}
+	if validateChannelStatusNotices(settings.ChannelStatusNotices) != nil {
+		return []ChannelStatusNotice{}
+	}
+
+	var notices []ChannelStatusNotice
+	if err := common.UnmarshalJsonStr(settings.ChannelStatusNotices, &notices); err != nil {
+		return []ChannelStatusNotice{}
+	}
+	active := make([]ChannelStatusNotice, 0, len(notices))
+	for _, notice := range notices {
+		if !notice.Enabled {
+			continue
+		}
+		notice.Content = strings.TrimSpace(notice.Content)
+		active = append(active, notice)
+	}
+	sort.Slice(active, func(i, j int) bool {
+		return active[i].ChannelType < active[j].ChannelType
+	})
+	return active
 }
 
 func validateApiInfo(apiInfoStr string) error {

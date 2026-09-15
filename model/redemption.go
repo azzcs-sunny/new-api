@@ -157,8 +157,8 @@ func normalizeRedemptionInvoiceFields(redemption *Redemption) error {
 	return nil
 }
 
-func redemptionTopUpTradeNo(redemptionId int) string {
-	return fmt.Sprintf("RED-%d", redemptionId)
+func redemptionTopUpTradeNo(userId int, redeemedTime int64) string {
+	return fmt.Sprintf("USR%dNO%s%d", userId, common.GetRandomString(6), redeemedTime)
 }
 
 func createRedemptionTopUp(tx *gorm.DB, redemption *Redemption) error {
@@ -170,7 +170,7 @@ func createRedemptionTopUp(tx *gorm.DB, redemption *Redemption) error {
 		UserId:           redemption.UsedUserId,
 		Amount:           int64(redemption.Quota),
 		Money:            redemption.InvoiceAmount,
-		TradeNo:          redemptionTopUpTradeNo(redemption.Id),
+		TradeNo:          redemptionTopUpTradeNo(redemption.UsedUserId, redemption.RedeemedTime),
 		PaymentMethod:    PaymentMethodRedemption,
 		PaymentProvider:  PaymentProviderRedemption,
 		CreateTime:       redemption.RedeemedTime,

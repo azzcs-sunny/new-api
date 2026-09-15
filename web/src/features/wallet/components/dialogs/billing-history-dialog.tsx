@@ -52,7 +52,6 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
-import { formatCurrencyFromUSD } from '@/lib/currency'
 import { formatNumber } from '@/lib/format'
 
 import { useBillingHistory } from '../../hooks/use-billing-history'
@@ -60,6 +59,8 @@ import {
   getStatusConfig,
   getPaymentMethodName,
   formatTimestamp,
+  formatTopupRecordAmount,
+  canShowTopupInvoiceStatus,
 } from '../../lib/billing'
 
 interface BillingHistoryDialogProps {
@@ -267,11 +268,7 @@ export function BillingHistoryDialog({
                             {t('Amount')}
                           </Label>
                           <div className='text-sm font-semibold'>
-                            {formatCurrencyFromUSD(record.amount, {
-                              digitsLarge: 2,
-                              digitsSmall: 2,
-                              abbreviate: false,
-                            })}
+                            {formatTopupRecordAmount(record)}
                           </div>
                         </div>
                         <div className='space-y-1'>
@@ -285,7 +282,7 @@ export function BillingHistoryDialog({
                       </div>
 
                       {/* Invoice status is visible to everyone; only admins can change it. */}
-                      {record.status === 'success' && (
+                      {canShowTopupInvoiceStatus(record) && (
                         <div className='mt-4 flex flex-wrap items-center justify-end gap-2'>
                           <StatusBadge
                             label={

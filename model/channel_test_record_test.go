@@ -34,6 +34,7 @@ func TestGetChannelStatusTargetsUsesTestModelAndPriority(t *testing.T) {
 		Provider:      "Midjourney",
 		Group:         "default",
 		ModelName:     configuredModel,
+		Models:        []string{"first-model", "gpt-4o", "other-model", "second-model"},
 	}, targets[0])
 	assert.Equal(t, ChannelStatusTarget{
 		ChannelId:     2,
@@ -42,6 +43,7 @@ func TestGetChannelStatusTargetsUsesTestModelAndPriority(t *testing.T) {
 		Provider:      "Midjourney",
 		Group:         "vip",
 		ModelName:     configuredModel,
+		Models:        []string{"other-model"},
 	}, targets[1])
 }
 

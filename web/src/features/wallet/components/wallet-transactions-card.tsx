@@ -20,28 +20,20 @@ import {
   BanknoteArrowDown,
   ChevronLeft,
   ChevronRight,
-  Gift,
+  CircleDollarSign,
   History,
-  ReceiptText,
-  ShieldUser,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TitledCard } from '@/components/ui/titled-card'
 import { formatQuotaWithCurrency } from '@/lib/currency'
-import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { useWalletTransactions } from '../hooks/use-wallet-transactions'
-import {
-  formatTimestamp,
-  getPaymentMethodName,
-  getStatusConfig,
-} from '../lib/billing'
+import { formatTimestamp } from '../lib/billing'
 import type { WalletTransaction, WalletTransactionSource } from '../types'
 
 const PAGE_SIZE = 10
@@ -50,14 +42,6 @@ const SOURCE_LABELS: Record<WalletTransactionSource, string> = {
   online_topup: 'Online top-up',
   redemption: 'Redemption Code',
   admin_adjustment: 'Administrator adjustment',
-}
-
-function TransactionSourceIcon(props: { source: WalletTransactionSource }) {
-  if (props.source === 'redemption') return <Gift className='h-4 w-4' />
-  if (props.source === 'admin_adjustment') {
-    return <ShieldUser className='h-4 w-4' />
-  }
-  return <ReceiptText className='h-4 w-4' />
 }
 
 function getAdjustmentLabel(record: WalletTransaction): string | null {
@@ -127,7 +111,6 @@ export function WalletTransactionsCard() {
       <>
         <ul className='divide-y'>
           {records.map((record) => {
-            const statusConfig = getStatusConfig(record.status)
             const adjustmentLabel = getAdjustmentLabel(record)
             const isNegative = record.amount < 0
             const isCredited = record.status === 'success'
@@ -146,39 +129,16 @@ export function WalletTransactionsCard() {
                 className='flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-5'
               >
                 <div className='bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full'>
-                  <TransactionSourceIcon source={record.source} />
+                  <CircleDollarSign className='h-4 w-4' aria-hidden='true' />
                 </div>
                 <div className='min-w-0 flex-1'>
                   <div className='flex flex-wrap items-center gap-2'>
                     <span className='text-sm font-medium'>
                       {t(adjustmentLabel || SOURCE_LABELS[record.source])}
                     </span>
-                    <StatusBadge
-                      label={t(statusConfig.label)}
-                      variant={statusConfig.variant}
-                      size='sm'
-                      showDot
-                      copyable={false}
-                    />
                   </div>
-                  <div className='text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs'>
+                  <div className='text-muted-foreground mt-1 text-xs'>
                     <span>{formatTimestamp(record.create_time)}</span>
-                    {record.trade_no && (
-                      <span className='truncate font-mono'>
-                        {t('Order Number')}: {record.trade_no}
-                      </span>
-                    )}
-                    {record.payment_method && (
-                      <span>
-                        {t('Payment Method')}:{' '}
-                        {getPaymentMethodName(record.payment_method, t)}
-                      </span>
-                    )}
-                    {record.money != null && (
-                      <span>
-                        {t('Payment')}: {formatNumber(record.money)}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <div

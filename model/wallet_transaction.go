@@ -46,7 +46,9 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 	}
 
 	var topUpCount int64
-	if err = DB.Model(&TopUp{}).Where("user_id = ? AND amount > ?", userId, 0).Count(&topUpCount).Error; err != nil {
+	if err = DB.Model(&TopUp{}).
+		Where("user_id = ? AND amount > ? AND status = ?", userId, 0, common.TopUpStatusSuccess).
+		Count(&topUpCount).Error; err != nil {
 		return nil, 0, err
 	}
 	redemptionWithoutTopUp := DB.Model(&TopUp{}).Select("1").Where("top_ups.redemption_id = redemptions.id")
@@ -69,7 +71,7 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 	}
 
 	var topUps []*TopUp
-	if err = DB.Where("user_id = ? AND amount > ?", userId, 0).
+	if err = DB.Where("user_id = ? AND amount > ? AND status = ?", userId, 0, common.TopUpStatusSuccess).
 		Order("create_time desc, id desc").Limit(fetchLimit).Find(&topUps).Error; err != nil {
 		return nil, 0, err
 	}

@@ -17,9 +17,33 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute } from '@tanstack/react-router'
+import { z } from 'zod'
 
 import { Invoices } from '@/features/invoices'
 
-export const Route = createFileRoute('/_authenticated/invoices/')({
-  component: Invoices,
+const invoiceSearchSchema = z.object({
+  tab: z.enum(['management', 'mine']).optional().catch(undefined),
 })
+
+export const Route = createFileRoute('/_authenticated/invoices/')({
+  component: RouteComponent,
+  validateSearch: invoiceSearchSchema,
+})
+
+function RouteComponent() {
+  const { tab } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  return (
+    <Invoices
+      initialTab={tab}
+      onAdminTabChange={(nextTab) =>
+        navigate({
+          search: (current) => ({
+            ...current,
+            tab: nextTab,
+          }),
+        })
+      }
+    />
+  )
+}

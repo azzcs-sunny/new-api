@@ -458,6 +458,15 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "console_setting.channel_status_notices":
+		err = console_setting.ValidateConsoleSettings(option.Value.(string), "ChannelStatusNotices")
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
 	case "console_setting.faq":
 		err = console_setting.ValidateConsoleSettings(option.Value.(string), "FAQ")
 		if err != nil {

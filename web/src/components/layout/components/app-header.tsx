@@ -140,11 +140,9 @@ export function AppHeader({
                 open={notifications.popoverOpen}
                 onOpenChange={notifications.setPopoverOpen}
                 unreadCount={notifications.unreadCount}
-                activeTab={notifications.activeTab}
-                onTabChange={notifications.setActiveTab}
-                notice={notifications.notice}
                 announcements={notifications.announcements}
                 loading={notifications.loading}
+                isAnnouncementRead={notifications.isAnnouncementRead}
                 onAnnouncementOpen={notifications.openAnnouncementDetail}
               />
             )}
@@ -160,6 +158,7 @@ export function AppHeader({
         onOpenChange={notifications.setNotificationDialogOpen}
         item={notifications.notificationDialogItem}
         loading={notifications.loading}
+        read={notifications.notificationDialogRead}
       />
     </>
   )

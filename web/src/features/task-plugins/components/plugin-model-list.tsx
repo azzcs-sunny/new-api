@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,6 +36,7 @@ import {
 type PluginModelListProps = {
   models: string[]
   collapsedLabel?: string
+  popoverTitle?: string
   maxVisible?: number
 }
 
@@ -42,23 +44,64 @@ type PluginModelListProps = {
 export function PluginModelList(props: PluginModelListProps) {
   const { t } = useTranslation()
   if (props.collapsedLabel) {
+    const popoverTitle = props.popoverTitle ?? props.collapsedLabel
+    const accessibleLabel = props.popoverTitle
+      ? `${popoverTitle} (${props.models.length})`
+      : props.collapsedLabel
     return (
       <Popover>
-        <PopoverTrigger render={<Button variant='outline' size='xs' />}>
+        <PopoverTrigger
+          render={
+            <Button variant='outline' size='xs' aria-label={accessibleLabel} />
+          }
+        >
           {props.collapsedLabel}
         </PopoverTrigger>
         <PopoverContent
-          aria-label={props.collapsedLabel}
-          className='max-h-64 max-w-[calc(100vw-2rem)] overflow-y-auto'
+          aria-label={accessibleLabel}
+          className='w-80 max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0'
         >
-          <p className='mb-2 text-sm font-medium'>{props.collapsedLabel}</p>
-          <ul className='space-y-1 font-mono text-xs'>
-            {props.models.map((model) => (
-              <li key={model} className='break-all'>
-                {model}
-              </li>
-            ))}
-          </ul>
+          <div className='flex items-center justify-between gap-2 border-b px-3 py-2'>
+            <div className='min-w-0'>
+              <p className='truncate text-sm font-medium'>{popoverTitle}</p>
+              <p className='text-muted-foreground text-xs'>
+                {props.models.length} {t('models')}
+              </p>
+            </div>
+            <CopyButton
+              value={props.models.join('\n')}
+              className='size-7'
+              iconClassName='size-3.5'
+              tooltip={t('Copy model names')}
+              successTooltip={t('Copied!')}
+              aria-label={t('Copy model names')}
+            />
+          </div>
+          <div
+            data-testid='model-list-scroll-area'
+            className='max-h-64 overflow-y-auto overscroll-contain p-1.5'
+          >
+            <ul className='divide-y font-mono text-xs'>
+              {props.models.map((model) => (
+                <li
+                  key={model}
+                  className='hover:bg-muted/60 flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5'
+                >
+                  <span className='min-w-0 flex-1 break-all select-text'>
+                    {model}
+                  </span>
+                  <CopyButton
+                    value={model}
+                    className='size-7'
+                    iconClassName='size-3.5'
+                    tooltip={t('Copy model name')}
+                    successTooltip={t('Copied!')}
+                    aria-label={`${t('Copy model name')}: ${model}`}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
         </PopoverContent>
       </Popover>
     )

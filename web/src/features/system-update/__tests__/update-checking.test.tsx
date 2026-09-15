@@ -243,16 +243,29 @@ describe('administrator update entry', () => {
   })
 
   test.each(['', 'v0.0.0'])(
-    'shows an unknown current version for %s and allows ignoring the fetched release',
+    'hides the header version for %s while keeping the update action available',
     async (version) => {
       const user = userEvent.setup()
+      vi.mocked(api.get).mockResolvedValue({
+        data: { success: true, data: { version } },
+      })
       client.setQueryData(STATUS_QUERY_KEY, { version })
-      render(<SystemUpdateAction presentation='version' />, {
-        wrapper: Wrapper,
-      })
+      render(
+        <>
+          <SystemUpdateAction presentation='version' />
+          <SystemUpdateAction compact={false} />
+        </>,
+        { wrapper: Wrapper }
+      )
+      expect(
+        screen.queryByRole('button', {
+          name: 'System updates, current version: Unknown version',
+        })
+      ).not.toBeInTheDocument()
       const trigger = screen.getByRole('button', {
-        name: 'System updates, current version: Unknown version',
+        name: 'Check for updates',
       })
+      await waitFor(() => expect(trigger).toHaveAttribute('aria-busy', 'false'))
       await user.click(trigger)
       const dialog = screen.getByRole('dialog')
       expect(within(dialog).getByText('Unknown version')).toBeInTheDocument()
@@ -393,19 +406,6 @@ describe('version label presentation', () => {
     })
     await waitFor(() => expect(trigger).toHaveAttribute('aria-busy', 'false'))
     expect(within(trigger).getByText(release.tag_name)).toBeInTheDocument()
-    expect(
-      within(trigger).queryByText('Update available')
-    ).not.toBeInTheDocument()
-  })
-
-  test('shows an unknown-version label when the server has not supplied a version', async () => {
-    client.setQueryData(STATUS_QUERY_KEY, { version: '' })
-    render(<SystemUpdateAction presentation='version' />, { wrapper: Wrapper })
-    const trigger = screen.getByRole('button', {
-      name: 'System updates, current version: Unknown version',
-    })
-    expect(within(trigger).getByText('Unknown version')).toBeInTheDocument()
-    await waitFor(() => expect(trigger).toHaveAttribute('aria-busy', 'false'))
     expect(
       within(trigger).queryByText('Update available')
     ).not.toBeInTheDocument()

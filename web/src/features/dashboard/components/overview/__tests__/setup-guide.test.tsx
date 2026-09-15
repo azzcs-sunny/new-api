@@ -36,6 +36,7 @@ import { OverviewDashboard } from '../overview-dashboard'
 const storageKey = 'dashboard_overview_setup_guide_expanded'
 let client: QueryClient
 let keyLookupError: Error | null
+let apiInfoEnabled: boolean
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -52,6 +53,7 @@ beforeEach(() => {
     defaultOptions: { queries: { retry: false } },
   })
   keyLookupError = null
+  apiInfoEnabled = false
   vi.spyOn(api, 'get').mockImplementation(async (url) => {
     switch (url) {
       case '/api/token/?p=1&size=10':
@@ -68,7 +70,17 @@ beforeEach(() => {
         return {
           data: {
             data: {
-              api_info_enabled: false,
+              api_info_enabled: apiInfoEnabled,
+              api_info: apiInfoEnabled
+                ? [
+                    {
+                      url: 'https://api.example.com',
+                      route: '/v1',
+                      description: 'Primary API',
+                      color: 'blue',
+                    },
+                  ]
+                : [],
               announcements_enabled: false,
               faq_enabled: false,
               uptime_kuma_enabled: false,
@@ -107,6 +119,19 @@ async function renderOverview() {
 }
 
 describe('overview setup guide', () => {
+  it('keeps the API info panel hidden when API info is enabled', async () => {
+    const user = userEvent.setup()
+    apiInfoEnabled = true
+
+    await renderOverview()
+    await user.click(await screen.findByRole('button', { name: 'Setup guide' }))
+
+    expect(await screen.findByText('Online')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: 'API Info' })
+    ).not.toBeInTheDocument()
+  })
+
   it('shows usage first and only a header entry when setup is complete', async () => {
     await renderOverview()
 

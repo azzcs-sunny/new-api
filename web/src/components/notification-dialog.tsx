@@ -41,6 +41,7 @@ interface NotificationDialogProps {
   onOpenChange: (open: boolean) => void
   item: NotificationDialogItem | null
   loading: boolean
+  read: boolean
 }
 
 export function NotificationDialog({
@@ -48,6 +49,7 @@ export function NotificationDialog({
   onOpenChange,
   item,
   loading,
+  read,
 }: NotificationDialogProps) {
   const { t } = useTranslation()
   const announcement = item?.announcement ?? null
@@ -84,9 +86,15 @@ export function NotificationDialog({
             <Megaphone className='size-5' aria-hidden='true' />
           </div>
           <div className='flex min-w-0 flex-col gap-1.5 pt-0.5'>
-            <div>
+            <div className='flex flex-wrap items-center gap-2'>
               <Badge variant='secondary' className='h-6 rounded-md px-2'>
                 {t('Announcements')}
+              </Badge>
+              <Badge
+                variant={read ? 'outline' : 'warning'}
+                className='h-6 rounded-md px-2'
+              >
+                {t(read ? 'Read' : 'Unread')}
               </Badge>
             </div>
             <AlertDialogTitle className='text-lg leading-tight font-semibold'>

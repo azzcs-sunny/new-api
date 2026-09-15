@@ -7,6 +7,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/console_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
@@ -29,6 +30,7 @@ type ChannelStatusItem struct {
 	Group             string                    `json:"group"`
 	GroupRatios       map[string]float64        `json:"group_ratios,omitempty"`
 	ModelName         string                    `json:"model_name"`
+	Models            []string                  `json:"models"`
 	Health            ChannelStatusHealth       `json:"health"`
 	LatencyMs         int64                     `json:"latency_ms"`
 	RecentSuccessRate float64                   `json:"recent_success_rate"`
@@ -44,7 +46,8 @@ type ChannelStatusItem struct {
 }
 
 type ChannelStatusResult struct {
-	Items []ChannelStatusItem `json:"items"`
+	Items   []ChannelStatusItem                   `json:"items"`
+	Notices []console_setting.ChannelStatusNotice `json:"notices"`
 }
 
 func RecordChannelTestResult(channel *model.Channel, triggerType string, modelName string, latencyMs int64, success bool) {
@@ -101,12 +104,13 @@ func QueryChannelStatus(groups []string) (ChannelStatusResult, error) {
 			target.Group: ratio_setting.GetGroupRatio(target.Group),
 		}
 		item.ModelName = target.ModelName
+		item.Models = target.Models
 		if len(records) > 0 {
 			item.ModelName = records[0].ModelName
 		}
 		items = append(items, item)
 	}
-	return ChannelStatusResult{Items: items}, nil
+	return ChannelStatusResult{Items: items, Notices: console_setting.GetChannelStatusNotices()}, nil
 }
 
 func QueryAllChannelStatus() (ChannelStatusResult, error) {
@@ -153,12 +157,13 @@ func QueryAllChannelStatus() (ChannelStatusResult, error) {
 			item.Group = strings.Join(visibleGroups, ",")
 		}
 		item.ModelName = channel.GetTestModel()
+		item.Models = channel.GetModels()
 		if len(channelRecords) > 0 {
 			item.ModelName = channelRecords[0].ModelName
 		}
 		items = append(items, item)
 	}
-	return ChannelStatusResult{Items: items}, nil
+	return ChannelStatusResult{Items: items, Notices: console_setting.GetChannelStatusNotices()}, nil
 }
 
 func applyChannelAvailability(item *ChannelStatusItem, stats model.ChannelTestAvailabilityStats) {

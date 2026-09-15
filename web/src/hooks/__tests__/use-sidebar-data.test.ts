@@ -19,6 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import type { TFunction } from 'i18next'
 import { describe, expect, test } from 'vitest'
 
+import { ROLE } from '@/lib/roles'
+
 import { buildSidebarData } from '../use-sidebar-data'
 
 describe('sidebar data', () => {
@@ -50,6 +52,7 @@ describe('sidebar data', () => {
       'Channel Status',
       'API Keys',
       'Usage Logs',
+      'Audit Logs',
       'Task Logs',
     ])
   })
@@ -71,6 +74,31 @@ describe('sidebar data', () => {
       expect.objectContaining({
         title: '⭐Purchase Card Codes⭐',
         url: '/wallet/card-codes',
+      })
+    )
+  })
+
+  test('splits admin invoice management from personal invoice requests', () => {
+    const sidebarData = buildSidebarData(t, ROLE.ADMIN)
+    const personalGroup = sidebarData.navGroups.find(
+      (group) => group.id === 'personal'
+    )
+    const adminGroup = sidebarData.navGroups.find(
+      (group) => group.id === 'admin'
+    )
+
+    expect(personalGroup?.items).toContainEqual(
+      expect.objectContaining({
+        title: 'My invoice requests',
+        url: '/invoices?tab=mine',
+        configUrls: ['/invoices'],
+      })
+    )
+    expect(adminGroup?.items).toContainEqual(
+      expect.objectContaining({
+        title: 'Invoice Management',
+        url: '/invoices?tab=management',
+        activeUrls: ['/invoices'],
       })
     )
   })

@@ -37,6 +37,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { sendPasswordResetEmail } from '@/features/auth/api'
 import {
+  AUTH_BUTTON_CLASSNAME,
+  AUTH_INPUT_CLASSNAME,
   forgotPasswordFormSchema,
   PASSWORD_RESET_COUNTDOWN,
 } from '@/features/auth/constants'
@@ -111,7 +113,11 @@ export function ForgotPasswordForm({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input
+                  placeholder='name@example.com'
+                  className={AUTH_INPUT_CLASSNAME}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -120,7 +126,7 @@ export function ForgotPasswordForm({
 
         <Button
           type='submit'
-          className='mt-2'
+          className={cn(AUTH_BUTTON_CLASSNAME, 'mt-2')}
           disabled={isLoading || isActive || !turnstileReady}
         >
           {isActive

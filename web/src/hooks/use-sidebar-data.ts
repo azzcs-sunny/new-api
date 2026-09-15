@@ -149,10 +149,9 @@ export function buildSidebarData(
             icon: UserPlus,
           },
           {
-            title: t(
-              role >= ROLE.ADMIN ? 'Invoice Management' : 'My invoice requests'
-            ),
-            url: '/invoices',
+            title: t('My invoice requests'),
+            url: role >= ROLE.ADMIN ? '/invoices?tab=mine' : '/invoices',
+            configUrls: ['/invoices'],
             icon: FileText,
           },
           {
@@ -207,6 +206,13 @@ export function buildSidebarData(
             title: t('Subscriptions'),
             url: '/subscriptions',
             icon: CreditCard,
+          },
+          {
+            title: t('Invoice Management'),
+            url: '/invoices?tab=management',
+            activeUrls: ['/invoices'],
+            icon: FileText,
+            requiredRole: ROLE.ADMIN,
           },
           {
             title: t('System Info'),

@@ -75,8 +75,9 @@ export function ChannelStatus() {
     start()
   }, [start, statusQuery.dataUpdatedAt])
 
-  const items = filterVisibleChannelStatusRows(
-    statusQuery.data?.data.items ?? []
+  const items = useMemo(
+    () => filterVisibleChannelStatusRows(statusQuery.data?.data.items ?? []),
+    [statusQuery.data?.data.items]
   )
   const hasData = statusQuery.isLoading || items.length > 0
 
@@ -128,6 +129,7 @@ export function ChannelStatus() {
             {hasData ? (
               <PlatformStatusTable
                 rows={items}
+                notices={statusQuery.data?.data.notices ?? []}
                 loading={statusQuery.isLoading}
                 availabilityDays={availabilityDays}
                 onRowClick={

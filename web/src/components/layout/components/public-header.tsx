@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { NotificationDialog } from '@/components/notification-dialog'
 import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -294,11 +295,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                   open={notifications.popoverOpen}
                   onOpenChange={notifications.setPopoverOpen}
                   unreadCount={notifications.unreadCount}
-                  activeTab={notifications.activeTab}
-                  onTabChange={notifications.setActiveTab}
-                  notice={notifications.notice}
                   announcements={notifications.announcements}
                   loading={notifications.loading}
+                  isAnnouncementRead={notifications.isAnnouncementRead}
+                  onAnnouncementOpen={notifications.openAnnouncementDetail}
                 />
               )}
 
@@ -456,6 +456,13 @@ export function PublicHeader(props: PublicHeaderProps) {
           })}
         </div>
       </Dialog>
+      <NotificationDialog
+        open={notifications.notificationDialogOpen}
+        onOpenChange={notifications.setNotificationDialogOpen}
+        item={notifications.notificationDialogItem}
+        loading={notifications.loading}
+        read={notifications.notificationDialogRead}
+      />
     </>
   )
 }

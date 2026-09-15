@@ -16,11 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest'
 
 import { useAnnouncements } from '@/features/dashboard/hooks/use-status-data'
+import { useNotificationStore } from '@/stores/notification-store'
 
 import { AnnouncementsPanel } from '../announcements-panel'
 
@@ -53,15 +54,26 @@ describe('dashboard announcements panel', () => {
       ],
       loading: false,
     })
+    useNotificationStore.setState({ readAnnouncementKeys: [] })
 
     render(<AnnouncementsPanel />)
 
     expect(screen.getByText('Maintenance window')).toBeInTheDocument()
+    expect(screen.queryByText('Click for details')).not.toBeInTheDocument()
+    const itemButton = screen.getByRole('button', {
+      name: /Maintenance window/,
+    })
+    expect(within(itemButton).getByText('Unread')).toBeInTheDocument()
     expect(screen.queryByText('Dashboard body')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Maintenance window/ }))
+    await user.click(itemButton)
 
     expect(screen.getAllByText('Announcements')).toHaveLength(2)
+    expect(screen.getAllByText('Unread')).toHaveLength(2)
     expect(screen.getByText('Dashboard body').tagName).toBe('STRONG')
+
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+
+    expect(within(itemButton).getByText('Read')).toBeInTheDocument()
   })
 })

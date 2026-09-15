@@ -2,6 +2,7 @@ package model
 
 import (
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -96,6 +97,7 @@ type ChannelStatusTarget struct {
 	Provider      string
 	Group         string
 	ModelName     string
+	Models        []string
 }
 
 // GetChannelStatusTargets returns the highest-priority enabled channel for
@@ -121,11 +123,9 @@ func GetChannelStatusTargets(groups []string) ([]ChannelStatusTarget, error) {
 		priority int64
 	}
 	selected := make(map[string]candidate)
+	modelsByGroup := make(map[string]map[string]struct{})
 	for _, channel := range channels {
 		testModel := channel.GetTestModel()
-		if IsMediaChannelTestModel(testModel) {
-			continue
-		}
 		for _, group := range channel.GetGroups() {
 			if IsHiddenChannelStatusGroup(group) {
 				continue
@@ -134,6 +134,18 @@ func GetChannelStatusTargets(groups []string) ([]ChannelStatusTarget, error) {
 				if _, ok := allowed[group]; !ok {
 					continue
 				}
+			}
+			if modelsByGroup[group] == nil {
+				modelsByGroup[group] = make(map[string]struct{})
+			}
+			for _, modelName := range channel.GetModels() {
+				modelName = strings.TrimSpace(modelName)
+				if modelName != "" {
+					modelsByGroup[group][modelName] = struct{}{}
+				}
+			}
+			if IsMediaChannelTestModel(testModel) {
+				continue
 			}
 			current, exists := selected[group]
 			priority := channel.GetPriority()
@@ -157,6 +169,12 @@ func GetChannelStatusTargets(groups []string) ([]ChannelStatusTarget, error) {
 
 	targets := make([]ChannelStatusTarget, 0, len(selected))
 	for _, value := range selected {
+		models := make([]string, 0, len(modelsByGroup[value.target.Group]))
+		for modelName := range modelsByGroup[value.target.Group] {
+			models = append(models, modelName)
+		}
+		slices.Sort(models)
+		value.target.Models = models
 		targets = append(targets, value.target)
 	}
 	sort.Slice(targets, func(i, j int) bool {

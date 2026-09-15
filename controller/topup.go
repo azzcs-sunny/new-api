@@ -24,6 +24,13 @@ import (
 
 func GetTopUpInfo(c *gin.Context) {
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
+	topupGroupRatio := 1.0
+	if group := c.GetString("group"); group != "" {
+		topupGroupRatio = common.GetTopupGroupRatio(group)
+		if topupGroupRatio == 0 {
+			topupGroupRatio = 1
+		}
+	}
 
 	// 获取支付方式
 	payMethods := operation_setting.PayMethods
@@ -120,6 +127,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,
+		"topup_group_ratio":       topupGroupRatio,
 	}
 	common.ApiSuccess(c, data)
 }

@@ -30,6 +30,7 @@ import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
+import { TopupNotice } from './components/topup-notice'
 import { WalletStatsCard } from './components/wallet-stats-card'
 import { WalletTransactionsCard } from './components/wallet-transactions-card'
 import { DEFAULT_DISCOUNT_RATE, PAYMENT_TYPES } from './constants'
@@ -283,6 +284,11 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
+            <TopupNotice
+              topupGroupRatio={topupInfo?.topup_group_ratio ?? 1}
+              topupLink={topupInfo?.topup_link}
+              paymentMethods={topupInfo?.pay_methods}
+            />
 
             <div
               className={
@@ -348,6 +354,7 @@ export function Wallet(props: WalletProps) {
         calculating={calculating}
         processing={processing || waffoProcessing || pancakeProcessing}
         discountRate={getDiscountRate()}
+        topupGroupRatio={topupInfo?.topup_group_ratio}
         usdExchangeRate={effectiveUsdExchangeRate}
       />
 

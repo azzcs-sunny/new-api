@@ -27,6 +27,55 @@ function stableStringify(obj) {
 
 const newKeys = {
   en: {
+    'Service fee': 'Service fee',
+    'Channel status notices': 'Channel status notices',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      'Show one editable notice in the upper-right corner of each channel platform group.',
+    'Add notice': 'Add notice',
+    'No channel status notices configured.':
+      'No channel status notices configured.',
+    Normal: 'Normal',
+    'Edit notice': 'Edit notice',
+    'The notice appears next to the matching platform on the channel status page.':
+      'The notice appears next to the matching platform on the channel status page.',
+    'Select platform': 'Select platform',
+    'Notice type': 'Notice type',
+    'Select notice type': 'Select notice type',
+    'Notice content': 'Notice content',
+    'Enter a short channel status message':
+      'Enter a short channel status message',
+    'Show this notice': 'Show this notice',
+    'Disabled notices remain saved but are hidden from the status page.':
+      'Disabled notices remain saved but are hidden from the status page.',
+    'Delete notice': 'Delete notice',
+    'This notice will be removed after you save the settings.':
+      'This notice will be removed after you save the settings.',
+    'Platform is required': 'Platform is required',
+    'Notice content is required': 'Notice content is required',
+    'Notice content must be at most 200 characters':
+      'Notice content must be at most 200 characters',
+    'Notice added. Save settings to apply.':
+      'Notice added. Save settings to apply.',
+    'Notice updated. Save settings to apply.':
+      'Notice updated. Save settings to apply.',
+    'Notice deleted. Save settings to apply.':
+      'Notice deleted. Save settings to apply.',
+    'Top-up Instructions': 'Top-up Instructions',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      'For top-up assistance, contact customer service via QQ: {{qq}}.',
+    'Card-code store:': 'Card-code store:',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      'The card-code store does not charge a service fee and does not support invoices.',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.',
+    'Online top-ups support ordinary VAT invoices.':
+      'Online top-ups support ordinary VAT invoices.',
+    Read: 'Read',
+    Unread: 'Unread',
     Title: 'Title',
     'Enter announcement title': 'Enter announcement title',
     'Title is required': 'Title is required',
@@ -214,6 +263,49 @@ const newKeys = {
       'Used redemption codes can only be updated through batch invoice settings',
   },
   zh: {
+    'Service fee': '手续费',
+    'Channel status notices': '渠道状态提示',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      '在每个渠道平台分组右上角显示一条可编辑提示。',
+    'Add notice': '添加提示',
+    'No channel status notices configured.': '暂未配置渠道状态提示。',
+    Normal: '普通',
+    'Edit notice': '编辑提示',
+    'The notice appears next to the matching platform on the channel status page.':
+      '该提示会显示在渠道状态页面对应平台旁。',
+    'Select platform': '选择平台',
+    'Notice type': '提示类型',
+    'Select notice type': '选择提示类型',
+    'Notice content': '提示内容',
+    'Enter a short channel status message': '输入简短的渠道状态信息',
+    'Show this notice': '显示此提示',
+    'Disabled notices remain saved but are hidden from the status page.':
+      '已禁用的提示会保留配置，但不会显示在状态页面。',
+    'Delete notice': '删除提示',
+    'This notice will be removed after you save the settings.':
+      '保存设置后将删除此提示。',
+    'Platform is required': '请选择平台',
+    'Notice content is required': '请输入提示内容',
+    'Notice content must be at most 200 characters':
+      '提示内容不能超过 200 个字符',
+    'Notice added. Save settings to apply.': '已添加提示，保存设置后生效。',
+    'Notice updated. Save settings to apply.': '已更新提示，保存设置后生效。',
+    'Notice deleted. Save settings to apply.': '已删除提示，保存设置后生效。',
+    'Top-up Instructions': '充值说明',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      '如需充值帮助，请联系 QQ 客服：{{qq}}。',
+    'Card-code store:': '卡网购买地址：',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      '卡网不收取手续费，且不支持开票。',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      '卡网购买<fee>免手续费</fee>，<invoice>不支持开票</invoice>。',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      '在线直充微信/支付宝收取 {{feePercent}}% 手续费 | 在线充值支持开普票。',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      '在线直充{{paymentMethods}}收取 {{feePercent}}% 手续费 | 在线充值支持开普票。',
+    'Online top-ups support ordinary VAT invoices.': '在线充值支持开普票。',
+    Read: '已读',
+    Unread: '未读',
     Title: '标题',
     'Enter announcement title': '请输入公告标题',
     'Title is required': '标题为必填项',
@@ -390,6 +482,50 @@ const newKeys = {
       '已使用的兑换码只能通过批量开票设置更新',
   },
   'zh-TW': {
+    'Service fee': '手續費',
+    'Channel status notices': '渠道狀態提示',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      '在每個渠道平台分組右上角顯示一則可編輯提示。',
+    'Add notice': '新增提示',
+    'No channel status notices configured.': '尚未設定渠道狀態提示。',
+    Normal: '一般',
+    'Edit notice': '編輯提示',
+    'The notice appears next to the matching platform on the channel status page.':
+      '該提示會顯示在渠道狀態頁面的對應平台旁。',
+    'Select platform': '選擇平台',
+    'Notice type': '提示類型',
+    'Select notice type': '選擇提示類型',
+    'Notice content': '提示內容',
+    'Enter a short channel status message': '輸入簡短的渠道狀態訊息',
+    'Show this notice': '顯示此提示',
+    'Disabled notices remain saved but are hidden from the status page.':
+      '已停用的提示會保留設定，但不會顯示在狀態頁面。',
+    'Delete notice': '刪除提示',
+    'This notice will be removed after you save the settings.':
+      '儲存設定後將刪除此提示。',
+    'Platform is required': '請選擇平台',
+    'Notice content is required': '請輸入提示內容',
+    'Notice content must be at most 200 characters':
+      '提示內容不得超過 200 個字元',
+    'Notice added. Save settings to apply.': '已新增提示，儲存設定後生效。',
+    'Notice updated. Save settings to apply.': '已更新提示，儲存設定後生效。',
+    'Notice deleted. Save settings to apply.': '已刪除提示，儲存設定後生效。',
+    'Top-up Instructions': '儲值說明',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      '如需儲值協助，請聯絡 QQ 客服：{{qq}}。',
+    'Card-code store:': '卡網購買地址：',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      '卡網不收取手續費，且不支援開立發票。',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      '卡網購買<fee>免手續費</fee>，<invoice>不支援開立發票</invoice>。',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      '線上直充微信/支付寶收取 {{feePercent}}% 手續費 | 線上儲值支援開立一般發票。',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      '線上直充{{paymentMethods}}收取 {{feePercent}}% 手續費 | 線上儲值支援開立一般發票。',
+    'Online top-ups support ordinary VAT invoices.':
+      '線上儲值支援開立一般發票。',
+    Read: '已讀',
+    Unread: '未讀',
     Title: '標題',
     'Enter announcement title': '請輸入公告標題',
     'Title is required': '標題為必填項',
@@ -567,6 +703,53 @@ const newKeys = {
       '已使用的兌換碼只能透過批量開票設定更新',
   },
   fr: {
+    'Service fee': 'Frais de service',
+    'Channel status notices': 'Avis d’état des canaux',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      'Affichez un avis modifiable en haut à droite de chaque groupe de plateformes.',
+    'Add notice': 'Ajouter un avis',
+    'No channel status notices configured.': 'Aucun avis d’état configuré.',
+    Normal: 'Normal',
+    'Edit notice': 'Modifier l’avis',
+    'The notice appears next to the matching platform on the channel status page.':
+      'L’avis apparaît à côté de la plateforme correspondante sur la page d’état.',
+    'Select platform': 'Sélectionner une plateforme',
+    'Notice type': 'Type d’avis',
+    'Select notice type': 'Sélectionner le type d’avis',
+    'Notice content': 'Contenu de l’avis',
+    'Enter a short channel status message': 'Saisir un bref message d’état',
+    'Show this notice': 'Afficher cet avis',
+    'Disabled notices remain saved but are hidden from the status page.':
+      'Les avis désactivés restent enregistrés, mais sont masqués de la page d’état.',
+    'Delete notice': 'Supprimer l’avis',
+    'This notice will be removed after you save the settings.':
+      'Cet avis sera supprimé après l’enregistrement des paramètres.',
+    'Platform is required': 'La plateforme est requise',
+    'Notice content is required': 'Le contenu de l’avis est requis',
+    'Notice content must be at most 200 characters':
+      'Le contenu de l’avis ne doit pas dépasser 200 caractères',
+    'Notice added. Save settings to apply.':
+      'Avis ajouté. Enregistrez les paramètres pour l’appliquer.',
+    'Notice updated. Save settings to apply.':
+      'Avis modifié. Enregistrez les paramètres pour l’appliquer.',
+    'Notice deleted. Save settings to apply.':
+      'Avis supprimé. Enregistrez les paramètres pour l’appliquer.',
+    'Top-up Instructions': 'Instructions de recharge',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      'Pour toute aide concernant la recharge, contactez le service client via QQ : {{qq}}.',
+    'Card-code store:': 'Boutique de codes de recharge :',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      'La boutique de codes ne facture aucuns frais et ne permet pas la facturation.',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      'Les achats de codes sont <fee>sans frais</fee> ; <invoice>les factures ne sont pas prises en charge</invoice>.',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'La recharge directe par WeChat/Alipay facture {{feePercent}} % de frais | Les recharges en ligne permettent une facture ordinaire avec TVA.',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'La recharge directe par {{paymentMethods}} facture {{feePercent}} % de frais | Les recharges en ligne permettent une facture ordinaire avec TVA.',
+    'Online top-ups support ordinary VAT invoices.':
+      'Les recharges en ligne permettent une facture ordinaire avec TVA.',
+    Read: 'Lu',
+    Unread: 'Non lu',
     Title: 'Titre',
     'Enter announcement title': 'Saisir le titre de l’annonce',
     'Title is required': 'Le titre est requis',
@@ -661,7 +844,7 @@ const newKeys = {
       "Aucune donnée de test de canal n'est encore disponible.",
     'No channels match the selected status.':
       'Aucun canal ne correspond au statut sélectionné.',
-    'I have read and agree to the': "J'ai lu et j'accepte",
+    'I have read and agree to the': "J'ai lu et j'accepte les",
     'Terms of Service': "Conditions d'utilisation",
     'Usage Policy': "Politique d'utilisation",
     'Supported Countries and Regions': 'Pays et régions pris en charge',
@@ -762,6 +945,54 @@ const newKeys = {
       'Les codes déjà utilisés ne peuvent être mis à jour que via les paramètres de facture en lot',
   },
   ja: {
+    'Service fee': '手数料',
+    'Channel status notices': 'チャネル状態のお知らせ',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      '各チャネルプラットフォームグループの右上に、編集可能なお知らせを1件表示します。',
+    'Add notice': 'お知らせを追加',
+    'No channel status notices configured.':
+      'チャネル状態のお知らせは未設定です。',
+    Normal: '通常',
+    'Edit notice': 'お知らせを編集',
+    'The notice appears next to the matching platform on the channel status page.':
+      'お知らせはチャネル状態ページの対応するプラットフォームの横に表示されます。',
+    'Select platform': 'プラットフォームを選択',
+    'Notice type': 'お知らせの種類',
+    'Select notice type': 'お知らせの種類を選択',
+    'Notice content': 'お知らせの内容',
+    'Enter a short channel status message': '短いチャネル状態メッセージを入力',
+    'Show this notice': 'このお知らせを表示',
+    'Disabled notices remain saved but are hidden from the status page.':
+      '無効なお知らせは保存されますが、状態ページには表示されません。',
+    'Delete notice': 'お知らせを削除',
+    'This notice will be removed after you save the settings.':
+      '設定を保存すると、このお知らせは削除されます。',
+    'Platform is required': 'プラットフォームは必須です',
+    'Notice content is required': 'お知らせの内容は必須です',
+    'Notice content must be at most 200 characters':
+      'お知らせの内容は200文字以内で入力してください',
+    'Notice added. Save settings to apply.':
+      'お知らせを追加しました。設定を保存すると適用されます。',
+    'Notice updated. Save settings to apply.':
+      'お知らせを更新しました。設定を保存すると適用されます。',
+    'Notice deleted. Save settings to apply.':
+      'お知らせを削除しました。設定を保存すると適用されます。',
+    'Top-up Instructions': 'チャージ案内',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      'チャージに関するお問い合わせは、QQ カスタマーサービス（{{qq}}）までご連絡ください。',
+    'Card-code store:': 'チャージコード販売サイト：',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      'チャージコード販売サイトでは手数料はかかりませんが、請求書には対応していません。',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      'チャージコードの購入は<fee>手数料無料</fee>で、<invoice>請求書には対応していません</invoice>。',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'WeChat/Alipay のオンライン直接チャージには {{feePercent}}% の手数料がかかります | オンラインチャージは通常の付加価値税請求書に対応しています。',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      '{{paymentMethods}} のオンライン直接チャージには {{feePercent}}% の手数料がかかります | オンラインチャージは通常の付加価値税請求書に対応しています。',
+    'Online top-ups support ordinary VAT invoices.':
+      'オンラインチャージは通常の付加価値税請求書に対応しています。',
+    Read: '既読',
+    Unread: '未読',
     Title: 'タイトル',
     'Enter announcement title': 'お知らせのタイトルを入力',
     'Title is required': 'タイトルは必須です',
@@ -854,7 +1085,7 @@ const newKeys = {
       'チャネルテストデータはまだありません。',
     'No channels match the selected status.':
       '選択したステータスに一致するチャネルはありません。',
-    'I have read and agree to the': '以下を読み、同意します：',
+    'I have read and agree to the': '私は以下を読み、同意します',
     'Terms of Service': '利用規約',
     'Usage Policy': '利用ポリシー',
     'Supported Countries and Regions': '対応国・地域',
@@ -862,7 +1093,7 @@ const newKeys = {
     'Legal Documents': '法的文書',
     Document: '文書',
     'Content or URL': 'コンテンツまたはURL',
-    Action: '操作',
+    Action: 'アクション',
     'Manage the links or content displayed for the four required legal documents.':
       '4つの必須法的文書に表示するリンクまたはコンテンツを管理します。',
     'Enter Markdown, HTML, or a full URL':
@@ -950,6 +1181,55 @@ const newKeys = {
       '使用済みの引換コードは請求設定の一括変更でのみ更新できます',
   },
   ru: {
+    'Service fee': 'Комиссия',
+    'Channel status notices': 'Уведомления о состоянии каналов',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      'Показывать одно редактируемое уведомление справа вверху каждой группы платформ.',
+    'Add notice': 'Добавить уведомление',
+    'No channel status notices configured.':
+      'Уведомления о состоянии не настроены.',
+    Normal: 'Обычное',
+    'Edit notice': 'Изменить уведомление',
+    'The notice appears next to the matching platform on the channel status page.':
+      'Уведомление появится рядом с соответствующей платформой на странице состояния.',
+    'Select platform': 'Выберите платформу',
+    'Notice type': 'Тип уведомления',
+    'Select notice type': 'Выберите тип уведомления',
+    'Notice content': 'Текст уведомления',
+    'Enter a short channel status message':
+      'Введите краткое сообщение о состоянии',
+    'Show this notice': 'Показывать это уведомление',
+    'Disabled notices remain saved but are hidden from the status page.':
+      'Отключённые уведомления сохраняются, но не показываются на странице состояния.',
+    'Delete notice': 'Удалить уведомление',
+    'This notice will be removed after you save the settings.':
+      'Уведомление будет удалено после сохранения настроек.',
+    'Platform is required': 'Необходимо выбрать платформу',
+    'Notice content is required': 'Необходим текст уведомления',
+    'Notice content must be at most 200 characters':
+      'Текст уведомления не должен превышать 200 символов',
+    'Notice added. Save settings to apply.':
+      'Уведомление добавлено. Сохраните настройки, чтобы применить.',
+    'Notice updated. Save settings to apply.':
+      'Уведомление изменено. Сохраните настройки, чтобы применить.',
+    'Notice deleted. Save settings to apply.':
+      'Уведомление удалено. Сохраните настройки, чтобы применить.',
+    'Top-up Instructions': 'Информация о пополнении',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      'По вопросам пополнения свяжитесь со службой поддержки в QQ: {{qq}}.',
+    'Card-code store:': 'Магазин кодов пополнения:',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      'Магазин кодов пополнения не взимает комиссию и не поддерживает выставление счетов.',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      'Покупка кодов выполняется <fee>без комиссии</fee>; <invoice>выставление счетов не поддерживается</invoice>.',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'Прямое онлайн-пополнение через WeChat/Alipay облагается комиссией {{feePercent}}% | Для онлайн-пополнений доступны обычные счета с НДС.',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'Прямое онлайн-пополнение через {{paymentMethods}} облагается комиссией {{feePercent}}% | Для онлайн-пополнений доступны обычные счета с НДС.',
+    'Online top-ups support ordinary VAT invoices.':
+      'Для онлайн-пополнений доступны обычные счета с НДС.',
+    Read: 'Прочитано',
+    Unread: 'Не прочитано',
     Title: 'Заголовок',
     'Enter announcement title': 'Введите заголовок объявления',
     'Title is required': 'Заголовок обязателен',
@@ -1042,7 +1322,7 @@ const newKeys = {
       'Данные проверки каналов пока отсутствуют.',
     'No channels match the selected status.':
       'Нет каналов, соответствующих выбранному статусу.',
-    'I have read and agree to the': 'Я прочитал(а) и принимаю',
+    'I have read and agree to the': 'Я прочитал и согласен с',
     'Terms of Service': 'Условия использования',
     'Usage Policy': 'Политика использования',
     'Supported Countries and Regions': 'Поддерживаемые страны и регионы',
@@ -1140,6 +1420,55 @@ const newKeys = {
       'Использованные коды можно обновлять только через массовые настройки счёта',
   },
   vi: {
+    'Service fee': 'Phí dịch vụ',
+    'Channel status notices': 'Thông báo trạng thái kênh',
+    'Show one editable notice in the upper-right corner of each channel platform group.':
+      'Hiển thị một thông báo có thể chỉnh sửa ở góc trên bên phải của mỗi nhóm nền tảng.',
+    'Add notice': 'Thêm thông báo',
+    'No channel status notices configured.':
+      'Chưa cấu hình thông báo trạng thái kênh.',
+    Normal: 'Bình thường',
+    'Edit notice': 'Chỉnh sửa thông báo',
+    'The notice appears next to the matching platform on the channel status page.':
+      'Thông báo xuất hiện bên cạnh nền tảng tương ứng trên trang trạng thái kênh.',
+    'Select platform': 'Chọn nền tảng',
+    'Notice type': 'Loại thông báo',
+    'Select notice type': 'Chọn loại thông báo',
+    'Notice content': 'Nội dung thông báo',
+    'Enter a short channel status message':
+      'Nhập thông báo ngắn về trạng thái kênh',
+    'Show this notice': 'Hiển thị thông báo này',
+    'Disabled notices remain saved but are hidden from the status page.':
+      'Thông báo bị tắt vẫn được lưu nhưng không hiển thị trên trang trạng thái.',
+    'Delete notice': 'Xóa thông báo',
+    'This notice will be removed after you save the settings.':
+      'Thông báo này sẽ bị xóa sau khi bạn lưu cài đặt.',
+    'Platform is required': 'Bạn phải chọn nền tảng',
+    'Notice content is required': 'Bạn phải nhập nội dung thông báo',
+    'Notice content must be at most 200 characters':
+      'Nội dung thông báo không được vượt quá 200 ký tự',
+    'Notice added. Save settings to apply.':
+      'Đã thêm thông báo. Hãy lưu cài đặt để áp dụng.',
+    'Notice updated. Save settings to apply.':
+      'Đã cập nhật thông báo. Hãy lưu cài đặt để áp dụng.',
+    'Notice deleted. Save settings to apply.':
+      'Đã xóa thông báo. Hãy lưu cài đặt để áp dụng.',
+    'Top-up Instructions': 'Hướng dẫn nạp tiền',
+    'For top-up assistance, contact customer service via QQ: {{qq}}.':
+      'Nếu cần hỗ trợ nạp tiền, hãy liên hệ bộ phận chăm sóc khách hàng qua QQ: {{qq}}.',
+    'Card-code store:': 'Cửa hàng mã nạp tiền:',
+    'The card-code store does not charge a service fee and does not support invoices.':
+      'Cửa hàng mã nạp không thu phí dịch vụ và không hỗ trợ xuất hóa đơn.',
+    'Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.':
+      'Mua mã nạp <fee>không mất phí dịch vụ</fee>; <invoice>không hỗ trợ xuất hóa đơn</invoice>.',
+    'Online direct top-up via WeChat/Alipay charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'Nạp trực tuyến qua WeChat/Alipay thu phí {{feePercent}}% | Nạp tiền trực tuyến hỗ trợ xuất hóa đơn VAT thông thường.',
+    'Online direct top-up via {{paymentMethods}} charges a {{feePercent}}% service fee | Online top-ups support ordinary VAT invoices.':
+      'Nạp trực tuyến qua {{paymentMethods}} thu phí {{feePercent}}% | Nạp tiền trực tuyến hỗ trợ xuất hóa đơn VAT thông thường.',
+    'Online top-ups support ordinary VAT invoices.':
+      'Nạp tiền trực tuyến hỗ trợ xuất hóa đơn VAT thông thường.',
+    Read: 'Đã đọc',
+    Unread: 'Chưa đọc',
     Title: 'Tiêu đề',
     'Enter announcement title': 'Nhập tiêu đề thông báo',
     'Title is required': 'Tiêu đề là bắt buộc',
@@ -1238,7 +1567,7 @@ const newKeys = {
     'Legal Documents': 'Tài liệu pháp lý',
     Document: 'Tài liệu',
     'Content or URL': 'Nội dung hoặc URL',
-    Action: 'Thao tác',
+    Action: 'Hành động',
     'Manage the links or content displayed for the four required legal documents.':
       'Quản lý liên kết hoặc nội dung hiển thị cho bốn tài liệu pháp lý bắt buộc.',
     'Enter Markdown, HTML, or a full URL':

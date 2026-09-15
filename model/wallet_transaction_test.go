@@ -36,6 +36,16 @@ func TestGetWalletTransactionsCombinesWalletCreditSources(t *testing.T) {
 		UserId: 902, Amount: 9999, TradeNo: "another-users-topup",
 		Status: common.TopUpStatusSuccess, CreateTime: 400,
 	}).Error)
+	require.NoError(t, DB.Create(&TopUp{
+		UserId: userId, Amount: 5000, Money: 50, TradeNo: "wallet-ledger-pending-topup",
+		PaymentMethod: PaymentMethodStripe, Status: common.TopUpStatusPending,
+		CreateTime: 500,
+	}).Error)
+	require.NoError(t, DB.Create(&TopUp{
+		UserId: userId, Amount: 6000, Money: 60, TradeNo: "wallet-ledger-failed-topup",
+		PaymentMethod: PaymentMethodStripe, Status: common.TopUpStatusFailed,
+		CreateTime: 600,
+	}).Error)
 
 	firstPage, total, err := GetWalletTransactions(userId, &common.PageInfo{Page: 1, PageSize: 2})
 	require.NoError(t, err)
@@ -56,4 +66,5 @@ func TestGetWalletTransactionsCombinesWalletCreditSources(t *testing.T) {
 	assert.Equal(t, "wallet-ledger-topup", secondPage[0].TradeNo)
 	assert.Equal(t, PaymentMethodStripe, secondPage[0].PaymentMethod)
 	assert.EqualValues(t, common.QuotaFromFloat(10*common.QuotaPerUnit), secondPage[0].Amount)
+	assert.Equal(t, common.TopUpStatusSuccess, secondPage[0].Status)
 }

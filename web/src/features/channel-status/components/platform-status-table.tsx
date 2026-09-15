@@ -16,7 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { KeyboardEvent } from 'react'
+import {
+  Alert02Icon,
+  InformationCircleIcon,
+  MultiplicationSignCircleIcon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { useMemo, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
@@ -29,12 +35,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
+import { PluginModelList } from '@/features/task-plugins/components/plugin-model-list'
 import { formatTimestampToDate } from '@/lib/format'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
 import type {
   ChannelHealth,
+  ChannelStatusNotice,
   ChannelStatusRow,
   ChannelTestRecord,
 } from '../types'
@@ -42,6 +50,7 @@ import type { AvailabilityDays } from './status-cards'
 
 type PlatformStatusTableProps = {
   rows: ChannelStatusRow[]
+  notices?: ChannelStatusNotice[]
   loading: boolean
   availabilityDays?: AvailabilityDays
   onRowClick?: (row: ChannelStatusRow) => void
@@ -75,11 +84,57 @@ const testPlaceholderKeys = Array.from(
 
 const degradedLatencyMs = 6000
 const channelColumnClass =
-  'lg:grid-cols-[minmax(180px,260px)_110px_96px_104px_104px_minmax(260px,1fr)]'
+  'lg:grid-cols-[minmax(180px,240px)_116px_96px_96px_104px_104px_minmax(240px,1fr)]'
+
+const noticePresentation = {
+  normal: {
+    icon: InformationCircleIcon,
+    className: 'border-info/30 bg-info/10 text-info',
+  },
+  warning: {
+    icon: Alert02Icon,
+    className: 'border-warning/40 bg-warning/10 text-warning',
+  },
+  error: {
+    icon: MultiplicationSignCircleIcon,
+    className: 'border-destructive/30 bg-destructive/10 text-destructive',
+  },
+} as const
+
+const platformDisplayNames = new Map<string, string>([['Anthropic', 'Claude']])
+const preferredPlatformOrder = new Map<string, number>(
+  [
+    'OpenAI',
+    'Claude',
+    'DeepSeek',
+    'Gemini',
+    'Azure',
+    'OpenRouter',
+    'xAI',
+    'Moonshot',
+    'ZhipuV4',
+    'Zhipu',
+    'Ali',
+    'VolcEngine',
+    'SiliconFlow',
+    'MiniMax',
+    'Mistral',
+    'Cohere',
+    'Perplexity',
+    'AWS',
+    'VertexAI',
+    'Ollama',
+    'vLLM',
+    'SGLang',
+    'New API',
+    'Advanced Custom',
+    'Custom',
+  ].map<[string, number]>((platform, index) => [platform, index])
+)
 
 export function PlatformStatusTable(props: PlatformStatusTableProps) {
   const { t } = useTranslation()
-  const groups = groupRowsByPlatform(props.rows)
+  const groups = useMemo(() => groupRowsByPlatform(props.rows), [props.rows])
 
   if (props.loading) {
     return (
@@ -109,18 +164,31 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
       <div className='h-full min-h-0 overflow-y-auto pr-1'>
         <div className='grid gap-5'>
           {groups.map((group) => (
-            <section key={group.key} aria-labelledby={`platform-${group.key}`}>
-              <div className='mb-2 flex items-center gap-2'>
-                <PlatformGroupIcon row={group.rows[0]} />
-                <h2
-                  id={`platform-${group.key}`}
-                  className='text-sm font-semibold'
-                >
-                  {t(group.label)}
-                </h2>
-                <Badge variant='secondary' className='h-5 px-1.5 text-[11px]'>
-                  {group.rows.length}
-                </Badge>
+            <section
+              key={group.key}
+              data-testid='channel-status-platform'
+              aria-labelledby={`platform-${group.key}`}
+            >
+              <div className='mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                <div className='flex min-w-0 flex-wrap items-center gap-2'>
+                  <PlatformGroupIcon row={group.rows[0]} />
+                  <h2
+                    id={`platform-${group.key}`}
+                    className='text-sm font-semibold'
+                  >
+                    {t(group.label)}
+                  </h2>
+                  <Badge variant='secondary' className='h-5 px-1.5 text-[11px]'>
+                    {group.rows.length}
+                  </Badge>
+                </div>
+                <PlatformStatusNotice
+                  notice={props.notices?.find((notice) =>
+                    group.rows.some(
+                      (row) => row.channel_type === notice.channel_type
+                    )
+                  )}
+                />
               </div>
               <Card data-card-hover='false' className='overflow-hidden'>
                 <div
@@ -132,6 +200,7 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
                   <span>
                     {t('Channel')} / {t('Model')}
                   </span>
+                  <span>{t('Supported models')}</span>
                   <span>{t('Status')}</span>
                   <span>{t('Group ratio')}</span>
                   <span>{t('Latency')}</span>
@@ -158,6 +227,41 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
   )
 }
 
+function PlatformStatusNotice(props: {
+  notice: ChannelStatusNotice | undefined
+}) {
+  if (!props.notice) return null
+
+  const presentation = noticePresentation[props.notice.level]
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <div
+            data-testid='channel-status-notice'
+            data-level={props.notice.level}
+            className={cn(
+              'flex min-w-0 max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs sm:max-w-[55%]',
+              presentation.className
+            )}
+          />
+        }
+      >
+        <HugeiconsIcon
+          icon={presentation.icon}
+          strokeWidth={2}
+          className='size-3.5 shrink-0'
+          aria-hidden='true'
+        />
+        <span className='truncate'>{props.notice.content}</span>
+      </TooltipTrigger>
+      <TooltipContent className='max-w-sm whitespace-normal'>
+        {props.notice.content}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function groupRowsByPlatform(rows: ChannelStatusRow[]): PlatformGroup[] {
   const groups = new Map<string, ChannelStatusRow[]>()
   for (const row of rows) {
@@ -166,19 +270,40 @@ function groupRowsByPlatform(rows: ChannelStatusRow[]): PlatformGroup[] {
   }
 
   return [...groups.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => comparePlatformNames(left, right))
     .map(([label, groupRows]) => ({
-      key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      key: label.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-'),
       label,
       rows: [...groupRows].sort(compareStatusRows),
     }))
 }
 
-export function getStatusPlatform(row: ChannelStatusRow): string {
-  return row.provider?.trim() || 'Unknown'
+function getStatusPlatform(row: ChannelStatusRow): string {
+  const provider = row.provider?.trim() || 'Unknown'
+  return platformDisplayNames.get(provider) ?? provider
+}
+
+function comparePlatformNames(left: string, right: string): number {
+  const leftOrder = preferredPlatformOrder.get(left) ?? Number.POSITIVE_INFINITY
+  const rightOrder =
+    preferredPlatformOrder.get(right) ?? Number.POSITIVE_INFINITY
+  if (leftOrder !== rightOrder) return leftOrder - rightOrder
+  return left.localeCompare(right, undefined, { sensitivity: 'base' })
 }
 
 function compareStatusRows(left: ChannelStatusRow, right: ChannelStatusRow) {
+  const leftRatios = Object.values(left.group_ratios ?? {}).filter((ratio) =>
+    Number.isFinite(ratio)
+  )
+  const rightRatios = Object.values(right.group_ratios ?? {}).filter((ratio) =>
+    Number.isFinite(ratio)
+  )
+  const leftRatio =
+    leftRatios.length > 0 ? Math.min(...leftRatios) : Number.POSITIVE_INFINITY
+  const rightRatio =
+    rightRatios.length > 0 ? Math.min(...rightRatios) : Number.POSITIVE_INFINITY
+  if (leftRatio !== rightRatio) return leftRatio - rightRatio
+
   const leftName = left.channel_name || left.model_name
   const rightName = right.channel_name || right.model_name
   return leftName.localeCompare(rightName)
@@ -208,6 +333,19 @@ function PlatformStatusRow(props: {
   const availability = getAvailability(props.row, props.availabilityDays)
   const channelName = props.row.channel_name || props.row.model_name
   const modelName = props.row.model_name
+  const supportedModels = useMemo(
+    () =>
+      [
+        ...new Set(
+          (props.row.models ?? [])
+            .map((model) => model.trim())
+            .filter((model) => model.length > 0)
+        ),
+      ].sort((left, right) =>
+        left.localeCompare(right, undefined, { sensitivity: 'base' })
+      ),
+    [props.row.models]
+  )
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (!isInteractive || (event.key !== 'Enter' && event.key !== ' ')) return
@@ -231,35 +369,41 @@ function PlatformStatusRow(props: {
     >
       <div className='flex min-w-0 items-center gap-3'>
         <ChannelTypeLogo row={props.row} size={18} className='size-8' />
-        <Tooltip>
-          <TooltipTrigger render={<div className='min-w-0 flex-1' />}>
-            {props.row.channel_name ? (
-              <div className='truncate text-sm font-semibold'>
-                {channelName}
-              </div>
-            ) : (
-              <ModelLink
-                modelName={modelName}
-                className='text-sm font-semibold'
-                onModelClick={props.onModelClick}
-              />
-            )}
-            {props.row.channel_name ? (
-              <ModelLink
-                modelName={modelName}
-                className='font-mono text-xs'
-                onModelClick={props.onModelClick}
-              />
-            ) : null}
-          </TooltipTrigger>
-          <TooltipContent className='max-w-sm flex-col items-start break-all'>
-            <span>{channelName}</span>
-            {props.row.channel_name ? (
-              <span className='font-mono'>{modelName}</span>
-            ) : null}
-          </TooltipContent>
-        </Tooltip>
+        <div className='min-w-0 flex-1'>
+          <Tooltip>
+            <TooltipTrigger render={<div className='min-w-0' />}>
+              {props.row.channel_name ? (
+                <div className='truncate text-sm font-semibold'>
+                  {channelName}
+                </div>
+              ) : (
+                <ModelLink
+                  modelName={modelName}
+                  className='text-sm font-semibold'
+                  onModelClick={props.onModelClick}
+                />
+              )}
+              {props.row.channel_name ? (
+                <ModelLink
+                  modelName={modelName}
+                  className='font-mono text-xs'
+                  onModelClick={props.onModelClick}
+                />
+              ) : null}
+            </TooltipTrigger>
+            <TooltipContent className='max-w-sm flex-col items-start break-all'>
+              <span>{channelName}</span>
+              {props.row.channel_name ? (
+                <span className='font-mono'>{modelName}</span>
+              ) : null}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
+      <SupportedModelsCell
+        label={t('Supported models')}
+        models={supportedModels}
+      />
       <div className='flex items-center gap-2 lg:block'>
         <span className='text-muted-foreground w-24 text-xs lg:hidden'>
           {t('Status')}
@@ -273,7 +417,7 @@ function PlatformStatusRow(props: {
       </div>
       <RatioCell
         label={t('Group ratio')}
-        ratios={Object.values(props.row.group_ratios ?? {})}
+        ratios={props.row.group_ratios ?? {}}
       />
       <MetricCell label={t('Latency')} value={formatLatency(props.row)} />
       <MetricCell
@@ -399,6 +543,27 @@ function ModelLink(props: {
   )
 }
 
+function SupportedModelsCell(props: { label: string; models: string[] }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='flex items-center gap-2 lg:block'>
+      <span className='text-muted-foreground w-24 shrink-0 text-xs lg:hidden'>
+        {props.label}
+      </span>
+      {props.models.length > 0 ? (
+        <PluginModelList
+          models={props.models}
+          collapsedLabel={`${t('View')} (${props.models.length})`}
+          popoverTitle={props.label}
+        />
+      ) : (
+        <span className='text-muted-foreground text-sm'>—</span>
+      )}
+    </div>
+  )
+}
+
 function MetricCell(props: { label: string; value: string }) {
   return (
     <div className='flex items-center gap-2 lg:block'>
@@ -412,17 +577,18 @@ function MetricCell(props: { label: string; value: string }) {
   )
 }
 
-function RatioCell(props: { label: string; ratios: number[] }) {
+function RatioCell(props: { label: string; ratios: Record<string, number> }) {
+  const ratios = Object.entries(props.ratios)
   return (
     <div className='flex items-center gap-2 lg:block'>
       <span className='text-muted-foreground w-24 text-xs lg:hidden'>
         {props.label}
       </span>
       <div className='flex min-w-0 flex-wrap items-center gap-1'>
-        {props.ratios.length > 0 ? (
-          props.ratios.map((ratio, index) => (
+        {ratios.length > 0 ? (
+          ratios.map(([group, ratio]) => (
             <Badge
-              key={`${ratio}-${index}`}
+              key={group}
               variant='warning'
               className='h-5 px-1.5 font-mono text-[11px]'
             >

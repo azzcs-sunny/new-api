@@ -27,7 +27,7 @@ import {
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Settings2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -68,6 +68,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Tooltip,
@@ -75,6 +76,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useIsSidebarModuleVisible } from '@/hooks/use-sidebar-config'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -91,6 +93,8 @@ import {
 } from './api'
 import { exportProcessingInvoices } from './lib/export-invoices'
 import type { Invoice, InvoiceOrder } from './types'
+
+type AdminInvoiceTab = 'management' | 'mine'
 
 function Icon({
   icon,
@@ -178,7 +182,7 @@ export function OrderRow({
   )
 }
 
-function InvoiceForm() {
+function InvoiceForm(props: { embedded?: boolean } = {}) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [eligiblePage, setEligiblePage] = useState(1)
@@ -256,7 +260,7 @@ function InvoiceForm() {
     form.email === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
   const setField = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }))
-  let ordersContent: React.ReactNode
+  let ordersContent: ReactNode
   if (ordersQuery.isLoading) {
     ordersContent = (
       <div className='text-muted-foreground flex items-center justify-center gap-2 p-10 text-sm'>
@@ -300,425 +304,417 @@ function InvoiceForm() {
     ))
   }
 
-  return (
-    <SectionPageLayout fixedContent>
-      <SectionPageLayout.Title>{t('Invoices')}</SectionPageLayout.Title>
-      <SectionPageLayout.Content>
-        <div className='space-y-6'>
-          {ordersQuery.data?.description && (
-            <Alert className='border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100'>
-              <Icon
-                icon={Alert02Icon}
-                className='text-amber-600 dark:text-amber-400'
-              />
-              <AlertTitle>{t('Friendly reminder')}</AlertTitle>
-              <AlertDescription className='whitespace-pre-wrap text-amber-900/80 dark:text-amber-100/80'>
-                {ordersQuery.data.description}
-              </AlertDescription>
-            </Alert>
-          )}
+  const content = (
+    <div className='space-y-6'>
+      {ordersQuery.data?.description && (
+        <Alert className='border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100'>
+          <Icon
+            icon={Alert02Icon}
+            className='text-amber-600 dark:text-amber-400'
+          />
+          <AlertTitle>{t('Friendly reminder')}</AlertTitle>
+          <AlertDescription className='whitespace-pre-wrap text-amber-900/80 dark:text-amber-100/80'>
+            {ordersQuery.data.description}
+          </AlertDescription>
+        </Alert>
+      )}
 
-          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-            {canSubmit && !ordersQuery.isLoading && orders.length === 0 && (
-              <Alert className='sm:max-w-xl'>
-                <AlertDescription>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        {canSubmit && !ordersQuery.isLoading && orders.length === 0 && (
+          <Alert className='sm:max-w-xl'>
+            <AlertDescription>
+              {t(
+                'Only successful top-up orders that have not been invoiced can be selected.'
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+        <Dialog
+          title={t('Request an invoice')}
+          description={t(
+            'Select completed orders and provide your invoice information.'
+          )}
+          open={invoiceDialogOpen}
+          onOpenChange={setInvoiceDialogOpen}
+          contentClassName='sm:max-w-3xl'
+        >
+          <div className='grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]'>
+            <Card className='overflow-hidden'>
+              <CardHeader className='bg-muted/20 border-b'>
+                <CardTitle className='flex items-center justify-between gap-3 text-base'>
+                  <span>{t('Eligible top-up orders')}</span>
+                  <span className='text-muted-foreground text-xs font-normal'>
+                    {t('{{count}} order(s) selected', {
+                      count: selected.length,
+                    })}
+                  </span>
+                </CardTitle>
+                <div className='text-muted-foreground border-t pt-3 text-xs'>
+                  <span className='font-medium'>{t('Order IDs')}:</span>{' '}
+                  <span className='font-mono'>
+                    {selected.length > 0 ? selected.join(', ') : '-'}
+                  </span>
+                </div>
+                <p className='text-muted-foreground text-sm'>
                   {t(
                     'Only successful top-up orders that have not been invoiced can be selected.'
                   )}
-                </AlertDescription>
-              </Alert>
-            )}
-            <Dialog
-              title={t('Request an invoice')}
-              description={t(
-                'Select completed orders and provide your invoice information.'
-              )}
-              open={invoiceDialogOpen}
-              onOpenChange={setInvoiceDialogOpen}
-              contentClassName='sm:max-w-3xl'
-            >
-              <div className='grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]'>
-                <Card className='overflow-hidden'>
-                  <CardHeader className='bg-muted/20 border-b'>
-                    <CardTitle className='flex items-center justify-between gap-3 text-base'>
-                      <span>{t('Eligible top-up orders')}</span>
-                      <span className='text-muted-foreground text-xs font-normal'>
-                        {t('{{count}} order(s) selected', {
-                          count: selected.length,
-                        })}
-                      </span>
-                    </CardTitle>
-                    <div className='text-muted-foreground border-t pt-3 text-xs'>
-                      <span className='font-medium'>{t('Order IDs')}:</span>{' '}
-                      <span className='font-mono'>
-                        {selected.length > 0 ? selected.join(', ') : '-'}
-                      </span>
-                    </div>
-                    <p className='text-muted-foreground text-sm'>
-                      {t(
-                        'Only successful top-up orders that have not been invoiced can be selected.'
-                      )}
-                    </p>
-                  </CardHeader>
-                  <CardContent className='p-0'>{ordersContent}</CardContent>
-                  {(ordersQuery.data?.total || 0) > 20 && (
-                    <div className='border-t px-4 py-3'>
-                      <Pagination
-                        page={eligiblePage}
-                        total={ordersQuery.data?.total || 0}
-                        pageSize={20}
-                        loading={ordersQuery.isFetching}
-                        onPageChange={setEligiblePage}
-                      />
-                    </div>
-                  )}
-                </Card>
-
-                <Card>
-                  <CardHeader className='bg-muted/20 border-b'>
-                    <CardTitle className='flex items-center gap-2 text-base'>
-                      <Icon
-                        icon={
-                          buyerType === 'company' ? Building03Icon : UserIcon
-                        }
-                        className='size-4'
-                      />
-                      {t('Invoice information')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className='pt-5'>
-                    <FieldGroup>
-                      {!canSubmit && (
-                        <div className='bg-destructive/10 text-destructive flex items-start gap-2 rounded-lg p-3 text-sm'>
-                          <Icon
-                            icon={InformationCircleIcon}
-                            className='mt-0.5 size-4 shrink-0'
-                          />
-                          {t(
-                            'Please wait until the current request window ends before submitting another invoice.'
-                          )}
-                        </div>
-                      )}
-                      <Field>
-                        <FieldLabel>{t('Invoice type')}</FieldLabel>
-                        <Select value='normal' disabled>
-                          <SelectTrigger>
-                            <SelectValue>
-                              {t('Electronic normal invoice')}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value='normal'>
-                                {t('Electronic normal invoice')}
-                              </SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field>
-                        <FieldLabel>{t('Title type')}</FieldLabel>
-                        <Select value='company' disabled>
-                          <SelectTrigger>
-                            <SelectValue>{t('Unit')}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value='individual'>
-                                {t('Individual')}
-                              </SelectItem>
-                              <SelectItem value='company'>
-                                {t('Unit')}
-                              </SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor='invoice-title'>
-                          {t('Title name')}
-                        </FieldLabel>
-                        <Input
-                          id='invoice-title'
-                          value={form.title}
-                          maxLength={200}
-                          onChange={(e) => setField('title', e.target.value)}
-                          placeholder={t('Enter the invoice title')}
-                        />
-                      </Field>
-                      {buyerType === 'company' && (
-                        <Field>
-                          <FieldLabel htmlFor='invoice-tax'>
-                            {t('Unit tax number')}
-                          </FieldLabel>
-                          <Input
-                            id='invoice-tax'
-                            value={form.tax_number}
-                            maxLength={100}
-                            onChange={(e) =>
-                              setField('tax_number', e.target.value)
-                            }
-                            placeholder={t('Enter the unit tax number')}
-                          />
-                          <FieldDescription>
-                            {t('Required for company invoices')}
-                          </FieldDescription>
-                        </Field>
-                      )}
-                      <Field>
-                        <FieldLabel htmlFor='invoice-email'>
-                          {t('Email')}
-                        </FieldLabel>
-                        <Input
-                          id='invoice-email'
-                          type='email'
-                          value={form.email}
-                          maxLength={254}
-                          aria-invalid={!emailIsValid}
-                          onChange={(e) => setField('email', e.target.value)}
-                          placeholder={t('Enter your email')}
-                        />
-                        {!emailIsValid && (
-                          <FieldDescription className='text-destructive'>
-                            {t('Invalid email address')}
-                          </FieldDescription>
-                        )}
-                        <FieldDescription className='text-destructive font-medium'>
-                          {t('The invoice will be sent to this email address.')}
-                        </FieldDescription>
-                      </Field>
-                      {buyerType === 'company' && (
-                        <>
-                          <Button
-                            type='button'
-                            variant='ghost'
-                            size='sm'
-                            className='w-fit px-0'
-                            aria-expanded={showMoreSettings}
-                            onClick={() =>
-                              setShowMoreSettings((value) => !value)
-                            }
-                          >
-                            <Icon
-                              icon={
-                                showMoreSettings
-                                  ? ArrowUp01Icon
-                                  : ArrowDown01Icon
-                              }
-                              className='size-4'
-                            />
-                            {t(
-                              showMoreSettings
-                                ? 'Hide more settings'
-                                : 'Show more settings'
-                            )}
-                          </Button>
-                          {showMoreSettings && (
-                            <div className='grid gap-4 sm:grid-cols-2'>
-                              <Field className='sm:col-span-2'>
-                                <FieldLabel htmlFor='invoice-address'>
-                                  {t('Registered address')}
-                                </FieldLabel>
-                                <Textarea
-                                  id='invoice-address'
-                                  value={form.address}
-                                  maxLength={500}
-                                  onChange={(e) =>
-                                    setField('address', e.target.value)
-                                  }
-                                  placeholder={t(
-                                    'Enter the registered address'
-                                  )}
-                                />
-                              </Field>
-                              <Field>
-                                <FieldLabel htmlFor='invoice-phone'>
-                                  {t('Registered phone')}
-                                </FieldLabel>
-                                <Input
-                                  id='invoice-phone'
-                                  value={form.phone}
-                                  maxLength={50}
-                                  onChange={(e) =>
-                                    setField('phone', e.target.value)
-                                  }
-                                  placeholder={t(
-                                    'Enter your registered phone number'
-                                  )}
-                                />
-                              </Field>
-                              <Field>
-                                <FieldLabel htmlFor='invoice-bank'>
-                                  {t('Bank name')}
-                                </FieldLabel>
-                                <Input
-                                  id='invoice-bank'
-                                  value={form.bank_name}
-                                  maxLength={200}
-                                  onChange={(e) =>
-                                    setField('bank_name', e.target.value)
-                                  }
-                                  placeholder={t('Enter the bank name')}
-                                />
-                              </Field>
-                              <Field>
-                                <FieldLabel htmlFor='invoice-account'>
-                                  {t('Bank account')}
-                                </FieldLabel>
-                                <Input
-                                  id='invoice-account'
-                                  value={form.bank_account}
-                                  maxLength={100}
-                                  onChange={(e) =>
-                                    setField('bank_account', e.target.value)
-                                  }
-                                  placeholder={t('Enter the bank account')}
-                                />
-                              </Field>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      <Button
-                        className='w-full'
-                        disabled={
-                          !canSubmit ||
-                          selected.length === 0 ||
-                          !form.title.trim() ||
-                          !emailIsValid ||
-                          mutation.isPending
-                        }
-                        onClick={() => mutation.mutate()}
-                      >
-                        {mutation.isPending ? (
-                          <Icon
-                            icon={Loading03Icon}
-                            className='size-4 animate-spin'
-                          />
-                        ) : (
-                          <Icon icon={AddInvoiceIcon} className='size-4' />
-                        )}
-                        {t('Submit invoice request')}
-                      </Button>
-                    </FieldGroup>
-                  </CardContent>
-                </Card>
-              </div>
-            </Dialog>
-          </div>
-
-          <section className='space-y-3'>
-            <div className='flex items-center justify-between gap-3'>
-              <div>
-                <h2 className='text-base font-semibold'>
-                  {t('Invoice history')}
-                </h2>
-                <p className='text-muted-foreground text-sm'>
-                  {t('Track the status of your previous invoice requests.')}
                 </p>
-              </div>
-              {!canSubmit ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger render={<span className='inline-flex' />}>
-                      <Button disabled>
-                        <Icon icon={AddInvoiceIcon} className='size-4' />
-                        {t('Add invoice')}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side='top' className='max-w-xs text-center'>
+              </CardHeader>
+              <CardContent className='p-0'>{ordersContent}</CardContent>
+              {(ordersQuery.data?.total || 0) > 20 && (
+                <div className='border-t px-4 py-3'>
+                  <Pagination
+                    page={eligiblePage}
+                    total={ordersQuery.data?.total || 0}
+                    pageSize={20}
+                    loading={ordersQuery.isFetching}
+                    onPageChange={setEligiblePage}
+                  />
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <CardHeader className='bg-muted/20 border-b'>
+                <CardTitle className='flex items-center gap-2 text-base'>
+                  <Icon
+                    icon={buyerType === 'company' ? Building03Icon : UserIcon}
+                    className='size-4'
+                  />
+                  {t('Invoice information')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='pt-5'>
+                <FieldGroup>
+                  {!canSubmit && (
+                    <div className='bg-destructive/10 text-destructive flex items-start gap-2 rounded-lg p-3 text-sm'>
+                      <Icon
+                        icon={InformationCircleIcon}
+                        className='mt-0.5 size-4 shrink-0'
+                      />
                       {t(
                         'Please wait until the current request window ends before submitting another invoice.'
                       )}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <Button
-                  disabled={orders.length === 0}
-                  onClick={() => setInvoiceDialogOpen(true)}
-                >
-                  <Icon icon={AddInvoiceIcon} className='size-4' />
-                  {t('Add invoice')}
-                </Button>
-              )}
-            </div>
-            <Card className='overflow-hidden'>
-              <CardContent className='max-h-[min(45vh,28rem)] overflow-auto p-0'>
-                {(invoicesQuery.data?.items || []).length === 0 ? (
-                  <Empty className='min-h-48 rounded-none border-0'>
-                    <EmptyHeader>
-                      <EmptyMedia variant='icon'>
-                        <Icon icon={FileIcon} />
-                      </EmptyMedia>
-                      <EmptyTitle>{t('No invoice requests yet.')}</EmptyTitle>
-                      <EmptyDescription>
-                        {t('Your submitted requests will appear here.')}
-                      </EmptyDescription>
-                    </EmptyHeader>
-                  </Empty>
-                ) : (
-                  <Table className='min-w-[760px]'>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('Invoice ID')}</TableHead>
-                        <TableHead>{t('Status')}</TableHead>
-                        <TableHead>{t('Invoice title')}</TableHead>
-                        <TableHead>{t('Top-up orders')}</TableHead>
-                        <TableHead>{t('Amount')}</TableHead>
-                        <TableHead>{t('Submitted at')}</TableHead>
-                        <TableHead>{t('Notes')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(invoicesQuery.data?.items || []).map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className='font-medium'>
-                            #{invoice.id}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(invoice.status)}>
-                              {statusLabel(invoice.status, t)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className='max-w-48 truncate'>
-                            {invoice.title}
-                          </TableCell>
-                          <TableCell className='max-w-64 whitespace-normal'>
-                            {invoice.orders
-                              ?.map((order) => order.topup.trade_no)
-                              .join(', ') || '-'}
-                          </TableCell>
-                          <TableCell className='whitespace-nowrap'>
-                            {invoice.amount.toFixed(2)}
-                          </TableCell>
-                          <TableCell className='whitespace-nowrap'>
-                            {new Date(
-                              invoice.create_time * 1000
-                            ).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className='max-w-56 text-xs whitespace-normal'>
-                            {invoiceNotes(invoice, t)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                    </div>
+                  )}
+                  <Field>
+                    <FieldLabel>{t('Invoice type')}</FieldLabel>
+                    <Select value='normal' disabled>
+                      <SelectTrigger>
+                        <SelectValue>
+                          {t('Electronic normal invoice')}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value='normal'>
+                            {t('Electronic normal invoice')}
+                          </SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel>{t('Title type')}</FieldLabel>
+                    <Select value='company' disabled>
+                      <SelectTrigger>
+                        <SelectValue>{t('Unit')}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value='individual'>
+                            {t('Individual')}
+                          </SelectItem>
+                          <SelectItem value='company'>{t('Unit')}</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor='invoice-title'>
+                      {t('Title name')}
+                    </FieldLabel>
+                    <Input
+                      id='invoice-title'
+                      value={form.title}
+                      maxLength={200}
+                      onChange={(e) => setField('title', e.target.value)}
+                      placeholder={t('Enter the invoice title')}
+                    />
+                  </Field>
+                  {buyerType === 'company' && (
+                    <Field>
+                      <FieldLabel htmlFor='invoice-tax'>
+                        {t('Unit tax number')}
+                      </FieldLabel>
+                      <Input
+                        id='invoice-tax'
+                        value={form.tax_number}
+                        maxLength={100}
+                        onChange={(e) => setField('tax_number', e.target.value)}
+                        placeholder={t('Enter the unit tax number')}
+                      />
+                      <FieldDescription>
+                        {t('Required for company invoices')}
+                      </FieldDescription>
+                    </Field>
+                  )}
+                  <Field>
+                    <FieldLabel htmlFor='invoice-email'>
+                      {t('Email')}
+                    </FieldLabel>
+                    <Input
+                      id='invoice-email'
+                      type='email'
+                      value={form.email}
+                      maxLength={254}
+                      aria-invalid={!emailIsValid}
+                      onChange={(e) => setField('email', e.target.value)}
+                      placeholder={t('Enter your email')}
+                    />
+                    {!emailIsValid && (
+                      <FieldDescription className='text-destructive'>
+                        {t('Invalid email address')}
+                      </FieldDescription>
+                    )}
+                    <FieldDescription className='text-destructive font-medium'>
+                      {t('The invoice will be sent to this email address.')}
+                    </FieldDescription>
+                  </Field>
+                  {buyerType === 'company' && (
+                    <>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='w-fit px-0'
+                        aria-expanded={showMoreSettings}
+                        onClick={() => setShowMoreSettings((value) => !value)}
+                      >
+                        <Icon
+                          icon={
+                            showMoreSettings ? ArrowUp01Icon : ArrowDown01Icon
+                          }
+                          className='size-4'
+                        />
+                        {t(
+                          showMoreSettings
+                            ? 'Hide more settings'
+                            : 'Show more settings'
+                        )}
+                      </Button>
+                      {showMoreSettings && (
+                        <div className='grid gap-4 sm:grid-cols-2'>
+                          <Field className='sm:col-span-2'>
+                            <FieldLabel htmlFor='invoice-address'>
+                              {t('Registered address')}
+                            </FieldLabel>
+                            <Textarea
+                              id='invoice-address'
+                              value={form.address}
+                              maxLength={500}
+                              onChange={(e) =>
+                                setField('address', e.target.value)
+                              }
+                              placeholder={t('Enter the registered address')}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor='invoice-phone'>
+                              {t('Registered phone')}
+                            </FieldLabel>
+                            <Input
+                              id='invoice-phone'
+                              value={form.phone}
+                              maxLength={50}
+                              onChange={(e) =>
+                                setField('phone', e.target.value)
+                              }
+                              placeholder={t(
+                                'Enter your registered phone number'
+                              )}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor='invoice-bank'>
+                              {t('Bank name')}
+                            </FieldLabel>
+                            <Input
+                              id='invoice-bank'
+                              value={form.bank_name}
+                              maxLength={200}
+                              onChange={(e) =>
+                                setField('bank_name', e.target.value)
+                              }
+                              placeholder={t('Enter the bank name')}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor='invoice-account'>
+                              {t('Bank account')}
+                            </FieldLabel>
+                            <Input
+                              id='invoice-account'
+                              value={form.bank_account}
+                              maxLength={100}
+                              onChange={(e) =>
+                                setField('bank_account', e.target.value)
+                              }
+                              placeholder={t('Enter the bank account')}
+                            />
+                          </Field>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <Button
+                    className='w-full'
+                    disabled={
+                      !canSubmit ||
+                      selected.length === 0 ||
+                      !form.title.trim() ||
+                      !emailIsValid ||
+                      mutation.isPending
+                    }
+                    onClick={() => mutation.mutate()}
+                  >
+                    {mutation.isPending ? (
+                      <Icon
+                        icon={Loading03Icon}
+                        className='size-4 animate-spin'
+                      />
+                    ) : (
+                      <Icon icon={AddInvoiceIcon} className='size-4' />
+                    )}
+                    {t('Submit invoice request')}
+                  </Button>
+                </FieldGroup>
               </CardContent>
             </Card>
-            {(invoicesQuery.data?.total || 0) > 20 && (
-              <Pagination
-                page={page}
-                total={invoicesQuery.data?.total || 0}
-                pageSize={20}
-                loading={invoicesQuery.isFetching}
-                onPageChange={setPage}
-              />
-            )}
-          </section>
+          </div>
+        </Dialog>
+      </div>
+
+      <section className='space-y-3'>
+        <div className='flex items-center justify-between gap-3'>
+          <div>
+            <h2 className='text-base font-semibold'>{t('Invoice history')}</h2>
+            <p className='text-muted-foreground text-sm'>
+              {t('Track the status of your previous invoice requests.')}
+            </p>
+          </div>
+          {!canSubmit ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger render={<span className='inline-flex' />}>
+                  <Button disabled>
+                    <Icon icon={AddInvoiceIcon} className='size-4' />
+                    {t('Add invoice')}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top' className='max-w-xs text-center'>
+                  {t(
+                    'Please wait until the current request window ends before submitting another invoice.'
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button
+              disabled={orders.length === 0}
+              onClick={() => setInvoiceDialogOpen(true)}
+            >
+              <Icon icon={AddInvoiceIcon} className='size-4' />
+              {t('Add invoice')}
+            </Button>
+          )}
         </div>
-      </SectionPageLayout.Content>
+        <Card className='overflow-hidden'>
+          <CardContent className='max-h-[min(45vh,28rem)] overflow-auto p-0'>
+            {(invoicesQuery.data?.items || []).length === 0 ? (
+              <Empty className='min-h-48 rounded-none border-0'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <Icon icon={FileIcon} />
+                  </EmptyMedia>
+                  <EmptyTitle>{t('No invoice requests yet.')}</EmptyTitle>
+                  <EmptyDescription>
+                    {t('Your submitted requests will appear here.')}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <Table className='min-w-[760px]'>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('Invoice ID')}</TableHead>
+                    <TableHead>{t('Status')}</TableHead>
+                    <TableHead>{t('Invoice title')}</TableHead>
+                    <TableHead>{t('Top-up orders')}</TableHead>
+                    <TableHead>{t('Amount')}</TableHead>
+                    <TableHead>{t('Submitted at')}</TableHead>
+                    <TableHead>{t('Notes')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(invoicesQuery.data?.items || []).map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className='font-medium'>
+                        #{invoice.id}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(invoice.status)}>
+                          {statusLabel(invoice.status, t)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='max-w-48 truncate'>
+                        {invoice.title}
+                      </TableCell>
+                      <TableCell className='max-w-64 whitespace-normal'>
+                        {invoice.orders
+                          ?.map((order) => order.topup.trade_no)
+                          .join(', ') || '-'}
+                      </TableCell>
+                      <TableCell className='whitespace-nowrap'>
+                        {invoice.amount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className='whitespace-nowrap'>
+                        {new Date(
+                          invoice.create_time * 1000
+                        ).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className='max-w-56 text-xs whitespace-normal'>
+                        {invoiceNotes(invoice, t)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+        {(invoicesQuery.data?.total || 0) > 20 && (
+          <Pagination
+            page={page}
+            total={invoicesQuery.data?.total || 0}
+            pageSize={20}
+            loading={invoicesQuery.isFetching}
+            onPageChange={setPage}
+          />
+        )}
+      </section>
+    </div>
+  )
+
+  if (props.embedded) {
+    return content
+  }
+
+  return (
+    <SectionPageLayout fixedContent>
+      <SectionPageLayout.Title>{t('Invoices')}</SectionPageLayout.Title>
+      <SectionPageLayout.Content>{content}</SectionPageLayout.Content>
     </SectionPageLayout>
   )
 }
@@ -1024,7 +1020,13 @@ export function RejectInvoiceDialog(props: RejectInvoiceDialogProps) {
   )
 }
 
-function AdminInvoices() {
+function AdminInvoices(
+  props: {
+    showOwnRequests?: boolean
+    initialTab?: AdminInvoiceTab
+    onTabChange?: (tab: AdminInvoiceTab) => void
+  } = {}
+) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [status, setStatus] = useState('')
@@ -1102,6 +1104,8 @@ function AdminInvoices() {
     (invoice) =>
       invoice.status === 'processing' && selectedInvoiceIds.includes(invoice.id)
   )
+  const initialTab =
+    props.showOwnRequests && props.initialTab === 'mine' ? 'mine' : 'management'
   const handleExport = async (invoices: Invoice[]) => {
     setIsExporting(true)
     try {
@@ -1115,7 +1119,7 @@ function AdminInvoices() {
       setIsExporting(false)
     }
   }
-  let invoiceContent: React.ReactNode
+  let invoiceContent: ReactNode
   if (query.isLoading) {
     invoiceContent = (
       <div className='text-muted-foreground flex items-center justify-center gap-2 py-16 text-sm'>
@@ -1264,81 +1268,71 @@ function AdminInvoices() {
               {t('Review and issue invoices submitted by users.')}
             </p>
           </div>
-          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-            <div>
-              <h2 className='text-base font-semibold'>
-                {t('Invoice requests')}
-              </h2>
-              <p className='text-muted-foreground text-sm'>
-                {t('Review incoming requests and attach issued invoice files.')}
-              </p>
-            </div>
-            <div className='flex flex-wrap items-center gap-2'>
-              <Select
-                value={status || 'all'}
-                onValueChange={(value) => {
-                  setPage(1)
-                  setSelectedInvoiceIds([])
-                  setStatus(value === 'all' ? '' : value || '')
-                }}
-              >
-                <SelectTrigger className='w-full sm:w-48'>
-                  <SelectValue>
-                    {status ? statusLabel(status, t) : t('All statuses')}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value='all'>{t('All statuses')}</SelectItem>
-                    <SelectItem value='pending'>{t('Pending')}</SelectItem>
-                    <SelectItem value='processing'>
-                      {t('Processing')}
-                    </SelectItem>
-                    <SelectItem value='issued'>{t('Issued')}</SelectItem>
-                    <SelectItem value='rejected'>{t('Rejected')}</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <Button
-                variant='outline'
-                disabled={
-                  isExporting || selectedProcessingInvoices.length === 0
-                }
-                onClick={() => handleExport(selectedProcessingInvoices)}
-              >
-                {isExporting ? (
-                  <Icon icon={Loading03Icon} className='size-4 animate-spin' />
-                ) : (
-                  <Icon icon={Download01Icon} className='size-4' />
-                )}
-                {t(isExporting ? 'Exporting...' : 'Export')}
-              </Button>
-              <Button
-                variant='outline'
-                size='icon'
-                aria-label={t('Refresh')}
-                disabled={query.isFetching}
-                onClick={() => {
-                  setSelectedInvoiceIds([])
-                  void query.refetch()
-                }}
-              >
-                <Icon
-                  icon={Refresh01Icon}
-                  className={
-                    query.isFetching ? 'size-4 animate-spin' : 'size-4'
-                  }
+          {props.showOwnRequests ? (
+            <Tabs
+              key={initialTab}
+              defaultValue={initialTab}
+              className='min-h-0 gap-4'
+              onValueChange={(value) =>
+                props.onTabChange?.(value === 'mine' ? 'mine' : 'management')
+              }
+            >
+              <TabsList className='grid w-full grid-cols-2 sm:w-fit'>
+                <TabsTrigger value='management'>
+                  {t('Invoice Management')}
+                </TabsTrigger>
+                <TabsTrigger value='mine'>
+                  {t('My invoice requests')}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value='management' className='space-y-6'>
+                <AdminInvoiceQueue
+                  status={status}
+                  page={page}
+                  queryIsFetching={query.isFetching}
+                  selectedProcessingInvoices={selectedProcessingInvoices}
+                  isExporting={isExporting}
+                  invoiceContent={invoiceContent}
+                  total={query.data?.total || 0}
+                  onStatusChange={(nextStatus) => {
+                    setPage(1)
+                    setSelectedInvoiceIds([])
+                    setStatus(nextStatus)
+                  }}
+                  onExport={handleExport}
+                  onRefresh={() => {
+                    setSelectedInvoiceIds([])
+                    void query.refetch()
+                  }}
+                  onPageChange={(nextPage) => {
+                    setSelectedInvoiceIds([])
+                    setPage(nextPage)
+                  }}
                 />
-              </Button>
-            </div>
-          </div>
-          {invoiceContent}
-          {(query.data?.total || 0) > 50 && (
-            <Pagination
+              </TabsContent>
+              <TabsContent value='mine'>
+                <InvoiceForm embedded />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <AdminInvoiceQueue
+              status={status}
               page={page}
+              queryIsFetching={query.isFetching}
+              selectedProcessingInvoices={selectedProcessingInvoices}
+              isExporting={isExporting}
+              invoiceContent={invoiceContent}
               total={query.data?.total || 0}
-              pageSize={50}
-              loading={query.isFetching}
+              onStatusChange={(nextStatus) => {
+                setPage(1)
+                setSelectedInvoiceIds([])
+                setStatus(nextStatus)
+              }}
+              onExport={handleExport}
+              onRefresh={() => {
+                setSelectedInvoiceIds([])
+                void query.refetch()
+              }}
               onPageChange={(nextPage) => {
                 setSelectedInvoiceIds([])
                 setPage(nextPage)
@@ -1431,7 +1425,112 @@ function AdminInvoices() {
   )
 }
 
-export function Invoices() {
+function AdminInvoiceQueue(props: {
+  status: string
+  page: number
+  queryIsFetching: boolean
+  selectedProcessingInvoices: Invoice[]
+  isExporting: boolean
+  invoiceContent: ReactNode
+  total: number
+  onStatusChange: (status: string) => void
+  onExport: (invoices: Invoice[]) => void
+  onRefresh: () => void
+  onPageChange: (page: number) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div>
+          <h2 className='text-base font-semibold'>{t('Invoice requests')}</h2>
+          <p className='text-muted-foreground text-sm'>
+            {t('Review incoming requests and attach issued invoice files.')}
+          </p>
+        </div>
+        <div className='flex flex-wrap items-center gap-2'>
+          <Select
+            value={props.status || 'all'}
+            onValueChange={(value) => {
+              props.onStatusChange(value === 'all' ? '' : value || '')
+            }}
+          >
+            <SelectTrigger className='w-full sm:w-48'>
+              <SelectValue>
+                {props.status
+                  ? statusLabel(props.status, t)
+                  : t('All statuses')}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value='all'>{t('All statuses')}</SelectItem>
+                <SelectItem value='pending'>{t('Pending')}</SelectItem>
+                <SelectItem value='processing'>{t('Processing')}</SelectItem>
+                <SelectItem value='issued'>{t('Issued')}</SelectItem>
+                <SelectItem value='rejected'>{t('Rejected')}</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Button
+            variant='outline'
+            disabled={
+              props.isExporting || props.selectedProcessingInvoices.length === 0
+            }
+            onClick={() => props.onExport(props.selectedProcessingInvoices)}
+          >
+            {props.isExporting ? (
+              <Icon icon={Loading03Icon} className='size-4 animate-spin' />
+            ) : (
+              <Icon icon={Download01Icon} className='size-4' />
+            )}
+            {t(props.isExporting ? 'Exporting...' : 'Export')}
+          </Button>
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t('Refresh')}
+            disabled={props.queryIsFetching}
+            onClick={props.onRefresh}
+          >
+            <Icon
+              icon={Refresh01Icon}
+              className={
+                props.queryIsFetching ? 'size-4 animate-spin' : 'size-4'
+              }
+            />
+          </Button>
+        </div>
+      </div>
+      {props.invoiceContent}
+      {props.total > 50 && (
+        <Pagination
+          page={props.page}
+          total={props.total}
+          pageSize={50}
+          loading={props.queryIsFetching}
+          onPageChange={props.onPageChange}
+        />
+      )}
+    </>
+  )
+}
+
+export function Invoices(
+  props: {
+    initialTab?: AdminInvoiceTab
+    onAdminTabChange?: (tab: AdminInvoiceTab) => void
+  } = {}
+) {
   const role = useAuthStore((s) => s.auth.user?.role ?? 0)
-  return role >= ROLE.ADMIN ? <AdminInvoices /> : <InvoiceForm />
+  const showOwnRequests = useIsSidebarModuleVisible('/invoices')
+  return role >= ROLE.ADMIN ? (
+    <AdminInvoices
+      showOwnRequests={showOwnRequests}
+      initialTab={props.initialTab}
+      onTabChange={props.onAdminTabChange}
+    />
+  ) : (
+    <InvoiceForm />
+  )
 }

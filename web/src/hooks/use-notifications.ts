@@ -16,64 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type {
   AnnouncementItem,
   NotificationDialogItem,
 } from '@/components/notification-popover'
 import { useStatus } from '@/hooks/use-status'
-import { getNotice } from '@/lib/api'
-import { requireServerSuccess } from '@/lib/server-error-message'
+import { getAnnouncementKey } from '@/lib/announcement'
 import { useNotificationStore } from '@/stores/notification-store'
-
-function hashString(input: string): string {
-  let hash = 0
-  if (!input) return '0'
-
-  for (let i = 0; i < input.length; i += 1) {
-    const chr = input.charCodeAt(i)
-    hash = (hash << 5) - hash + chr
-    hash |= 0
-  }
-
-  return hash.toString(36)
-}
-
-/**
- * Generate a unique key for an announcement
- * Prefer backend id, fall back to a content hash so edits register
- */
-function getAnnouncementKey(item: AnnouncementItem): string {
-  if (!item) return ''
-
-  if (item.id !== undefined && item.id !== null) {
-    return `id:${item.id}`
-  }
-
-  const fingerprint = JSON.stringify({
-    publishDate: (item?.publishDate as string) || '',
-    content: ((item?.content as string) || '').trim(),
-    extra: ((item?.extra as string) || '').trim(),
-    type: (item?.type as string) || '',
-    title: ((item?.title as string) || '').trim(),
-    link: ((item?.link as string) || '').trim(),
-  })
-  return `hash:${hashString(fingerprint)}`
-}
 
 function getUnreadAnnouncements(
   announcements: AnnouncementItem[],
-  isAnnouncementRead: (key: string) => boolean
+  isAnnouncementRead: (announcement: AnnouncementItem) => boolean
 ) {
-  return announcements.filter(
-    (item) => !isAnnouncementRead(getAnnouncementKey(item))
-  )
+  return announcements.filter((item) => !isAnnouncementRead(item))
 }
 
 /**
- * Hook to manage notifications (Notice + Announcements)
+ * Hook to manage announcements
  * Provides unread counts and read status management
  */
 type UseNotificationsOptions = {
@@ -87,21 +48,7 @@ export function useNotifications({
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
   const [selectedDialogItem, setSelectedDialogItem] =
     useState<NotificationDialogItem | null>(null)
-  const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
-    'notice'
-  )
   const autoPromptShown = useRef(false)
-
-  // Fetch Notice from API
-  const {
-    data: noticeResponse,
-    isLoading: noticeLoading,
-    refetch: refetchNotice,
-  } = useQuery({
-    queryKey: ['notice'],
-    queryFn: async () => requireServerSuccess(await getNotice()),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  })
 
   // Fetch Announcements from status
   const { status, loading: statusLoading } = useStatus()
@@ -112,34 +59,30 @@ export function useNotifications({
   }, [announcementsEnabled, status?.announcements])
 
   // Notification store
-  const {
-    lastReadNotice,
-    markNoticeRead,
-    markAnnouncementsRead,
-    isAnnouncementRead,
-  } = useNotificationStore()
-
-  // Extract notice content
-  const noticeContent = noticeResponse?.success
-    ? (noticeResponse.data || '').trim()
-    : ''
+  const readAnnouncementKeys = useNotificationStore(
+    (state) => state.readAnnouncementKeys
+  )
+  const markAnnouncementsRead = useNotificationStore(
+    (state) => state.markAnnouncementsRead
+  )
+  const isAnnouncementRead = useCallback(
+    (announcement: AnnouncementItem) =>
+      readAnnouncementKeys.includes(getAnnouncementKey(announcement)),
+    [readAnnouncementKeys]
+  )
 
   // Calculate unread counts
   const unreadCounts = useMemo(() => {
-    const noticeUnread =
-      noticeContent && noticeContent !== lastReadNotice ? 1 : 0
-
     const announcementsUnread = getUnreadAnnouncements(
       announcements,
       isAnnouncementRead
     ).length
 
     return {
-      notice: noticeUnread,
       announcements: announcementsUnread,
-      total: noticeUnread + announcementsUnread,
+      total: announcementsUnread,
     }
-  }, [noticeContent, lastReadNotice, announcements, isAnnouncementRead])
+  }, [announcements, isAnnouncementRead])
 
   const firstUnreadDialogItem = useMemo<NotificationDialogItem | null>(() => {
     const firstAnnouncement = getUnreadAnnouncements(
@@ -154,6 +97,9 @@ export function useNotifications({
       : null
   }, [announcements, isAnnouncementRead])
   const dialogItem = selectedDialogItem ?? firstUnreadDialogItem
+  const notificationDialogRead = dialogItem
+    ? isAnnouncementRead(dialogItem.announcement)
+    : false
 
   const markDialogItemAsRead = () => {
     if (!dialogItem) return
@@ -188,71 +134,41 @@ export function useNotifications({
     setNotificationDialogOpen(true)
   }, [autoPrompt, firstUnreadDialogItem, statusLoading])
 
-  const markAnnouncementsAsRead = () => {
-    if (announcements.length > 0) {
-      const allKeys = announcements.map((item) => getAnnouncementKey(item))
-      markAnnouncementsRead(allKeys)
-    }
-  }
-
   // Handle popover open
-  const handleOpenPopover = (tab?: 'notice' | 'announcements') => {
-    const nextTab = tab || activeTab
-
-    // Mark currently visible content as read when opening the notification center
-    if (noticeContent) {
-      markNoticeRead(noticeContent)
-    }
-    if (nextTab === 'announcements') {
-      markAnnouncementsAsRead()
-    }
-
-    setActiveTab(nextTab)
+  const handleOpenPopover = () => {
     setPopoverOpen(true)
   }
 
   const handlePopoverOpenChange = (open: boolean) => {
     if (open) {
-      handleOpenPopover(activeTab)
+      handleOpenPopover()
       return
     }
 
     setPopoverOpen(false)
   }
 
-  // Handle tab change - mark announcements as read when switching to that tab
-  const handleTabChange = (tab: 'notice' | 'announcements') => {
-    setActiveTab(tab)
-
-    if (tab === 'announcements') {
-      markAnnouncementsAsRead()
-    }
-  }
-
   return {
     // Data
-    notice: noticeContent,
     announcements,
-    loading: noticeLoading || statusLoading,
+    loading: statusLoading,
 
     // Unread counts
     unreadCount: unreadCounts.total,
-    unreadNoticeCount: unreadCounts.notice,
     unreadAnnouncementsCount: unreadCounts.announcements,
 
     // Popover state
     popoverOpen,
     setPopoverOpen: handlePopoverOpenChange,
-    activeTab,
-    setActiveTab: handleTabChange,
 
     // Actions
     openPopover: handleOpenPopover,
     closePopover: () => setPopoverOpen(false),
-    refetchNotice,
     notificationDialogOpen,
     setNotificationDialogOpen: handleNotificationDialogOpenChange,
     notificationDialogItem: dialogItem,
+    notificationDialogRead,
+    isAnnouncementRead,
     openAnnouncementDetail,
   }
 }

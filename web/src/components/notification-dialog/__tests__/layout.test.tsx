@@ -30,6 +30,12 @@ const announcements = [
     content: '<strong>HTML notice</strong>\n\n**Markdown notice**',
     publishDate: '2026-08-21T08:00:00.000Z',
   },
+  {
+    id: 2,
+    extra: 'Product update',
+    content: 'New product details',
+    publishDate: '2026-08-22T08:00:00.000Z',
+  },
 ]
 
 const originalGetAnimations = HTMLElement.prototype.getAnimations
@@ -50,10 +56,12 @@ describe('NotificationDialog layout', () => {
         onOpenChange={() => undefined}
         item={{ kind: 'announcement', announcement: announcements[0] }}
         loading={false}
+        read={false}
       />
     )
 
     expect(screen.getByText('Announcements')).toBeInTheDocument()
+    expect(screen.getByText('Unread')).toBeInTheDocument()
     expect(screen.getByText('Maintenance window')).toBeInTheDocument()
     expect(screen.getByText('HTML notice').tagName).toBe('STRONG')
     expect(screen.getByText('Markdown notice').tagName).toBe('STRONG')
@@ -67,6 +75,7 @@ describe('NotificationDialog layout', () => {
         onOpenChange={() => undefined}
         item={{ kind: 'announcement', announcement: announcements[0] }}
         loading={false}
+        read
       />
     )
 
@@ -85,11 +94,9 @@ describe('NotificationDialog layout', () => {
         open
         onOpenChange={() => undefined}
         unreadCount={1}
-        activeTab='announcements'
-        onTabChange={() => undefined}
-        notice=''
         announcements={announcements}
         loading={false}
+        isAnnouncementRead={(announcement) => announcement.id === 1}
         onAnnouncementOpen={onAnnouncementOpen}
       />
     )
@@ -106,6 +113,17 @@ describe('NotificationDialog layout', () => {
     expect(
       itemButton.querySelector('.lucide-chevron-right')
     ).toBeInTheDocument()
+    const readBadge = within(itemButton).getByText('Read')
+    const arrow = itemButton.querySelector('.lucide-chevron-right')
+    expect(
+      readBadge.compareDocumentPosition(arrow as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      within(screen.getByRole('button', { name: /Product update/ })).getByText(
+        'Unread'
+      )
+    ).toBeInTheDocument()
 
     await user.click(itemButton)
 
@@ -118,11 +136,9 @@ describe('NotificationDialog layout', () => {
         open
         onOpenChange={() => undefined}
         unreadCount={1}
-        activeTab='announcements'
-        onTabChange={() => undefined}
-        notice=''
         announcements={announcements}
         loading={false}
+        isAnnouncementRead={() => false}
       />
     )
 

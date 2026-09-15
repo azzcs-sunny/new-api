@@ -18,6 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 export type ChannelHealth = 'unknown' | 'healthy' | 'warning' | 'critical'
 
+export type ChannelStatusNotice = {
+  channel_type: number
+  level: 'normal' | 'warning' | 'error'
+  content: string
+  enabled: boolean
+}
+
 export type ChannelTestRecord = {
   id: number
   model_name: string
@@ -35,6 +42,7 @@ export type ChannelStatusRow = {
   group: string
   group_ratios?: Record<string, number>
   model_name: string
+  models?: string[]
   health: ChannelHealth
   latency_ms: number
   recent_success_rate?: number
@@ -51,6 +59,7 @@ export type ChannelStatusRow = {
 
 export type ChannelStatusResult = {
   items: ChannelStatusRow[]
+  notices?: ChannelStatusNotice[]
 }
 
 export type ChannelStatusResponse = {

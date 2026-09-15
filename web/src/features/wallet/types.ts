@@ -200,6 +200,8 @@ export interface TopupInfo {
   discount: Record<number, number>
   /** Optional topup link for purchasing codes */
   topup_link?: string
+  /** Current user's topup payment multiplier */
+  topup_group_ratio?: number
   /** Whether Creem topup is enabled */
   enable_creem_topup?: boolean
   /** Available Creem products */
@@ -329,6 +331,10 @@ export interface TopupRecord {
   trade_no: string
   /** Payment method type */
   payment_method: string
+  /** Payment provider identifier */
+  payment_provider?: string
+  /** Related redemption code ID when the top-up comes from redemption */
+  redemption_id?: number | null
   /** Creation timestamp */
   create_time: number
   /** Completion timestamp */
@@ -337,6 +343,8 @@ export interface TopupRecord {
   status: TopupStatus
   /** Whether this order has already been invoiced manually */
   invoice_issued: boolean
+  /** Whether this order can be used for invoice requests */
+  invoice_available: boolean
 }
 
 /**

@@ -29,8 +29,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatLocalCurrencyAmount } from '@/lib/currency'
+import { formatNumber } from '@/lib/format'
 
 import { DEFAULT_DISCOUNT_RATE } from '../../constants'
 import { formatCurrency, getPaymentIcon } from '../../lib'
@@ -46,6 +48,7 @@ interface PaymentConfirmDialogProps {
   calculating: boolean
   processing: boolean
   discountRate?: number
+  topupGroupRatio?: number
   usdExchangeRate?: number
 }
 
@@ -59,12 +62,21 @@ export function PaymentConfirmDialog({
   calculating,
   processing,
   discountRate = DEFAULT_DISCOUNT_RATE,
+  topupGroupRatio = 1,
   usdExchangeRate = 1,
 }: PaymentConfirmDialogProps) {
   const { t } = useTranslation()
   const hasDiscount = discountRate > 0 && discountRate < 1 && paymentAmount > 0
   const originalAmount = hasDiscount ? paymentAmount / discountRate : 0
   const discountAmount = hasDiscount ? originalAmount - paymentAmount : 0
+  const hasServiceFee =
+    Number.isFinite(topupGroupRatio) && topupGroupRatio > 1 && paymentAmount > 0
+  const serviceFeeAmount = hasServiceFee
+    ? paymentAmount - paymentAmount / topupGroupRatio
+    : 0
+  const serviceFeePercent = hasServiceFee
+    ? formatNumber((topupGroupRatio - 1) * 100)
+    : ''
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -111,6 +123,20 @@ export function PaymentConfirmDialog({
               </div>
             )}
           </div>
+
+          {hasServiceFee && !calculating && (
+            <div className='flex items-center justify-between'>
+              <div className='text-muted-foreground flex items-center gap-1.5 text-sm'>
+                <span>{t('Service fee')}</span>
+                <Badge variant='warning' className='h-5 px-1.5 text-[11px]'>
+                  {serviceFeePercent}%
+                </Badge>
+              </div>
+              <span className='text-warning font-semibold'>
+                {formatCurrency(serviceFeeAmount)}
+              </span>
+            </div>
+          )}
 
           {hasDiscount && !calculating && (
             <div className='bg-muted/50 rounded-lg p-3'>
