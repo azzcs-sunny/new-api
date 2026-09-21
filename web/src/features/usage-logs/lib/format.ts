@@ -512,6 +512,8 @@ const AUDIT_TEMPLATES: Record<string, string> = {
   'channel.delete': 'Deleted channel {{name}} (ID: {{id}})',
   'channel.delete_batch': 'Batch deleted {{count}} channels',
   'channel.delete_disabled': 'Deleted all disabled channels ({{count}})',
+  'channel.test_history_clear':
+    'Cleared {{count}} active-check records for channel ID {{id}}',
   'channel.key_view': 'Viewed channel key {{name}} (ID: {{id}})',
   'channel.tag_disable': 'Disabled channels with tag {{tag}}',
   'channel.tag_enable': 'Enabled channels with tag {{tag}}',

@@ -54,13 +54,18 @@ export type ChannelStatusRow = {
   availability_30d_samples?: number
   avg_latency_7d_ms?: number
   latest_checked_at?: number
+  active_test_enabled?: boolean
+  visible?: boolean
   records: ChannelTestRecord[]
 }
 
 export type ChannelStatusResult = {
   items: ChannelStatusRow[]
   notices?: ChannelStatusNotice[]
+  degraded_latency_ms?: number
 }
+
+export type AvailabilityDays = 7 | 15 | 30
 
 export type ChannelStatusResponse = {
   success: boolean

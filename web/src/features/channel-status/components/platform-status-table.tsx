@@ -41,18 +41,19 @@ import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
 import type {
+  AvailabilityDays,
   ChannelHealth,
   ChannelStatusNotice,
   ChannelStatusRow,
   ChannelTestRecord,
 } from '../types'
-import type { AvailabilityDays } from './status-cards'
 
 type PlatformStatusTableProps = {
   rows: ChannelStatusRow[]
   notices?: ChannelStatusNotice[]
   loading: boolean
   availabilityDays?: AvailabilityDays
+  degradedLatencyMs: number
   onRowClick?: (row: ChannelStatusRow) => void
   onModelClick?: (modelName: string) => void
 }
@@ -82,7 +83,6 @@ const testPlaceholderKeys = Array.from(
   (_, slot) => `empty-${slot}`
 )
 
-const degradedLatencyMs = 6000
 const channelColumnClass =
   'lg:grid-cols-[minmax(180px,240px)_116px_96px_96px_104px_104px_minmax(240px,1fr)]'
 
@@ -203,7 +203,7 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
                   <span>{t('Supported models')}</span>
                   <span>{t('Status')}</span>
                   <span>{t('Group ratio')}</span>
-                  <span>{t('Latency')}</span>
+                  <span>{t('Conversation latency')}</span>
                   <span>{t('Success rate')}</span>
                   <span>{t('Last 60 tests')}</span>
                 </div>
@@ -213,6 +213,7 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
                       key={`${row.channel_id ?? row.group}-${row.model_name}`}
                       row={row}
                       availabilityDays={props.availabilityDays ?? 7}
+                      degradedLatencyMs={props.degradedLatencyMs}
                       onRowClick={props.onRowClick}
                       onModelClick={props.onModelClick}
                     />
@@ -304,14 +305,15 @@ function compareStatusRows(left: ChannelStatusRow, right: ChannelStatusRow) {
     rightRatios.length > 0 ? Math.min(...rightRatios) : Number.POSITIVE_INFINITY
   if (leftRatio !== rightRatio) return leftRatio - rightRatio
 
-  const leftName = left.channel_name || left.model_name
-  const rightName = right.channel_name || right.model_name
+  const leftName = left.group || left.model_name
+  const rightName = right.group || right.model_name
   return leftName.localeCompare(rightName)
 }
 
 function PlatformStatusRow(props: {
   row: ChannelStatusRow
   availabilityDays: AvailabilityDays
+  degradedLatencyMs: number
   onRowClick?: (row: ChannelStatusRow) => void
   onModelClick?: (modelName: string) => void
 }) {
@@ -372,30 +374,18 @@ function PlatformStatusRow(props: {
         <div className='min-w-0 flex-1'>
           <Tooltip>
             <TooltipTrigger render={<div className='min-w-0' />}>
-              {props.row.channel_name ? (
-                <div className='truncate text-sm font-semibold'>
-                  {channelName}
-                </div>
-              ) : (
-                <ModelLink
-                  modelName={modelName}
-                  className='text-sm font-semibold'
-                  onModelClick={props.onModelClick}
-                />
-              )}
-              {props.row.channel_name ? (
-                <ModelLink
-                  modelName={modelName}
-                  className='font-mono text-xs'
-                  onModelClick={props.onModelClick}
-                />
-              ) : null}
+              <div className='truncate text-sm font-semibold'>
+                {channelName}
+              </div>
+              <ModelLink
+                modelName={modelName}
+                className='font-mono text-xs'
+                onModelClick={props.onModelClick}
+              />
             </TooltipTrigger>
             <TooltipContent className='max-w-sm flex-col items-start break-all'>
               <span>{channelName}</span>
-              {props.row.channel_name ? (
-                <span className='font-mono'>{modelName}</span>
-              ) : null}
+              <span className='font-mono'>{modelName}</span>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -419,7 +409,10 @@ function PlatformStatusRow(props: {
         label={t('Group ratio')}
         ratios={props.row.group_ratios ?? {}}
       />
-      <MetricCell label={t('Latency')} value={formatLatency(props.row)} />
+      <MetricCell
+        label={t('Conversation latency')}
+        value={formatLatency(props.row)}
+      />
       <MetricCell
         label={t('Success rate')}
         value={formatSuccessRate(props.row)}
@@ -464,6 +457,7 @@ function PlatformStatusRow(props: {
             <TestRecordBar
               key={record.id}
               record={record}
+              degradedLatencyMs={props.degradedLatencyMs}
               index={placeholderCount + index}
               total={60}
             />
@@ -607,18 +601,20 @@ function RatioCell(props: { label: string; ratios: Record<string, number> }) {
 
 function TestRecordBar({
   record,
+  degradedLatencyMs,
   index,
   total,
 }: {
   record: ChannelTestRecord
+  degradedLatencyMs: number
   index: number
   total: number
 }) {
   const { t } = useTranslation()
-  const display = recordDisplay(record)
+  const display = recordDisplay(record, degradedLatencyMs)
   const latency = formatLatencyMs(record.latency_ms)
   const testedAt = formatTimestampToMinute(record.tested_at)
-  const statusLabel = getRecordStatusLabel(record, t)
+  const statusLabel = getRecordStatusLabel(record, degradedLatencyMs, t)
 
   return (
     <Tooltip>
@@ -638,7 +634,9 @@ function TestRecordBar({
       />
       <TooltipContent className='min-w-40 flex-col items-stretch gap-1.5'>
         <div className='flex items-center justify-between gap-4'>
-          <span className='text-background/70'>{t('Latency')}</span>
+          <span className='text-background/70'>
+            {t('Conversation latency')}
+          </span>
           <span className='font-mono font-semibold tabular-nums'>
             {latency}
           </span>
@@ -657,6 +655,7 @@ function TestRecordBar({
 
 function getRecordStatusLabel(
   record: ChannelTestRecord,
+  degradedLatencyMs: number,
   t: ReturnType<typeof useTranslation>['t']
 ) {
   if (!record.success) return t('Error')
@@ -664,7 +663,7 @@ function getRecordStatusLabel(
   return t('Healthy')
 }
 
-function recordDisplay(record: ChannelTestRecord) {
+function recordDisplay(record: ChannelTestRecord, degradedLatencyMs: number) {
   if (!record.success) {
     return {
       colorClass: 'bg-destructive',

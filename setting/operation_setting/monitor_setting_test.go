@@ -89,3 +89,27 @@ func TestValidateChannelTestConcurrency(t *testing.T) {
 	assert.Error(t, ValidateChannelTestConcurrency("33"))
 	assert.Error(t, ValidateChannelTestConcurrency("1.5"))
 }
+
+func TestValidateChannelTestDisabledChannelIds(t *testing.T) {
+	require.NoError(t, ValidateChannelTestDisabledChannelIds(nil))
+	require.NoError(t, ValidateChannelTestDisabledChannelIds([]int{1, 7}))
+	assert.Error(t, ValidateChannelTestDisabledChannelIds([]int{0}))
+	assert.Error(t, ValidateChannelTestDisabledChannelIds([]int{3, 3}))
+}
+
+func TestChannelStatusHealthyThresholdValidationAndNormalization(t *testing.T) {
+	require.NoError(t, ValidateChannelStatusHealthySeconds("1"))
+	require.NoError(t, ValidateChannelStatusHealthySeconds("300"))
+	assert.Error(t, ValidateChannelStatusHealthySeconds("0"))
+	assert.Error(t, ValidateChannelStatusHealthySeconds("301"))
+	assert.Error(t, ValidateChannelStatusHealthySeconds("12.5"))
+	assert.Equal(t, DefaultChannelStatusHealthySeconds, NormalizeChannelStatusHealthySeconds(0))
+	assert.Equal(t, 24, NormalizeChannelStatusHealthySeconds(24))
+}
+
+func TestValidateChannelStatusHiddenChannelIds(t *testing.T) {
+	require.NoError(t, ValidateChannelStatusHiddenChannelIds(nil))
+	require.NoError(t, ValidateChannelStatusHiddenChannelIds([]int{1, 7}))
+	assert.Error(t, ValidateChannelStatusHiddenChannelIds([]int{0}))
+	assert.Error(t, ValidateChannelStatusHiddenChannelIds([]int{3, 3}))
+}

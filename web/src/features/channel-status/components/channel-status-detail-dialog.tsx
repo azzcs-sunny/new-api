@@ -74,11 +74,13 @@ export function ChannelStatusDetailDialog(
             <TableRow>
               <TableHead>{t('Model')}</TableHead>
               <TableHead>{t('Latest status')}</TableHead>
-              <TableHead>{t('Latest latency (ms)')}</TableHead>
+              <TableHead>{t('Latest conversation latency (ms)')}</TableHead>
               <TableHead>{t('7-day availability')}</TableHead>
               <TableHead>{t('15-day availability')}</TableHead>
               <TableHead>{t('30-day availability')}</TableHead>
-              <TableHead>{t('7-day average latency (ms)')}</TableHead>
+              <TableHead>
+                {t('7-day average conversation latency (ms)')}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

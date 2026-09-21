@@ -86,7 +86,7 @@ func TestGetChannelStatusTargetsFiltersMediaModelsAndHiddenGroups(t *testing.T) 
 	assert.Equal(t, "default", targets[0].Group)
 }
 
-func TestGetChannelStatusChannelsFiltersMediaModelsAndHiddenGroups(t *testing.T) {
+func TestGetChannelStatusChannelsReturnsAllChannelsWithoutCredentials(t *testing.T) {
 	truncateTables(t)
 	imageModel := "gpt-image-2"
 	require.NoError(t, DB.Create(&[]Channel{
@@ -98,9 +98,14 @@ func TestGetChannelStatusChannelsFiltersMediaModelsAndHiddenGroups(t *testing.T)
 
 	channels, err := GetChannelStatusChannels()
 	require.NoError(t, err)
-	require.Len(t, channels, 2)
+	require.Len(t, channels, 4)
 	assert.Equal(t, 1, channels[0].Id)
-	assert.Equal(t, 4, channels[1].Id)
+	assert.Equal(t, 2, channels[1].Id)
+	assert.Equal(t, 3, channels[2].Id)
+	assert.Equal(t, 4, channels[3].Id)
+	for _, channel := range channels {
+		assert.Empty(t, channel.Key)
+	}
 }
 
 func TestGetLatestChannelTestRecordsReturnsLatestSixtyWhileHistoryExceedsDisplayLimit(t *testing.T) {

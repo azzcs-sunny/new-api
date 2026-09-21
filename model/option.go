@@ -243,6 +243,23 @@ func validateOptionValue(key string, value string) error {
 	if key == operation_setting.ChannelTestConcurrencyOptionKey {
 		return operation_setting.ValidateChannelTestConcurrency(value)
 	}
+	if key == operation_setting.ChannelTestDisabledChannelIdsOptionKey {
+		var channelIds []int
+		if err := common.UnmarshalJsonStr(value, &channelIds); err != nil {
+			return errors.New("channel test disabled channel IDs must be a JSON array")
+		}
+		return operation_setting.ValidateChannelTestDisabledChannelIds(channelIds)
+	}
+	if key == operation_setting.ChannelStatusHealthySecondsOptionKey {
+		return operation_setting.ValidateChannelStatusHealthySeconds(value)
+	}
+	if key == operation_setting.ChannelStatusHiddenChannelIdsOptionKey {
+		var channelIds []int
+		if err := common.UnmarshalJsonStr(value, &channelIds); err != nil {
+			return errors.New("channel status hidden channel IDs must be a JSON array")
+		}
+		return operation_setting.ValidateChannelStatusHiddenChannelIds(channelIds)
+	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
 	}

@@ -47,9 +47,11 @@ func (channelTestHandler) NewPayload() any { return nil }
 
 // channelTestTaskPayload controls one channel_test run. A nil/empty payload is a
 // scheduled run, which uses the configured monitor ChannelTestMode and does not
-// notify. A manual "test all channels" trigger sets Mode=scheduled_all and
-// Notify=true to reproduce the legacy manual behavior (test every channel and
-// notify root on completion).
+// notify. A manual "test all channels" trigger sets Mode=manual_all and
+// Notify=true to retain the manual status rules and notify root on completion.
+// Per-channel active-test selection is enforced by the shared channel filter.
+const channelTestModeManualAll = "manual_all"
+
 type channelTestTaskPayload struct {
 	Mode   string `json:"mode,omitempty"`
 	Notify bool   `json:"notify,omitempty"`

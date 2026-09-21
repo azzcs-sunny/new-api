@@ -43,6 +43,7 @@ const emptyResponse = {
 const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
   success: true,
   data: {
+    degraded_latency_ms: 12000,
     notices: [
       {
         channel_type: 1,
@@ -60,6 +61,7 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
     items: [
       {
         channel_id: 1,
+        channel_name: 'plus',
         channel_type: 1,
         provider: 'OpenAI',
         group: 'default',
@@ -94,6 +96,7 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
       },
       {
         channel_id: 2,
+        channel_name: 'Pro',
         channel_type: 14,
         provider: 'Anthropic',
         group: 'vip',
@@ -101,27 +104,27 @@ const populatedResponse: Awaited<ReturnType<typeof getChannelStatus>> = {
         model_name: 'claude-sonnet',
         models: ['claude-sonnet', 'claude-opus'],
         health: 'warning' as const,
-        latency_ms: 9000,
+        latency_ms: 12000,
         records: [
           {
             id: 3,
             model_name: 'claude-sonnet',
             success: false,
-            latency_ms: 9000,
+            latency_ms: 12000,
             tested_at: 1,
           },
           {
             id: 4,
             model_name: 'claude-sonnet',
             success: true,
-            latency_ms: 9000,
+            latency_ms: 12000,
             tested_at: 2,
           },
           {
             id: 5,
             model_name: 'claude-sonnet',
             success: true,
-            latency_ms: 9000,
+            latency_ms: 12000,
             tested_at: 3,
           },
         ],
@@ -266,10 +269,24 @@ describe('channel status page', () => {
 
     renderPage()
 
-    expect(await screen.findByText('legacy-model')).toBeInTheDocument()
+    expect((await screen.findAllByText('legacy-model')).length).toBeGreaterThan(
+      0
+    )
     expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
-    expect(screen.getAllByTestId('test-record')).toHaveLength(60)
+    const placeholders = screen.getAllByTestId('test-record')
+    expect(placeholders).toHaveLength(60)
+    for (const placeholder of placeholders) {
+      expect(placeholder).toHaveAttribute('data-status', 'empty')
+      expect(placeholder).toHaveClass('bg-muted')
+    }
+    expect(
+      placeholders.some((placeholder) =>
+        ['success', 'degraded', 'failure'].includes(
+          placeholder.dataset.status ?? ''
+        )
+      )
+    ).toBe(false)
   })
 
   test('renders platform groups, status, ratio, latency, and test history', async () => {
@@ -281,12 +298,15 @@ describe('channel status page', () => {
     expect(screen.getByText('OpenAI')).toBeInTheDocument()
     expect(screen.getByText('Claude')).toBeInTheDocument()
     expect(screen.getByText('Healthy')).toBeInTheDocument()
-    expect(screen.queryByText('vip')).toBeNull()
+    expect(screen.getByText('Pro')).toBeInTheDocument()
     expect(screen.getByText('898 ms')).toBeInTheDocument()
-    expect(screen.getByText('9000 ms')).toBeInTheDocument()
+    expect(screen.getByText('12000 ms')).toBeInTheDocument()
     expect(screen.getByText('x1.25')).toBeInTheDocument()
     expect(screen.getByText('x2')).toBeInTheDocument()
-    expect(screen.queryByText('Conversation latency')).toBeNull()
+    expect(screen.getAllByText('Conversation latency').length).toBeGreaterThan(
+      0
+    )
+    expect(screen.queryByText('Latency')).toBeNull()
     expect(screen.queryByText('Availability')).toBeNull()
 
     const notices = screen.getAllByTestId('channel-status-notice')
@@ -337,6 +357,18 @@ describe('channel status page', () => {
     expect(within(openAiCard).getAllByTestId('test-record')[59]).toHaveClass(
       'rounded-r-full'
     )
+  })
+
+  test('shows channel names in status rows', async () => {
+    vi.mocked(getChannelStatus).mockResolvedValue(populatedResponse)
+
+    renderPage()
+
+    expect(await screen.findAllByText('Channel / Model')).toHaveLength(2)
+    expect(screen.getByText('plus')).toBeInTheDocument()
+    expect(screen.getByText('Pro')).toBeInTheDocument()
+    expect(screen.queryByText('default')).toBeNull()
+    expect(screen.queryByText('vip')).toBeNull()
   })
 
   test('shows the distinct supported-model list for each status group row', async () => {

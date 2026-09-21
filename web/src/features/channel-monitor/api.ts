@@ -25,3 +25,49 @@ export async function getAllChannelStatus() {
   )
   return response.data
 }
+
+export async function clearChannelTestData(channelId: number) {
+  const response = await api.delete<{
+    success: boolean
+    message?: string
+    data: { deleted_count: number }
+  }>(`/api/channel-monitor/channels/${channelId}/test-records`)
+  return response.data
+}
+
+export async function updateChannelStatusVisibility(
+  channelId: number,
+  visible: boolean
+) {
+  const response = await api.put<{
+    success: boolean
+    message?: string
+    data: { visible: boolean }
+  }>(`/api/channel-monitor/channels/${channelId}/visibility`, { visible })
+  return response.data
+}
+
+export async function updateChannelActiveTestEnabled(
+  channelId: number,
+  enabled: boolean
+) {
+  const response = await api.put<{
+    success: boolean
+    message?: string
+    data: { active_test_enabled: boolean }
+  }>(`/api/channel-monitor/channels/${channelId}/active-test`, { enabled })
+  return response.data
+}
+
+export async function updateChannelStatusHealthyThreshold(
+  healthySeconds: number
+) {
+  const response = await api.put<{
+    success: boolean
+    message?: string
+    data: { healthy_seconds: number; degraded_latency_ms: number }
+  }>('/api/channel-monitor/healthy-threshold', {
+    healthy_seconds: healthySeconds,
+  })
+  return response.data
+}

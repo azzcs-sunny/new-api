@@ -43,9 +43,8 @@ import { useCountdown } from '@/hooks/use-countdown'
 import { getChannelStatus } from './api'
 import { ChannelStatusDetailDialog } from './components/channel-status-detail-dialog'
 import { PlatformStatusTable } from './components/platform-status-table'
-import type { AvailabilityDays } from './components/status-cards'
 import { filterVisibleChannelStatusRows } from './lib/channel-status-visibility'
-import type { ChannelStatusRow } from './types'
+import type { AvailabilityDays, ChannelStatusRow } from './types'
 
 const refreshIntervalMs = 60 * 1000
 const availabilityOptions: AvailabilityDays[] = [7, 15, 30]
@@ -132,6 +131,9 @@ export function ChannelStatus() {
                 notices={statusQuery.data?.data.notices ?? []}
                 loading={statusQuery.isLoading}
                 availabilityDays={availabilityDays}
+                degradedLatencyMs={
+                  statusQuery.data?.data.degraded_latency_ms ?? 12000
+                }
                 onRowClick={
                   enableChannelDetailClick ? setSelectedChannel : undefined
                 }

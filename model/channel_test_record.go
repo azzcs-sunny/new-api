@@ -243,6 +243,13 @@ func GetLatestChannelTestRecords(channelId int, triggerType string, limit int) (
 	return records, err
 }
 
+func DeleteChannelTestRecords(channelId int, triggerType string) (int64, error) {
+	triggerType = normalizeChannelTestTrigger(triggerType)
+	result := DB.Where("channel_id = ? AND trigger_type = ?", channelId, triggerType).
+		Delete(&ChannelTestRecord{})
+	return result.RowsAffected, result.Error
+}
+
 func GetChannelTestRecordsByTrigger(triggerType string) ([]ChannelTestRecord, error) {
 	triggerType = normalizeChannelTestTrigger(triggerType)
 	var records []ChannelTestRecord
@@ -290,31 +297,12 @@ func normalizeChannelTestTrigger(triggerType string) string {
 	return ChannelTestTriggerScheduled
 }
 
-// GetChannelStatusChannels excludes credentials from the status aggregation query.
+// GetChannelStatusChannels returns every channel without credentials for the
+// administrator monitoring table.
 func GetChannelStatusChannels() ([]Channel, error) {
 	var channels []Channel
 	err := DB.Omit("key").
 		Order("id ASC").
 		Find(&channels).Error
-	if err != nil {
-		return nil, err
-	}
-	filtered := make([]Channel, 0, len(channels))
-	for _, channel := range channels {
-		if IsMediaChannelTestModel(channel.GetTestModel()) {
-			continue
-		}
-		groups := channel.GetGroups()
-		hasVisibleGroup := len(groups) == 0
-		for _, group := range groups {
-			if !IsHiddenChannelStatusGroup(group) {
-				hasVisibleGroup = true
-				break
-			}
-		}
-		if hasVisibleGroup {
-			filtered = append(filtered, channel)
-		}
-	}
-	return filtered, nil
+	return channels, err
 }

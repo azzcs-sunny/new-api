@@ -148,6 +148,25 @@ const newKeys = {
     'By creating an account, you agree to our':
       'By creating an account, you agree to our',
     'Channel Status': 'Channel Status',
+    'Conversation latency': 'Conversation latency',
+    'Latest conversation latency (ms)': 'Latest conversation latency (ms)',
+    '7-day average conversation latency (ms)':
+      '7-day average conversation latency (ms)',
+    'Active checks': 'Active checks',
+    'Clear test data': 'Clear test data',
+    'Clear test data for {{name}}': 'Clear test data for {{name}}',
+    'Clear test data?': 'Clear test data?',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.',
+    'Test data cleared': 'Test data cleared',
+    'Failed to clear test data': 'Failed to clear test data',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      'Cleared {{count}} active-check records for channel ID {{id}}',
+    'Include {{name}} in active checks': 'Include {{name}} in active checks',
+    'Healthy below (seconds)': 'Healthy below (seconds)',
+    'Show on channel status': 'Show on channel status',
+    'Show {{name}} on channel status': 'Show {{name}} on channel status',
+    'No channels found.': 'No channels found.',
     'Channel monitoring status': 'Channel monitoring status',
     'View current availability across configured channels.':
       'View current availability across configured channels.',
@@ -374,6 +393,24 @@ const newKeys = {
     'By clicking sign in, you agree to our': '点击登录即表示您同意',
     'By creating an account, you agree to our': '创建账户即表示您同意',
     'Channel Status': '渠道状态',
+    'Conversation latency': '对话延迟',
+    'Latest conversation latency (ms)': '最新对话延迟（ms）',
+    '7-day average conversation latency (ms)': '7 天平均对话延迟（ms）',
+    'Active checks': '主动检测',
+    'Clear test data': '清空测速数据',
+    'Clear test data for {{name}}': '清空 {{name}} 的测速数据',
+    'Clear test data?': '清空测速数据？',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      '此操作会清空 {{name}} 的全部主动检测历史，包括最近 60 次测速和可用率统计。手动测试记录将保留。',
+    'Test data cleared': '测速数据已清空',
+    'Failed to clear test data': '清空测速数据失败',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      '已清空渠道 ID {{id}} 的 {{count}} 条主动检测记录',
+    'Include {{name}} in active checks': '将 {{name}} 纳入主动检测',
+    'Healthy below (seconds)': '正常阈值（秒）',
+    'Show on channel status': '渠道状态页展示',
+    'Show {{name}} on channel status': '在渠道状态页展示 {{name}}',
+    'No channels found.': '未找到渠道。',
     'Channel monitoring status': '渠道监控状态',
     'View current availability across configured channels.':
       '查看已配置渠道的当前可用状态。',
@@ -594,6 +631,24 @@ const newKeys = {
     'By clicking sign in, you agree to our': '點擊登入即表示您同意',
     'By creating an account, you agree to our': '建立帳戶即表示您同意',
     'Channel Status': '渠道狀態',
+    'Conversation latency': '對話延遲',
+    'Latest conversation latency (ms)': '最新對話延遲（ms）',
+    '7-day average conversation latency (ms)': '7 天平均對話延遲（ms）',
+    'Active checks': '主動檢測',
+    'Clear test data': '清空測速資料',
+    'Clear test data for {{name}}': '清空 {{name}} 的測速資料',
+    'Clear test data?': '清空測速資料？',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      '此操作會清空 {{name}} 的全部主動檢測歷史，包括最近 60 次測速和可用率統計。手動測試記錄將保留。',
+    'Test data cleared': '測速資料已清空',
+    'Failed to clear test data': '清空測速資料失敗',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      '已清空渠道 ID {{id}} 的 {{count}} 筆主動檢測記錄',
+    'Include {{name}} in active checks': '將 {{name}} 納入主動檢測',
+    'Healthy below (seconds)': '正常閾值（秒）',
+    'Show on channel status': '在渠道狀態頁顯示',
+    'Show {{name}} on channel status': '在渠道狀態頁顯示 {{name}}',
+    'No channels found.': '找不到渠道。',
     'Channel monitoring status': '渠道監控狀態',
     'View current availability across configured channels.':
       '查看已設定渠道目前的可用狀態。',
@@ -824,6 +879,27 @@ const newKeys = {
     'By creating an account, you agree to our':
       'En créant un compte, vous acceptez',
     'Channel Status': 'Statut des canaux',
+    'Conversation latency': 'Latence de conversation',
+    'Latest conversation latency (ms)': 'Dernière latence de conversation (ms)',
+    '7-day average conversation latency (ms)':
+      'Latence moyenne de conversation sur 7 jours (ms)',
+    'Active checks': 'Vérifications actives',
+    'Clear test data': 'Effacer les données de test',
+    'Clear test data for {{name}}': 'Effacer les données de test de {{name}}',
+    'Clear test data?': 'Effacer les données de test ?',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      'Cette action efface tout l’historique des vérifications actives de {{name}}, y compris les 60 derniers tests et les statistiques de disponibilité. L’historique des tests manuels est conservé.',
+    'Test data cleared': 'Données de test effacées',
+    'Failed to clear test data': 'Échec de l’effacement des données de test',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      '{{count}} résultats de vérification active effacés pour le canal ID {{id}}',
+    'Include {{name}} in active checks':
+      'Inclure {{name}} dans les vérifications actives',
+    'Healthy below (seconds)': 'Seuil normal (secondes)',
+    'Show on channel status': 'Afficher dans l’état des canaux',
+    'Show {{name}} on channel status':
+      'Afficher {{name}} dans l’état des canaux',
+    'No channels found.': 'Aucun canal trouvé.',
     'Channel monitoring status': 'Statut de la surveillance des canaux',
     'View current availability across configured channels.':
       'Consultez la disponibilité actuelle des canaux configurés.',
@@ -1065,6 +1141,25 @@ const newKeys = {
     'By creating an account, you agree to our':
       'アカウントを作成すると、次に同意したものとみなされます：',
     'Channel Status': 'チャネル状態',
+    'Conversation latency': '会話レイテンシ',
+    'Latest conversation latency (ms)': '最新の会話レイテンシ (ms)',
+    '7-day average conversation latency (ms)': '7日間の平均会話レイテンシ (ms)',
+    'Active checks': 'アクティブチェック',
+    'Clear test data': 'テストデータをクリア',
+    'Clear test data for {{name}}': '{{name}} のテストデータをクリア',
+    'Clear test data?': 'テストデータをクリアしますか？',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      '{{name}} のアクティブチェック履歴をすべて消去します。直近60回のテストと可用性統計が含まれます。手動テスト履歴は保持されます。',
+    'Test data cleared': 'テストデータをクリアしました',
+    'Failed to clear test data': 'テストデータをクリアできませんでした',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      'チャネル ID {{id}} のアクティブチェック記録 {{count}} 件を消去しました',
+    'Include {{name}} in active checks':
+      '{{name}} をアクティブチェックに含める',
+    'Healthy below (seconds)': '正常しきい値（秒）',
+    'Show on channel status': 'チャネル状態に表示',
+    'Show {{name}} on channel status': '{{name}} をチャネル状態に表示',
+    'No channels found.': 'チャネルが見つかりません。',
     'Channel monitoring status': 'チャネル監視のステータス',
     'View current availability across configured channels.':
       '設定済みチャネルの現在の稼働状況を確認します。',
@@ -1302,6 +1397,26 @@ const newKeys = {
     'By creating an account, you agree to our':
       'Создавая аккаунт, вы соглашаетесь с',
     'Channel Status': 'Состояние каналов',
+    'Conversation latency': 'Задержка диалога',
+    'Latest conversation latency (ms)': 'Последняя задержка диалога (мс)',
+    '7-day average conversation latency (ms)':
+      'Средняя задержка диалога за 7 дн. (мс)',
+    'Active checks': 'Активные проверки',
+    'Clear test data': 'Очистить данные проверок',
+    'Clear test data for {{name}}': 'Очистить данные проверок для {{name}}',
+    'Clear test data?': 'Очистить данные проверок?',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      'Будет удалена вся история активных проверок для {{name}}, включая последние 60 проверок и статистику доступности. История ручных проверок сохранится.',
+    'Test data cleared': 'Данные проверок очищены',
+    'Failed to clear test data': 'Не удалось очистить данные проверок',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      'Очищено записей активных проверок для канала с ID {{id}}: {{count}}',
+    'Include {{name}} in active checks':
+      'Включить {{name}} в активные проверки',
+    'Healthy below (seconds)': 'Порог нормы (секунды)',
+    'Show on channel status': 'Показывать в статусе каналов',
+    'Show {{name}} on channel status': 'Показывать {{name}} в статусе каналов',
+    'No channels found.': 'Каналы не найдены.',
     'Channel monitoring status': 'Статус мониторинга каналов',
     'View current availability across configured channels.':
       'Просматривайте текущую доступность настроенных каналов.',
@@ -1540,6 +1655,25 @@ const newKeys = {
     'By creating an account, you agree to our':
       'Bằng cách tạo tài khoản, bạn đồng ý với',
     'Channel Status': 'Trạng thái kênh',
+    'Conversation latency': 'Độ trễ hội thoại',
+    'Latest conversation latency (ms)': 'Độ trễ hội thoại mới nhất (ms)',
+    '7-day average conversation latency (ms)':
+      'Độ trễ hội thoại trung bình 7 ngày (ms)',
+    'Active checks': 'Kiểm tra chủ động',
+    'Clear test data': 'Xóa dữ liệu kiểm tra',
+    'Clear test data for {{name}}': 'Xóa dữ liệu kiểm tra của {{name}}',
+    'Clear test data?': 'Xóa dữ liệu kiểm tra?',
+    'This clears all active-check history for {{name}}, including the latest 60 tests and availability statistics. Manual test history is retained.':
+      'Thao tác này xóa toàn bộ lịch sử kiểm tra chủ động của {{name}}, bao gồm 60 lần kiểm tra gần nhất và thống kê khả dụng. Lịch sử kiểm tra thủ công vẫn được giữ lại.',
+    'Test data cleared': 'Đã xóa dữ liệu kiểm tra',
+    'Failed to clear test data': 'Không thể xóa dữ liệu kiểm tra',
+    'Cleared {{count}} active-check records for channel ID {{id}}':
+      'Đã xóa {{count}} bản ghi kiểm tra chủ động của kênh ID {{id}}',
+    'Include {{name}} in active checks': 'Đưa {{name}} vào kiểm tra chủ động',
+    'Healthy below (seconds)': 'Ngưỡng bình thường (giây)',
+    'Show on channel status': 'Hiển thị trên trạng thái kênh',
+    'Show {{name}} on channel status': 'Hiển thị {{name}} trên trạng thái kênh',
+    'No channels found.': 'Không tìm thấy kênh.',
     'Channel monitoring status': 'Trạng thái giám sát kênh',
     'View current availability across configured channels.':
       'Xem trạng thái khả dụng hiện tại của các kênh đã cấu hình.',

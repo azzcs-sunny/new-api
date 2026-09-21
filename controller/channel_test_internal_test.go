@@ -340,22 +340,53 @@ func TestSelectChannelsForAutomaticTestPassiveRecoveryOnlyUsesAutoDisabled(t *te
 }
 
 func TestSelectChannelsForAutomaticTestScheduledSkipsManualDisabled(t *testing.T) {
+	monitorSetting := operation_setting.GetMonitorSetting()
+	originalDisabledChannelIds := append([]int(nil), monitorSetting.ChannelTestDisabledChannelIds...)
+	monitorSetting.ChannelTestDisabledChannelIds = []int{5}
+	t.Cleanup(func() {
+		monitorSetting.ChannelTestDisabledChannelIds = originalDisabledChannelIds
+	})
 	imageModel := "gpt-image-2"
 	channels := []*model.Channel{
 		{Id: 1, Status: common.ChannelStatusEnabled},
 		{Id: 2, Status: common.ChannelStatusAutoDisabled},
 		{Id: 3, Status: common.ChannelStatusManuallyDisabled},
 		{Id: 4, Status: common.ChannelStatusEnabled, TestModel: &imageModel},
+		{Id: 5, Status: common.ChannelStatusEnabled},
 	}
 
 	selected := selectChannelsForAutomaticTest(channels, operation_setting.ChannelTestModeScheduledAll)
 
-	require.Len(t, selected, 2)
+	require.Len(t, selected, 1)
 	require.Equal(t, 1, selected[0].Id)
-	require.Equal(t, 2, selected[1].Id)
+}
+
+func TestSelectChannelsForAutomaticTestManualAllHonorsActiveTestSetting(t *testing.T) {
+	monitorSetting := operation_setting.GetMonitorSetting()
+	originalDisabledChannelIds := append([]int(nil), monitorSetting.ChannelTestDisabledChannelIds...)
+	monitorSetting.ChannelTestDisabledChannelIds = []int{1}
+	t.Cleanup(func() {
+		monitorSetting.ChannelTestDisabledChannelIds = originalDisabledChannelIds
+	})
+	channels := []*model.Channel{
+		{Id: 1, Status: common.ChannelStatusEnabled},
+		{Id: 2, Status: common.ChannelStatusAutoDisabled},
+		{Id: 3, Status: common.ChannelStatusManuallyDisabled},
+	}
+
+	selected := selectChannelsForAutomaticTest(channels, channelTestModeManualAll)
+
+	require.Len(t, selected, 1)
+	assert.Equal(t, 2, selected[0].Id)
 }
 
 func TestSelectChannelsForAutomaticTestAutoBanOnlyUsesEligibleChannels(t *testing.T) {
+	monitorSetting := operation_setting.GetMonitorSetting()
+	originalDisabledChannelIds := append([]int(nil), monitorSetting.ChannelTestDisabledChannelIds...)
+	monitorSetting.ChannelTestDisabledChannelIds = []int{3}
+	t.Cleanup(func() {
+		monitorSetting.ChannelTestDisabledChannelIds = originalDisabledChannelIds
+	})
 	autoBanEnabled := 1
 	autoBanDisabled := 0
 	channels := []*model.Channel{
@@ -368,9 +399,8 @@ func TestSelectChannelsForAutomaticTestAutoBanOnlyUsesEligibleChannels(t *testin
 
 	selected := selectChannelsForAutomaticTest(channels, operation_setting.ChannelTestModeAutoBanOnly)
 
-	require.Len(t, selected, 2)
+	require.Len(t, selected, 1)
 	require.Equal(t, 1, selected[0].Id)
-	require.Equal(t, 3, selected[1].Id)
 }
 
 func TestRunChannelTestWorkersHonorsConfiguredConcurrency(t *testing.T) {

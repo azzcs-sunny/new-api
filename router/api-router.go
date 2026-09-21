@@ -291,6 +291,10 @@ func SetApiRouter(router *gin.Engine) {
 		channelMonitorRoute.Use(middleware.AdminAuth())
 		{
 			channelMonitorRoute.GET("/status", controller.GetAllChannelStatus)
+			channelMonitorRoute.PUT("/channels/:id/active-test", controller.UpdateChannelActiveTestEnabled)
+			channelMonitorRoute.PUT("/channels/:id/visibility", controller.UpdateChannelStatusVisibility)
+			channelMonitorRoute.DELETE("/channels/:id/test-records", middleware.RequirePermission(authz.ChannelSensitiveWrite), controller.ClearChannelStatusTestRecords)
+			channelMonitorRoute.PUT("/healthy-threshold", controller.UpdateChannelStatusHealthyThreshold)
 		}
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
