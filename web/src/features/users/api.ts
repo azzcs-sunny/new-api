@@ -30,6 +30,7 @@ import type {
   ManageUserAction,
   ManageUserQuotaPayload,
   ApiResponse,
+  UserAffiliateRewardsPage,
 } from './types'
 
 // ============================================================================
@@ -153,6 +154,29 @@ export async function resetUserPasskey(id: number): Promise<ApiResponse> {
  */
 export async function resetUserTwoFA(id: number): Promise<ApiResponse> {
   const res = await api.delete(`/api/user/${id}/2fa`)
+  return res.data
+}
+
+export async function getUserAffiliateRewards(
+  userId: number,
+  page: number,
+  pageSize: number,
+  start?: Date,
+  end?: Date
+): Promise<ApiResponse<UserAffiliateRewardsPage>> {
+  const params = new URLSearchParams({
+    p: String(page),
+    page_size: String(pageSize),
+  })
+  if (start) {
+    params.set('start_timestamp', String(Math.floor(start.getTime() / 1000)))
+  }
+  if (end) {
+    params.set('end_timestamp', String(Math.floor(end.getTime() / 1000)))
+  }
+  const res = await api.get(
+    `/api/user/affiliate/admin/users/${userId}/rewards?${params.toString()}`
+  )
   return res.data
 }
 

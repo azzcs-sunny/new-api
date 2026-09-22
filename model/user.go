@@ -100,8 +100,10 @@ type User struct {
 	Group                string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
 	AffCode              string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount             int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
-	AffQuota             int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
-	AffHistoryQuota      int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
+	AffQuota             int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`                                                   // 邀请剩余额度
+	AffHistoryQuota      int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"`                                         // 邀请历史额度
+	AffiliateRewardRatio *float64                   `json:"affiliate_reward_ratio,omitempty" gorm:"column:affiliate_reward_ratio" validate:"omitempty,gte=0,lte=1"` // 用户邀请返利比例，空值继承全局设置
+	InheritAffRatio      bool                       `json:"inherit_affiliate_reward_ratio,omitempty" gorm:"-:all"`
 	InviterId            int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	DeletedAt            gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId            string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
@@ -584,17 +586,23 @@ func HardDeleteUserById(id int) error {
 }
 
 func inviteUser(inviterId int) error {
-	result := DB.Model(&User{}).Where("id = ?", inviterId).Updates(map[string]any{
-		"aff_count":   gorm.Expr("aff_count + ?", 1),
-		"aff_quota":   gorm.Expr("aff_quota + ?", common.QuotaForInviter),
-		"aff_history": gorm.Expr("aff_history + ?", common.QuotaForInviter),
-	})
+	if common.QuotaForInviter < 0 || common.QuotaForInviter > common.MaxWalletQuota {
+		return ErrWalletQuotaLimitExceeded
+	}
+	result := DB.Model(&User{}).
+		Where("id = ? AND quota <= ?", inviterId, common.MaxWalletQuota-common.QuotaForInviter).
+		Updates(map[string]any{
+			"aff_count":   gorm.Expr("aff_count + ?", 1),
+			"quota":       gorm.Expr("quota + ?", common.QuotaForInviter),
+			"aff_history": gorm.Expr("aff_history + ?", common.QuotaForInviter),
+		})
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return ErrWalletQuotaLimitExceeded
 	}
+	syncCreditUserQuotaCache(inviterId, common.QuotaForInviter, "registration referral reward")
 	return nil
 }
 
@@ -896,6 +904,9 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 		"display_name": newUser.DisplayName,
 		"group":        newUser.Group,
 		"remark":       newUser.Remark,
+	}
+	if newUser.AffiliateRewardRatio != nil {
+		updates["affiliate_reward_ratio"] = *newUser.AffiliateRewardRatio
 	}
 	if updatePassword {
 		updates["password"] = newUser.Password

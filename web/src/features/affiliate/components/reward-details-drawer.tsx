@@ -29,7 +29,6 @@ import {
   sideDrawerHeaderClassName,
 } from '@/components/drawer-layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -141,11 +140,6 @@ export function RewardDetailsDrawer(props: RewardDetailsDrawerProps) {
       )
     }
     detailColumns.push({
-      id: 'sequence',
-      header: t('Top-up No.'),
-      cell: ({ row }) => row.original.sequence,
-    })
-    detailColumns.push({
       id: 'reward_quota',
       header: t('Amount Earned'),
       cell: ({ row }) => formatQuota(row.original.reward_quota),
@@ -154,17 +148,6 @@ export function RewardDetailsDrawer(props: RewardDetailsDrawerProps) {
       id: 'ratio',
       header: t('Reward Ratio'),
       cell: ({ row }) => `${(row.original.ratio * 100).toFixed(2)}%`,
-    })
-    detailColumns.push({
-      id: 'status',
-      header: t('Status'),
-      cell: ({ row }) => (
-        <Badge
-          variant={row.original.status === 'frozen' ? 'warning' : 'outline'}
-        >
-          {row.original.status === 'frozen' ? t('Frozen') : t('Available')}
-        </Badge>
-      ),
     })
     detailColumns.push({
       id: 'created_at',

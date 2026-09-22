@@ -35,8 +35,15 @@ vi.mock('../../hooks/use-wallet-transactions', () => ({
           status: 'success',
           create_time: 1757894400,
         },
+        {
+          id: 'affiliate-2',
+          source: 'affiliate_reward',
+          amount: 300000,
+          status: 'success',
+          create_time: 1757894500,
+        },
       ],
-      total: 1,
+      total: 2,
     },
     isLoading: false,
     isError: false,
@@ -50,6 +57,7 @@ describe('wallet balance history', () => {
     const { container } = render(<WalletTransactionsCard />)
 
     expect(screen.getByText('Online top-up')).toBeInTheDocument()
+    expect(screen.getByText('Referral reward')).toBeInTheDocument()
     expect(
       container.querySelector('.lucide-circle-dollar-sign')
     ).toBeInTheDocument()

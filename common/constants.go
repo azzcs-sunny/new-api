@@ -129,8 +129,8 @@ var QuotaForInviter = 0
 var QuotaForInvitee = 0
 
 // AffiliateRewardRatio is the fraction of a referred user's successful top-up
-// quota credited to the inviter during the eligible reward window.
-var AffiliateRewardRatio = 0.1
+// quota credited to the inviter.
+var AffiliateRewardRatio = 0.03
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false

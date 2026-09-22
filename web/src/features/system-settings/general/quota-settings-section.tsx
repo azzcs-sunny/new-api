@@ -263,8 +263,7 @@ export function QuotaSettingsSection({
                   <FormDescription>
                     {t(
                       'Fraction of each referred user top-up credited to the inviter (0-100%).'
-                    )}{' '}
-                    {t('Only the first three successful top-ups are eligible.')}
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

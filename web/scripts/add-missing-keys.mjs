@@ -136,9 +136,13 @@ const newKeys = {
       'Share your referral link to start earning rewards.',
     'The first three successful top-ups from each invited user earn a rebate.':
       'The first three successful top-ups from each invited user earn a rebate.',
+    'Every successful top-up from each invited user earns a rebate.':
+      'Every successful top-up from each invited user earns a rebate.',
     'Top-ups': 'Top-ups',
     'Reward Earned': 'Reward Earned',
     'Affiliate Reward Ratio': 'Affiliate Reward Ratio',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       'Fraction of each referred user top-up credited to the inviter (0-100%).',
     'Only the first three successful top-ups are eligible.':
@@ -383,9 +387,13 @@ const newKeys = {
       '分享邀请链接，开始赚取返利。',
     'The first three successful top-ups from each invited user earn a rebate.':
       '每位受邀用户的前三次成功充值可产生返利。',
+    'Every successful top-up from each invited user earns a rebate.':
+      '每位受邀用户的每次成功充值都可产生返利。',
     'Top-ups': '充值次数',
     'Reward Earned': '获得返利',
     'Affiliate Reward Ratio': '邀请返利比例',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      '为该用户单独设置邀请返利比例（0-100%）。留空则使用全局设置。',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       '被邀请用户每次充值返给邀请人的比例（0-100%）。',
     'Only the first three successful top-ups are eligible.':
@@ -621,9 +629,13 @@ const newKeys = {
       '分享邀請連結，開始賺取返利。',
     'The first three successful top-ups from each invited user earn a rebate.':
       '每位受邀用戶的前三次成功充值可產生返利。',
+    'Every successful top-up from each invited user earns a rebate.':
+      '每位受邀用戶的每次成功充值都可產生返利。',
     'Top-ups': '充值次數',
     'Reward Earned': '獲得返利',
     'Affiliate Reward Ratio': '邀請返利比例',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      '為該用戶單獨設定邀請返利比例（0-100%）。留空則使用全域設定。',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       '被邀請用戶每次充值返給邀請人的比例（0-100%）。',
     'Only the first three successful top-ups are eligible.':
@@ -867,9 +879,13 @@ const newKeys = {
       'Partagez votre lien pour commencer à gagner des récompenses.',
     'The first three successful top-ups from each invited user earn a rebate.':
       'Les trois premiers rechargements réussis de chaque utilisateur invité donnent droit à une récompense.',
+    'Every successful top-up from each invited user earns a rebate.':
+      'Chaque rechargement réussi d’un utilisateur invité donne droit à une récompense.',
     'Top-ups': 'Rechargements',
     'Reward Earned': 'Récompense gagnée',
     'Affiliate Reward Ratio': 'Taux de récompense d’affiliation',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      'Taux de récompense d’affiliation individuel pour cet utilisateur (0-100 %). Laisser vide pour utiliser le réglage global.',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       'Part de chaque recharge de l’utilisateur parrainé créditée au parrain (0-100 %).',
     'Only the first three successful top-ups are eligible.':
@@ -1129,9 +1145,13 @@ const newKeys = {
       '紹介リンクを共有して報酬を獲得しましょう。',
     'The first three successful top-ups from each invited user earn a rebate.':
       '招待ユーザーごとに最初の3回の成功したチャージがリベート対象です。',
+    'Every successful top-up from each invited user earns a rebate.':
+      '招待ユーザーごとの成功したチャージすべてがリベート対象です。',
     'Top-ups': 'チャージ回数',
     'Reward Earned': '獲得報酬',
     'Affiliate Reward Ratio': '紹介報酬率',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      'このユーザー個別の紹介報酬率（0～100%）。空欄の場合はグローバル設定を使用します。',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       '紹介ユーザーの各チャージから招待者に付与する割合（0～100%）。',
     'Only the first three successful top-ups are eligible.':
@@ -1385,9 +1405,13 @@ const newKeys = {
       'Поделитесь ссылкой, чтобы начать получать награды.',
     'The first three successful top-ups from each invited user earn a rebate.':
       'Первые три успешных пополнения каждого приглашённого пользователя приносят награду.',
+    'Every successful top-up from each invited user earns a rebate.':
+      'Каждое успешное пополнение приглашённого пользователя приносит награду.',
     'Top-ups': 'Пополнения',
     'Reward Earned': 'Полученная награда',
     'Affiliate Reward Ratio': 'Процент реферального вознаграждения',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      'Индивидуальный процент реферального вознаграждения для этого пользователя (0–100%). Оставьте пустым, чтобы использовать глобальную настройку.',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       'Доля каждого пополнения приглашённого пользователя, начисляемая пригласившему (0–100%).',
     'Only the first three successful top-ups are eligible.':
@@ -1643,9 +1667,13 @@ const newKeys = {
       'Chia sẻ liên kết để bắt đầu nhận phần thưởng.',
     'The first three successful top-ups from each invited user earn a rebate.':
       'Ba lần nạp tiền thành công đầu tiên của mỗi người được mời sẽ nhận được phần thưởng.',
+    'Every successful top-up from each invited user earns a rebate.':
+      'Mỗi lần nạp tiền thành công của người được mời sẽ nhận được phần thưởng.',
     'Top-ups': 'Lần nạp tiền',
     'Reward Earned': 'Phần thưởng nhận được',
     'Affiliate Reward Ratio': 'Tỷ lệ thưởng giới thiệu',
+    'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.':
+      'Tỷ lệ thưởng giới thiệu riêng cho người dùng này (0-100%). Để trống để dùng cài đặt toàn cục.',
     'Fraction of each referred user top-up credited to the inviter (0-100%).':
       'Tỷ lệ từ mỗi lần nạp tiền của người được giới thiệu được cộng cho người mời (0-100%).',
     'Only the first three successful top-ups are eligible.':
@@ -1789,6 +1817,136 @@ const newKeys = {
   },
 }
 
+const referralKeys = {
+  en: {
+    'Referral reward': 'Referral reward',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.',
+    "If you don't receive the email, check your spam folder.":
+      "If you don't receive the email, check your spam folder.",
+    'Referral Rewards': 'Referral Rewards',
+    'Eligible Amount': 'Eligible Amount',
+    'Total in range': 'Total in range',
+    'Failed to load referral rewards': 'Failed to load referral rewards',
+    'No referral rewards in this range': 'No referral rewards in this range',
+  },
+  zh: {
+    'Referral reward': '邀请返利',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      '在线充值、邀请返利、兑换码兑换或管理员调整后，余额变动将显示在这里。',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      '查看在线充值、邀请返利、兑换码和管理员调整产生的每笔余额变动。',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      '受邀用户完成符合条件的在线充值后，返利会立即进入你的余额；兑换码购买不参与返利。',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      '邀请返利不支持开票或提现，仅限用于本平台消费。',
+    "If you don't receive the email, check your spam folder.":
+      '如果没有收到邮件，可能在垃圾邮件中。',
+    'Referral Rewards': '邀请返利',
+    'Eligible Amount': '计佣金额',
+    'Total in range': '当前范围总金额',
+    'Failed to load referral rewards': '邀请返利加载失败',
+    'No referral rewards in this range': '当前时间范围内暂无邀请返利',
+  },
+  'zh-TW': {
+    'Referral reward': '邀請返利',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      '線上充值、邀請返利、兌換碼兌換或管理員調整後，餘額變動將顯示在這裡。',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      '查看線上充值、邀請返利、兌換碼和管理員調整產生的每筆餘額變動。',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      '受邀用戶完成符合條件的線上充值後，返利會立即進入你的餘額；兌換碼購買不參與返利。',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      '邀請返利不支援開票或提現，僅限用於本平台消費。',
+    "If you don't receive the email, check your spam folder.":
+      '如果沒有收到郵件，可能在垃圾郵件中。',
+    'Referral Rewards': '邀請返利',
+    'Eligible Amount': '計佣金額',
+    'Total in range': '目前範圍總金額',
+    'Failed to load referral rewards': '邀請返利載入失敗',
+    'No referral rewards in this range': '目前時間範圍內暫無邀請返利',
+  },
+  fr: {
+    'Referral reward': 'Récompense de parrainage',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      'Les changements de solde apparaîtront ici après un rechargement, une récompense de parrainage, un code ou un ajustement administrateur.',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      'Consultez chaque changement de solde provenant des paiements, parrainages, codes et ajustements administrateur.',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      'Les paiements en ligne éligibles des filleuls génèrent une récompense créditée immédiatement. Les codes sont exclus.',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      'Les récompenses de parrainage ne sont ni facturables ni retirables et ne peuvent être utilisées que sur cette plateforme.',
+    "If you don't receive the email, check your spam folder.":
+      'Si vous ne recevez pas l’e-mail, vérifiez vos courriers indésirables.',
+    'Referral Rewards': 'Récompenses de parrainage',
+    'Eligible Amount': 'Montant éligible',
+    'Total in range': 'Total sur la période',
+    'Failed to load referral rewards': 'Échec du chargement des récompenses',
+    'No referral rewards in this range': 'Aucune récompense sur cette période',
+  },
+  ja: {
+    'Referral reward': '紹介報酬',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      'チャージ、紹介報酬、コード交換、管理者調整による残高変更がここに表示されます。',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      '支払い、紹介報酬、コード交換、管理者調整による残高変更を確認できます。',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      '招待ユーザーの対象オンライン支払いによる報酬は残高へ即時反映されます。コード購入は対象外です。',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      '紹介報酬は請求書発行や出金の対象外で、このプラットフォーム内でのみ利用できます。',
+    "If you don't receive the email, check your spam folder.":
+      'メールが届かない場合は、迷惑メールフォルダーをご確認ください。',
+    'Referral Rewards': '紹介報酬',
+    'Eligible Amount': '対象金額',
+    'Total in range': '期間内合計',
+    'Failed to load referral rewards': '紹介報酬を読み込めませんでした',
+    'No referral rewards in this range': 'この期間の紹介報酬はありません',
+  },
+  ru: {
+    'Referral reward': 'Реферальное вознаграждение',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      'Изменения баланса появятся здесь после пополнения, реферального вознаграждения, активации кода или корректировки администратором.',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      'Просматривайте изменения баланса от платежей, реферальных вознаграждений, кодов и корректировок администратора.',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      'Подходящие онлайн-платежи приглашённых пользователей приносят вознаграждение, которое сразу зачисляется на баланс. Коды исключены.',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      'Реферальные вознаграждения нельзя включить в счёт или вывести; их можно использовать только на платформе.',
+    "If you don't receive the email, check your spam folder.":
+      'Если письмо не пришло, проверьте папку со спамом.',
+    'Referral Rewards': 'Реферальные вознаграждения',
+    'Eligible Amount': 'Сумма начисления',
+    'Total in range': 'Итого за период',
+    'Failed to load referral rewards': 'Не удалось загрузить вознаграждения',
+    'No referral rewards in this range': 'За этот период вознаграждений нет',
+  },
+  vi: {
+    'Referral reward': 'Thưởng giới thiệu',
+    'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.':
+      'Thay đổi số dư sẽ xuất hiện sau khi nạp tiền, nhận thưởng giới thiệu, đổi mã hoặc được quản trị viên điều chỉnh.',
+    'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.':
+      'Xem mọi thay đổi số dư từ thanh toán, thưởng giới thiệu, mã đổi thưởng và điều chỉnh của quản trị viên.',
+    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.':
+      'Thanh toán trực tuyến hợp lệ của người được mời sẽ tạo phần thưởng và được cộng ngay vào số dư. Mã đổi thưởng không được tính.',
+    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.':
+      'Thưởng giới thiệu không thể xuất hóa đơn hoặc rút tiền và chỉ dùng được trên nền tảng này.',
+    "If you don't receive the email, check your spam folder.":
+      'Nếu không nhận được email, hãy kiểm tra thư mục spam.',
+    'Referral Rewards': 'Thưởng giới thiệu',
+    'Eligible Amount': 'Số tiền hợp lệ',
+    'Total in range': 'Tổng trong khoảng',
+    'Failed to load referral rewards': 'Không thể tải thưởng giới thiệu',
+    'No referral rewards in this range':
+      'Không có thưởng giới thiệu trong khoảng này',
+  },
+}
+
 async function main() {
   let totalAdded = 0
 
@@ -1797,7 +1955,10 @@ async function main() {
     const json = JSON.parse(await fs.readFile(filePath, 'utf8'))
 
     let count = 0
-    for (const [key, value] of Object.entries(trans)) {
+    for (const [key, value] of Object.entries({
+      ...trans,
+      ...referralKeys[locale],
+    })) {
       if (!Object.prototype.hasOwnProperty.call(json.translation, key)) {
         json.translation[key] = value
         count++

@@ -50,6 +50,7 @@ export const userSchema = z.object({
   aff_count: z.number().optional(),
   aff_quota: z.number().optional(),
   aff_history_quota: z.number().optional(),
+  affiliate_reward_ratio: z.number().min(0).max(1).nullable().optional(),
   inviter_id: z.number().optional(),
   linux_do_id: z.string().optional(),
   status: userStatusSchema,
@@ -125,6 +126,8 @@ export interface UserFormData {
   quota?: number // Only used when updating user
   group?: string // Only used when updating user
   remark?: string // Only used when updating user
+  affiliate_reward_ratio?: number // Only used when updating user; fraction from 0 to 1
+  inherit_affiliate_reward_ratio?: boolean // Restore global affiliate ratio inheritance
   admin_permissions?: AdminPermissionMatrix
 }
 
@@ -143,6 +146,24 @@ export interface ManageUserQuotaPayload {
   action: 'add_quota'
   mode: QuotaAdjustMode
   value: number
+}
+
+export interface UserAffiliateReward {
+  top_up_id: number
+  invitee_id: number
+  invitee_username: string
+  base_quota: number
+  reward_quota: number
+  ratio: number
+  created_at: number
+}
+
+export interface UserAffiliateRewardsPage {
+  page: number
+  page_size: number
+  total: number
+  range_reward_quota: number
+  items: UserAffiliateReward[]
 }
 
 // ============================================================================

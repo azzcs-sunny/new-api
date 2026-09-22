@@ -1,18 +1,20 @@
 package model
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
-	AffiliateRewardMaxTopUps           = 3
-	AffiliateRewardFreezeSeconds int64 = 24 * 60 * 60
-	AffiliateRewardFrozen              = "frozen"
-	AffiliateRewardGranted             = "granted"
+	AffiliateRewardFrozen  = "frozen"
+	AffiliateRewardGranted = "granted"
+
+	affiliateDirectBalanceMigrationKey = "migration.affiliate_rewards.direct_balance.v1"
 )
 
 // AffiliateReward records one referral rebate for a successful top-up. A
@@ -35,9 +37,7 @@ type AffiliateReward struct {
 type AffiliateRewardItem struct {
 	InviteeId    int   `json:"invitee_id"`
 	JoinedAt     int64 `json:"joined_at"`
-	TopUpCount   int   `json:"top_up_count"`
 	RewardQuota  int64 `json:"reward_quota"`
-	FrozenQuota  int64 `json:"frozen_quota"`
 	LastRewardAt int64 `json:"last_reward_at"`
 }
 
@@ -47,9 +47,7 @@ type AffiliateRelationItem struct {
 	InviterId       int    `json:"inviter_id"`
 	InviterUsername string `json:"inviter_username"`
 	JoinedAt        int64  `json:"joined_at"`
-	TopUpCount      int    `json:"top_up_count"`
 	RewardQuota     int64  `json:"reward_quota"`
-	FrozenQuota     int64  `json:"frozen_quota"`
 }
 
 // AffiliateRewardDetailItem is the privacy-preserving view available to an
@@ -71,6 +69,30 @@ type AffiliateRewardAdminDetailItem struct {
 	Ratio       float64 `json:"ratio"`
 	Status      string  `json:"status"`
 	CreatedAt   int64   `json:"created_at"`
+}
+
+type AffiliateRewardAdminItem struct {
+	AffiliateRewardAdminDetailItem
+	InviteeId       int    `json:"invitee_id"`
+	InviteeUsername string `json:"invitee_username"`
+}
+
+type affiliateRewardCredit struct {
+	inviterId int
+	quota     int
+}
+
+func (credit affiliateRewardCredit) syncCache(operation string) {
+	syncCreditUserQuotaCache(credit.inviterId, credit.quota, operation+" referral reward")
+}
+
+// GetAffiliateRewardRatio returns the user's configured ratio, falling back
+// to the global setting for users who have not been configured individually.
+func (user *User) GetAffiliateRewardRatio() float64 {
+	if user != nil && user.AffiliateRewardRatio != nil {
+		return *user.AffiliateRewardRatio
+	}
+	return common.AffiliateRewardRatio
 }
 
 func GetAllAffiliateRelations(pageInfo *common.PageInfo) ([]AffiliateRelationItem, int64, error) {
@@ -112,83 +134,108 @@ func GetAllAffiliateRelations(pageInfo *common.PageInfo) ([]AffiliateRelationIte
 	}
 	var aggregates []struct {
 		InviteeId   int   `gorm:"column:invitee_id"`
-		TopUpCount  int64 `gorm:"column:top_up_count"`
 		RewardQuota int64 `gorm:"column:reward_quota"`
-		FrozenQuota int64 `gorm:"column:frozen_quota"`
 	}
 	if err := DB.Model(&AffiliateReward{}).
-		Select("invitee_id, COUNT(*) AS top_up_count, SUM(CASE WHEN status = ? THEN reward_quota ELSE 0 END) AS reward_quota, SUM(CASE WHEN status = ? THEN reward_quota ELSE 0 END) AS frozen_quota", AffiliateRewardGranted, AffiliateRewardFrozen).
-		Where("invitee_id IN ? AND status IN ?", inviteeIds, []string{AffiliateRewardGranted, AffiliateRewardFrozen}).
+		Select("invitee_id, SUM(reward_quota) AS reward_quota").
+		Where("invitee_id IN ? AND status = ?", inviteeIds, AffiliateRewardGranted).
 		Group("invitee_id").Find(&aggregates).Error; err != nil {
 		return nil, 0, err
 	}
-	aggregateByInvitee := make(map[int]struct{ topUpCount, rewardQuota, frozenQuota int64 }, len(aggregates))
+	aggregateByInvitee := make(map[int]int64, len(aggregates))
 	for _, aggregate := range aggregates {
-		aggregateByInvitee[aggregate.InviteeId] = struct{ topUpCount, rewardQuota, frozenQuota int64 }{aggregate.TopUpCount, aggregate.RewardQuota, aggregate.FrozenQuota}
+		aggregateByInvitee[aggregate.InviteeId] = aggregate.RewardQuota
 	}
 	items := make([]AffiliateRelationItem, 0, len(users))
 	for _, user := range users {
-		aggregate := aggregateByInvitee[user.Id]
 		items = append(items, AffiliateRelationItem{
 			InviteeId: user.Id, InviteeUsername: user.Username, InviterId: user.InviterId,
 			InviterUsername: nameById[user.InviterId], JoinedAt: user.CreatedAt,
-			TopUpCount: int(aggregate.topUpCount), RewardQuota: aggregate.rewardQuota, FrozenQuota: aggregate.frozenQuota,
+			RewardQuota: aggregateByInvitee[user.Id],
 		})
 	}
 	return items, total, nil
 }
 
-// ReleaseAffiliateRewards makes rebates available after the 24-hour holding
-// period. It is idempotent and safe for concurrent requests.
-func ReleaseAffiliateRewards(inviterId int) error {
-	if inviterId <= 0 {
-		return nil
-	}
-	cutoff := common.GetTimestamp() - AffiliateRewardFreezeSeconds
+// MigrateAffiliateRewardsToBalance moves both legacy available referral quota
+// and still-frozen reward rows into the main balance exactly once.
+func MigrateAffiliateRewardsToBalance() error {
 	return DB.Transaction(func(tx *gorm.DB) error {
-		var rewards []AffiliateReward
-		if err := lockForUpdate(tx).
-			Where("inviter_id = ? AND status = ? AND created_at <= ?", inviterId, AffiliateRewardFrozen, cutoff).
-			Find(&rewards).Error; err != nil {
-			return err
+		result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&Option{
+			Key: affiliateDirectBalanceMigrationKey, Value: "completed",
+		})
+		if result.Error != nil {
+			return result.Error
 		}
-		if len(rewards) == 0 {
+		if result.RowsAffected == 0 {
 			return nil
 		}
-		var total int64
-		for _, reward := range rewards {
-			total += int64(reward.RewardQuota)
+
+		var frozen []struct {
+			InviterId int   `gorm:"column:inviter_id"`
+			Quota     int64 `gorm:"column:quota"`
 		}
-		if total > 0 {
-			if err := tx.Model(&User{}).Where("id = ?", inviterId).Updates(map[string]interface{}{
-				"aff_quota":   gorm.Expr("aff_quota + ?", total),
-				"aff_history": gorm.Expr("aff_history + ?", total),
+		if err := tx.Model(&AffiliateReward{}).
+			Select("inviter_id, SUM(reward_quota) AS quota").
+			Where("status = ?", AffiliateRewardFrozen).
+			Group("inviter_id").Find(&frozen).Error; err != nil {
+			return err
+		}
+		frozenByInviter := make(map[int]int64, len(frozen))
+		for _, item := range frozen {
+			frozenByInviter[item.InviterId] = item.Quota
+		}
+
+		var users []User
+		if err := lockForUpdate(tx).Select("id", "quota", "aff_quota", "aff_history").
+			Where("aff_quota > 0 OR id IN (?)", tx.Model(&AffiliateReward{}).Select("inviter_id").Where("status = ?", AffiliateRewardFrozen)).
+			Find(&users).Error; err != nil {
+			return err
+		}
+		for _, user := range users {
+			frozenQuota := frozenByInviter[user.Id]
+			credit := int64(user.AffQuota) + frozenQuota
+			if credit <= 0 {
+				continue
+			}
+			if int64(user.Quota) > int64(common.MaxWalletQuota)-credit {
+				return fmt.Errorf("affiliate reward migration exceeds wallet limit for user %d", user.Id)
+			}
+			if err := tx.Model(&User{}).Where("id = ?", user.Id).Updates(map[string]any{
+				"quota":       gorm.Expr("quota + ?", credit),
+				"aff_quota":   0,
+				"aff_history": gorm.Expr("aff_history + ?", frozenQuota),
 			}).Error; err != nil {
 				return err
 			}
 		}
-		return tx.Model(&AffiliateReward{}).
-			Where("id IN ?", rewardIds(rewards)).
-			Update("status", AffiliateRewardGranted).Error
+		if err := tx.Model(&AffiliateReward{}).Where("status = ?", AffiliateRewardFrozen).
+			Update("status", AffiliateRewardGranted).Error; err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
-func rewardIds(rewards []AffiliateReward) []int {
-	ids := make([]int, 0, len(rewards))
-	for _, reward := range rewards {
-		ids = append(ids, reward.Id)
-	}
-	return ids
-}
-
 // GetAffiliateRewardItems returns the inviter's referred users with the
-// aggregate rebate earned from each user's first eligible top-ups.
-func GetAffiliateRewardItems(inviterId int, pageInfo *common.PageInfo) ([]AffiliateRewardItem, int64, error) {
-	if err := ReleaseAffiliateRewards(inviterId); err != nil {
-		return nil, 0, err
+// aggregate rebate earned from each user's successful top-ups.
+func GetAffiliateRewardItems(inviterId int, startTimestamp int64, endTimestamp int64, pageInfo *common.PageInfo) ([]AffiliateRewardItem, int64, error) {
+	userQuery := DB.Model(&User{}).Where("inviter_id = ?", inviterId)
+	if startTimestamp > 0 || endTimestamp > 0 {
+		rewardInvitees := DB.Model(&AffiliateReward{}).
+			Select("invitee_id").
+			Where("inviter_id = ? AND status = ?", inviterId, AffiliateRewardGranted)
+		if startTimestamp > 0 {
+			rewardInvitees = rewardInvitees.Where("created_at >= ?", startTimestamp)
+		}
+		if endTimestamp > 0 {
+			rewardInvitees = rewardInvitees.Where("created_at <= ?", endTimestamp)
+		}
+		userQuery = userQuery.Where("id IN (?)", rewardInvitees)
 	}
+
 	var total int64
-	if err := DB.Model(&User{}).Where("inviter_id = ?", inviterId).Count(&total).Error; err != nil {
+	if err := userQuery.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -196,9 +243,8 @@ func GetAffiliateRewardItems(inviterId int, pageInfo *common.PageInfo) ([]Affili
 		Id        int
 		CreatedAt int64
 	}
-	if err := DB.Model(&User{}).
+	if err := userQuery.Session(&gorm.Session{}).
 		Select("id, created_at").
-		Where("inviter_id = ?", inviterId).
 		Order("id desc").
 		Limit(pageInfo.GetPageSize()).
 		Offset(pageInfo.GetStartIdx()).
@@ -215,32 +261,33 @@ func GetAffiliateRewardItems(inviterId int, pageInfo *common.PageInfo) ([]Affili
 	}
 	var aggregates []struct {
 		InviteeId    int   `gorm:"column:invitee_id"`
-		TopUpCount   int64 `gorm:"column:top_up_count"`
 		RewardQuota  int64 `gorm:"column:reward_quota"`
-		FrozenQuota  int64 `gorm:"column:frozen_quota"`
 		LastRewardAt int64 `gorm:"column:last_reward_at"`
 	}
-	if err := DB.Model(&AffiliateReward{}).
-		Select("invitee_id, COUNT(*) AS top_up_count, SUM(CASE WHEN status = ? THEN reward_quota ELSE 0 END) AS reward_quota, SUM(CASE WHEN status = ? THEN reward_quota ELSE 0 END) AS frozen_quota, MAX(created_at) AS last_reward_at", AffiliateRewardGranted, AffiliateRewardFrozen).
-		Where("inviter_id = ? AND status IN ? AND invitee_id IN ?", inviterId, []string{AffiliateRewardGranted, AffiliateRewardFrozen}, inviteeIds).
+	aggregateQuery := DB.Model(&AffiliateReward{}).
+		Where("inviter_id = ? AND status = ? AND invitee_id IN ?", inviterId, AffiliateRewardGranted, inviteeIds)
+	if startTimestamp > 0 {
+		aggregateQuery = aggregateQuery.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp > 0 {
+		aggregateQuery = aggregateQuery.Where("created_at <= ?", endTimestamp)
+	}
+	if err := aggregateQuery.
+		Select("invitee_id, SUM(reward_quota) AS reward_quota, MAX(created_at) AS last_reward_at").
 		Group("invitee_id").
 		Find(&aggregates).Error; err != nil {
 		return nil, 0, err
 	}
 
 	byInvitee := make(map[int]struct {
-		topUpCount   int64
 		rewardQuota  int64
-		frozenQuota  int64
 		lastRewardAt int64
 	}, len(aggregates))
 	for _, aggregate := range aggregates {
 		byInvitee[aggregate.InviteeId] = struct {
-			topUpCount   int64
 			rewardQuota  int64
-			frozenQuota  int64
 			lastRewardAt int64
-		}{aggregate.TopUpCount, aggregate.RewardQuota, aggregate.FrozenQuota, aggregate.LastRewardAt}
+		}{aggregate.RewardQuota, aggregate.LastRewardAt}
 	}
 
 	items := make([]AffiliateRewardItem, 0, len(users))
@@ -249,21 +296,60 @@ func GetAffiliateRewardItems(inviterId int, pageInfo *common.PageInfo) ([]Affili
 		items = append(items, AffiliateRewardItem{
 			InviteeId:    user.Id,
 			JoinedAt:     user.CreatedAt,
-			TopUpCount:   int(aggregate.topUpCount),
 			RewardQuota:  aggregate.rewardQuota,
-			FrozenQuota:  aggregate.frozenQuota,
 			LastRewardAt: aggregate.lastRewardAt,
 		})
 	}
 	return items, total, nil
 }
 
+func GetAffiliateRewardsForAdmin(inviterId int, startTimestamp int64, endTimestamp int64, pageInfo *common.PageInfo) ([]AffiliateRewardAdminItem, int64, int64, error) {
+	query := DB.Model(&AffiliateReward{}).Where("inviter_id = ? AND status = ?", inviterId, AffiliateRewardGranted)
+	if startTimestamp > 0 {
+		query = query.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp > 0 {
+		query = query.Where("created_at <= ?", endTimestamp)
+	}
+	var total int64
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, 0, err
+	}
+	var rangeRewardQuota int64
+	if err := query.Session(&gorm.Session{}).Select("COALESCE(SUM(reward_quota), 0)").Scan(&rangeRewardQuota).Error; err != nil {
+		return nil, 0, 0, err
+	}
+	var rewards []AffiliateReward
+	if err := query.Session(&gorm.Session{}).Order("created_at desc, id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&rewards).Error; err != nil {
+		return nil, 0, 0, err
+	}
+	inviteeIds := make([]int, 0, len(rewards))
+	for _, reward := range rewards {
+		inviteeIds = append(inviteeIds, reward.InviteeId)
+	}
+	var invitees []User
+	if len(inviteeIds) > 0 {
+		if err := DB.Unscoped().Select("id", "username").Where("id IN ?", inviteeIds).Find(&invitees).Error; err != nil {
+			return nil, 0, 0, err
+		}
+	}
+	usernameById := make(map[int]string, len(invitees))
+	for _, invitee := range invitees {
+		usernameById[invitee.Id] = invitee.Username
+	}
+	items := make([]AffiliateRewardAdminItem, 0, len(rewards))
+	for _, reward := range rewards {
+		items = append(items, AffiliateRewardAdminItem{
+			AffiliateRewardAdminDetailItem: AffiliateRewardAdminDetailItem{TopUpId: reward.TopUpId, Sequence: reward.Sequence, BaseQuota: reward.BaseQuota, RewardQuota: reward.RewardQuota, Ratio: reward.Ratio, Status: reward.Status, CreatedAt: reward.CreatedAt},
+			InviteeId:                      reward.InviteeId, InviteeUsername: usernameById[reward.InviteeId],
+		})
+	}
+	return items, total, rangeRewardQuota, nil
+}
+
 func GetAffiliateRewardDetails(inviterId int, inviteeId int, pageInfo *common.PageInfo) ([]AffiliateRewardDetailItem, int64, error) {
 	if inviterId <= 0 || inviteeId <= 0 {
 		return []AffiliateRewardDetailItem{}, 0, nil
-	}
-	if err := ReleaseAffiliateRewards(inviterId); err != nil {
-		return nil, 0, err
 	}
 	query := DB.Model(&AffiliateReward{}).
 		Where("inviter_id = ? AND invitee_id = ?", inviterId, inviteeId)
@@ -286,9 +372,6 @@ func GetAffiliateRewardDetails(inviterId int, inviteeId int, pageInfo *common.Pa
 func GetAffiliateRewardAdminDetails(inviterId int, inviteeId int, pageInfo *common.PageInfo) ([]AffiliateRewardAdminDetailItem, int64, error) {
 	if inviterId <= 0 || inviteeId <= 0 {
 		return []AffiliateRewardAdminDetailItem{}, 0, nil
-	}
-	if err := ReleaseAffiliateRewards(inviterId); err != nil {
-		return nil, 0, err
 	}
 	query := DB.Model(&AffiliateReward{}).
 		Where("inviter_id = ? AND invitee_id = ?", inviterId, inviteeId)
@@ -343,20 +426,27 @@ func GetAffiliateRewardAdminDetails(inviterId int, inviteeId int, pageInfo *comm
 // applyAffiliateTopUpRewardTx settles the referral rebate as part of the
 // top-up transaction. The invitee row is locked before counting successful
 // top-ups, so concurrent payments cannot both become the same reward sequence.
-func applyAffiliateTopUpRewardTx(tx *gorm.DB, topUp *TopUp, creditedQuota int) error {
+func applyAffiliateTopUpRewardTx(tx *gorm.DB, topUp *TopUp, creditedQuota int, credit *affiliateRewardCredit) error {
 	if tx == nil || topUp == nil || topUp.Id == 0 || creditedQuota <= 0 {
 		return nil
 	}
-	ratio := common.AffiliateRewardRatio
-	if !operation_setting.IsPaymentComplianceConfirmed() || ratio <= 0 || ratio > 1 || math.IsNaN(ratio) || math.IsInf(ratio, 0) {
+	if topUp.PaymentMethod == PaymentMethodRedemption || topUp.PaymentProvider == PaymentProviderRedemption {
 		return nil
 	}
-
 	var invitee User
 	if err := lockForUpdate(tx).Select("id", "inviter_id").Where("id = ?", topUp.UserId).First(&invitee).Error; err != nil {
 		return err
 	}
 	if invitee.InviterId <= 0 || invitee.InviterId == invitee.Id {
+		return nil
+	}
+
+	var inviter User
+	if err := tx.Select("affiliate_reward_ratio").Where("id = ?", invitee.InviterId).First(&inviter).Error; err != nil {
+		return err
+	}
+	ratio := inviter.GetAffiliateRewardRatio()
+	if !operation_setting.IsPaymentComplianceConfirmed() || ratio <= 0 || ratio > 1 || math.IsNaN(ratio) || math.IsInf(ratio, 0) {
 		return nil
 	}
 
@@ -366,13 +456,16 @@ func applyAffiliateTopUpRewardTx(tx *gorm.DB, topUp *TopUp, creditedQuota int) e
 		Count(&successfulTopUps).Error; err != nil {
 		return err
 	}
-	if successfulTopUps <= 0 || successfulTopUps > AffiliateRewardMaxTopUps {
+	if successfulTopUps <= 0 {
 		return nil
 	}
 
 	rewardQuota, err := common.QuotaFromFloatStrict(float64(creditedQuota) * ratio)
 	if err != nil {
 		return err
+	}
+	if rewardQuota <= 0 {
+		return nil
 	}
 	reward := &AffiliateReward{
 		TopUpId:     topUp.Id,
@@ -382,10 +475,25 @@ func applyAffiliateTopUpRewardTx(tx *gorm.DB, topUp *TopUp, creditedQuota int) e
 		BaseQuota:   creditedQuota,
 		RewardQuota: rewardQuota,
 		Ratio:       ratio,
-		Status:      AffiliateRewardFrozen,
+		Status:      AffiliateRewardGranted,
 	}
 	if err := tx.Create(reward).Error; err != nil {
 		return err
+	}
+	maxCurrentQuota := common.MaxWalletQuota - rewardQuota
+	result := tx.Model(&User{}).Where("id = ? AND quota <= ?", invitee.InviterId, maxCurrentQuota).Updates(map[string]any{
+		"quota":       gorm.Expr("quota + ?", rewardQuota),
+		"aff_history": gorm.Expr("aff_history + ?", rewardQuota),
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return ErrWalletQuotaLimitExceeded
+	}
+	if credit != nil {
+		credit.inviterId = invitee.InviterId
+		credit.quota = rewardQuota
 	}
 	return nil
 }

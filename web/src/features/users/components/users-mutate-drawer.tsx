@@ -441,6 +441,38 @@ export function UsersMutateDrawer({
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name='affiliate_reward_ratio'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Affiliate Reward Ratio')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            value={field.value}
+                            onChange={(event) => {
+                              const value = event.currentTarget.valueAsNumber
+                              field.onChange(Number.isNaN(value) ? '' : value)
+                            }}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Individual affiliate reward ratio for this user (0-100%). Leave empty to use the global setting.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </SideDrawerSection>
               )}
 

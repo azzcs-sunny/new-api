@@ -32,6 +32,10 @@ func TestGetWalletTransactionsCombinesWalletCreditSources(t *testing.T) {
 			"wallet_adjustment": map[string]interface{}{"mode": "subtract"},
 		}),
 	}).Error)
+	require.NoError(t, DB.Create(&AffiliateReward{
+		TopUpId: 99901, InviteeId: 903, InviterId: userId, RewardQuota: 450,
+		Status: AffiliateRewardGranted, CreatedAt: 250,
+	}).Error)
 	require.NoError(t, DB.Create(&TopUp{
 		UserId: 902, Amount: 9999, TradeNo: "another-users-topup",
 		Status: common.TopUpStatusSuccess, CreateTime: 400,
@@ -49,22 +53,25 @@ func TestGetWalletTransactionsCombinesWalletCreditSources(t *testing.T) {
 
 	firstPage, total, err := GetWalletTransactions(userId, &common.PageInfo{Page: 1, PageSize: 2})
 	require.NoError(t, err)
-	assert.EqualValues(t, 3, total)
+	assert.EqualValues(t, 4, total)
 	require.Len(t, firstPage, 2)
 	assert.Equal(t, WalletTransactionSourceAdmin, firstPage[0].Source)
 	assert.EqualValues(t, -300, firstPage[0].Amount)
 	assert.Equal(t, "subtract", firstPage[0].AdjustmentMode)
-	assert.Equal(t, WalletTransactionSourceRedemption, firstPage[1].Source)
-	assert.EqualValues(t, 2000, firstPage[1].Amount)
-	assert.Equal(t, "RED-"+strconv.Itoa(redemption.Id), firstPage[1].TradeNo)
+	assert.Equal(t, WalletTransactionSourceAffiliate, firstPage[1].Source)
+	assert.EqualValues(t, 450, firstPage[1].Amount)
+	assert.Empty(t, firstPage[1].TradeNo)
 
 	secondPage, total, err := GetWalletTransactions(userId, &common.PageInfo{Page: 2, PageSize: 2})
 	require.NoError(t, err)
-	assert.EqualValues(t, 3, total)
-	require.Len(t, secondPage, 1)
-	assert.Equal(t, WalletTransactionSourceTopUp, secondPage[0].Source)
-	assert.Equal(t, "wallet-ledger-topup", secondPage[0].TradeNo)
-	assert.Equal(t, PaymentMethodStripe, secondPage[0].PaymentMethod)
-	assert.EqualValues(t, common.QuotaFromFloat(10*common.QuotaPerUnit), secondPage[0].Amount)
-	assert.Equal(t, common.TopUpStatusSuccess, secondPage[0].Status)
+	assert.EqualValues(t, 4, total)
+	require.Len(t, secondPage, 2)
+	assert.Equal(t, WalletTransactionSourceRedemption, secondPage[0].Source)
+	assert.EqualValues(t, 2000, secondPage[0].Amount)
+	assert.Equal(t, "RED-"+strconv.Itoa(redemption.Id), secondPage[0].TradeNo)
+	assert.Equal(t, WalletTransactionSourceTopUp, secondPage[1].Source)
+	assert.Equal(t, "wallet-ledger-topup", secondPage[1].TradeNo)
+	assert.Equal(t, PaymentMethodStripe, secondPage[1].PaymentMethod)
+	assert.EqualValues(t, common.QuotaFromFloat(10*common.QuotaPerUnit), secondPage[1].Amount)
+	assert.Equal(t, common.TopUpStatusSuccess, secondPage[1].Status)
 }

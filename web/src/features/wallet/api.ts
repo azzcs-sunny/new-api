@@ -207,12 +207,20 @@ export async function transferAffiliateQuota(
 
 export async function getAffiliateRewards(
   page: number,
-  pageSize: number
+  pageSize: number,
+  start?: Date,
+  end?: Date
 ): Promise<ApiResponse<AffiliateRewardsResponse>> {
   const params = new URLSearchParams({
     p: page.toString(),
     page_size: pageSize.toString(),
   })
+  if (start) {
+    params.set('start_timestamp', String(Math.floor(start.getTime() / 1000)))
+  }
+  if (end) {
+    params.set('end_timestamp', String(Math.floor(end.getTime() / 1000)))
+  }
   const res = await api.get(`/api/user/affiliate/rewards?${params.toString()}`)
   return res.data
 }

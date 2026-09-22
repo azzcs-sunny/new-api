@@ -18,6 +18,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 
@@ -27,7 +28,20 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupManageUserTestDB(t *testing.T) *gorm.DB {
+type userBeforeAffiliateRewardRatio struct {
+	Id       int    `gorm:"primaryKey"`
+	Username string `gorm:"unique;index"`
+	Password string `gorm:"not null"`
+	Role     int    `gorm:"type:int;default:1"`
+	Status   int    `gorm:"type:int;default:1"`
+	Group    string `gorm:"type:varchar(64);default:'default'"`
+}
+
+func (userBeforeAffiliateRewardRatio) TableName() string {
+	return "users"
+}
+
+func setupManageUserTestDB(t *testing.T, upgradeFromPreviousSchema ...bool) *gorm.DB {
 	t.Helper()
 	require.NoError(t, i18n.Init())
 	previousDB, previousLogDB := model.DB, model.LOG_DB
@@ -66,7 +80,23 @@ func setupManageUserTestDB(t *testing.T) *gorm.DB {
 			}
 		}
 	})
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.CasbinRule{}, &model.AuthzRole{}))
+	if len(upgradeFromPreviousSchema) > 0 && upgradeFromPreviousSchema[0] {
+		require.NoError(t, db.AutoMigrate(&userBeforeAffiliateRewardRatio{}))
+		legacyUser := userBeforeAffiliateRewardRatio{
+			Username: "pre-affiliate-ratio-migration", Password: "password", Role: common.RoleCommonUser,
+			Status: common.UserStatusEnabled, Group: "default",
+		}
+		require.NoError(t, db.Create(&legacyUser).Error)
+		require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.CasbinRule{}, &model.AuthzRole{}))
+		require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.CasbinRule{}, &model.AuthzRole{}))
+		var migratedUser model.User
+		require.NoError(t, db.First(&migratedUser, legacyUser.Id).Error)
+		assert.Equal(t, legacyUser.Username, migratedUser.Username)
+		assert.Nil(t, migratedUser.AffiliateRewardRatio)
+		require.NoError(t, db.Unscoped().Delete(&model.User{}, legacyUser.Id).Error)
+	} else {
+		require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.CasbinRule{}, &model.AuthzRole{}))
+	}
 	require.NoError(t, logDB.AutoMigrate(&model.Log{}, &model.AuditLog{}))
 	versionQuery := "SELECT version()"
 	if dialect == "sqlite" {
@@ -91,6 +121,55 @@ func performManageUserRequest(t *testing.T, body string) *httptest.ResponseRecor
 	c.Set(common.RequestIdKey, "quota-test-request")
 	ManageUser(c)
 	return recorder
+}
+
+func performUpdateUserRequest(t *testing.T, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPut, "/api/user/", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("id", 9999)
+	c.Set("role", common.RoleAdminUser)
+	c.Set("username", "admin-operator")
+	c.Set(common.RequestIdKey, "user-update-test-request")
+	UpdateUser(c)
+	return recorder
+}
+
+func TestUpdateUserAffiliateRewardRatioAndRestoreGlobalInheritance(t *testing.T) {
+	db := setupManageUserTestDB(t, true)
+	oldCompliance := operation_setting.GetPaymentSetting().ComplianceConfirmed
+	oldTermsVersion := operation_setting.GetPaymentSetting().ComplianceTermsVersion
+	operation_setting.GetPaymentSetting().ComplianceConfirmed = true
+	operation_setting.GetPaymentSetting().ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
+	t.Cleanup(func() {
+		operation_setting.GetPaymentSetting().ComplianceConfirmed = oldCompliance
+		operation_setting.GetPaymentSetting().ComplianceTermsVersion = oldTermsVersion
+	})
+
+	user := model.User{
+		Username: "affiliate-ratio-user", Password: "password", Role: common.RoleCommonUser,
+		Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1,
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	recorder := performUpdateUserRequest(t, fmt.Sprintf(`{"id":%d,"username":%q,"affiliate_reward_ratio":0.25}`, user.Id, user.Username))
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), `"success":true`)
+
+	var updated model.User
+	require.NoError(t, db.First(&updated, user.Id).Error)
+	require.NotNil(t, updated.AffiliateRewardRatio)
+	assert.Equal(t, 0.25, *updated.AffiliateRewardRatio)
+
+	recorder = performUpdateUserRequest(t, fmt.Sprintf(`{"id":%d,"username":%q,"inherit_affiliate_reward_ratio":true}`, user.Id, user.Username))
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), `"success":true`)
+
+	require.NoError(t, db.First(&updated, user.Id).Error)
+	assert.Nil(t, updated.AffiliateRewardRatio)
 }
 
 func TestManageUserDisableAdvancesAuthVersionOnceAndRevokesSession(t *testing.T) {

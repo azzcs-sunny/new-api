@@ -416,10 +416,6 @@ func TransferAffQuota(c *gin.Context) {
 	}
 
 	id := c.GetInt("id")
-	if err := model.ReleaseAffiliateRewards(id); err != nil {
-		common.ApiError(c, err)
-		return
-	}
 	user, err := model.GetUserById(id, true)
 	if err != nil {
 		common.ApiError(c, err)
@@ -463,31 +459,55 @@ func GetAffCode(c *gin.Context) {
 	return
 }
 
+func parseAffiliateRewardTimeRange(c *gin.Context) (int64, int64, bool) {
+	var startTimestamp, endTimestamp int64
+	var err error
+	if value := c.Query("start_timestamp"); value != "" {
+		startTimestamp, err = strconv.ParseInt(value, 10, 64)
+		if err != nil || startTimestamp < 0 {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return 0, 0, false
+		}
+	}
+	if value := c.Query("end_timestamp"); value != "" {
+		endTimestamp, err = strconv.ParseInt(value, 10, 64)
+		if err != nil || endTimestamp < 0 {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return 0, 0, false
+		}
+	}
+	if startTimestamp > 0 && endTimestamp > 0 && startTimestamp > endTimestamp {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return 0, 0, false
+	}
+	return startTimestamp, endTimestamp, true
+}
+
 func GetAffiliateRewards(c *gin.Context) {
 	inviterId := c.GetInt("id")
+	startTimestamp, endTimestamp, ok := parseAffiliateRewardTimeRange(c)
+	if !ok {
+		return
+	}
 	pageInfo := common.GetPageQuery(c)
-	items, total, err := model.GetAffiliateRewardItems(inviterId, pageInfo)
+	items, total, err := model.GetAffiliateRewardItems(inviterId, startTimestamp, endTimestamp, pageInfo)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	var frozenQuota int64
-	if err := model.DB.Model(&model.AffiliateReward{}).
-		Select("COALESCE(SUM(reward_quota), 0)").
-		Where("inviter_id = ? AND status = ?", inviterId, model.AffiliateRewardFrozen).
-		Scan(&frozenQuota).Error; err != nil {
+	user, err := model.GetUserById(inviterId, false)
+	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(items)
 	common.ApiSuccess(c, gin.H{
-		"page":         pageInfo.Page,
-		"page_size":    pageInfo.PageSize,
-		"total":        pageInfo.Total,
-		"items":        pageInfo.Items,
-		"frozen_quota": frozenQuota,
-		"ratio":        common.AffiliateRewardRatio,
+		"page":      pageInfo.Page,
+		"page_size": pageInfo.PageSize,
+		"total":     pageInfo.Total,
+		"items":     pageInfo.Items,
+		"ratio":     user.GetAffiliateRewardRatio(),
 	})
 }
 
@@ -538,12 +558,42 @@ func GetAffiliateRewardAdminDetails(c *gin.Context) {
 	common.ApiSuccess(c, pageInfo)
 }
 
-func GetSelf(c *gin.Context) {
-	id := c.GetInt("id")
-	if err := model.ReleaseAffiliateRewards(id); err != nil {
+func GetAffiliateRewardsForAdmin(c *gin.Context) {
+	inviterId, err := strconv.Atoi(c.Param("inviter_id"))
+	if err != nil || inviterId <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	inviter, err := model.GetUserById(inviterId, false)
+	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	if !canManageTargetRole(c.GetInt("role"), inviter.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+	startTimestamp, endTimestamp, ok := parseAffiliateRewardTimeRange(c)
+	if !ok {
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	items, total, rangeRewardQuota, err := model.GetAffiliateRewardsForAdmin(inviterId, startTimestamp, endTimestamp, pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"page":               pageInfo.Page,
+		"page_size":          pageInfo.PageSize,
+		"total":              total,
+		"items":              items,
+		"range_reward_quota": rangeRewardQuota,
+	})
+}
+
+func GetSelf(c *gin.Context) {
+	id := c.GetInt("id")
 	userRole := c.GetInt("role")
 	user, err := model.GetSelfUserById(id)
 	if err != nil {
@@ -743,6 +793,10 @@ func UpdateUser(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
 		return
 	}
+	if updatedUser.AffiliateRewardRatio != nil && *updatedUser.AffiliateRewardRatio > 0 && !operation_setting.IsPaymentComplianceConfirmed() {
+		common.ApiErrorI18n(c, i18n.MsgPaymentComplianceRequired)
+		return
+	}
 	originUser, err := model.GetUserById(updatedUser.Id, false)
 	if err != nil {
 		common.ApiError(c, err)
@@ -763,6 +817,12 @@ func UpdateUser(c *gin.Context) {
 	if err := model.DB.Transaction(func(tx *gorm.DB) error {
 		if err := updatedUser.EditWithTx(tx, updatePassword); err != nil {
 			return err
+		}
+		if updatedUser.InheritAffRatio {
+			if err := tx.Model(&model.User{}).Where("id = ?", updatedUser.Id).Update("affiliate_reward_ratio", nil).Error; err != nil {
+				return err
+			}
+			updatedUser.AffiliateRewardRatio = nil
 		}
 		touched, err := updateAdminPermissionsForUserInTx(c, tx, updatedUser.Id, originUser.Role, updatedUser.AdminPermissions)
 		authzTouched = touched
@@ -788,8 +848,9 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 	recordManageAuditFor(c, updatedUser.Id, "user.update", map[string]any{
-		"username": originUser.Username,
-		"id":       updatedUser.Id,
+		"username":               originUser.Username,
+		"id":                     updatedUser.Id,
+		"affiliate_reward_ratio": updatedUser.AffiliateRewardRatio,
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

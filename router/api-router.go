@@ -152,6 +152,7 @@ func SetApiRouter(router *gin.Engine) {
 			adminRoute.Use(middleware.AdminAuth())
 			{
 				adminRoute.GET("/affiliate/admin/rewards", controller.GetAllAffiliateRewards)
+				adminRoute.GET("/affiliate/admin/users/:inviter_id/rewards", controller.GetAffiliateRewardsForAdmin)
 				adminRoute.GET("/affiliate/admin/rewards/:inviter_id/:invitee_id/details", controller.GetAffiliateRewardAdminDetails)
 				adminRoute.GET("/", controller.GetAllUsers)
 				adminRoute.GET("/topup", controller.GetAllTopUps)

@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { sendPasswordResetEmail } from '@/features/auth/api'
+import { EmailDeliveryHint } from '@/features/auth/components/email-delivery-hint'
 import {
   AUTH_BUTTON_CLASSNAME,
   AUTH_INPUT_CLASSNAME,
@@ -134,6 +135,8 @@ export function ForgotPasswordForm({
             : t('Send reset email')}
           {isLoading ? <Loader2 className='animate-spin' /> : <ArrowRight />}
         </Button>
+
+        <EmailDeliveryHint />
 
         {isTurnstileEnabled && (
           <div className='mt-2'>

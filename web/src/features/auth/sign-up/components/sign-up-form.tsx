@@ -39,6 +39,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { register, wechatLoginByCode } from '@/features/auth/api'
+import { EmailDeliveryHint } from '@/features/auth/components/email-delivery-hint'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import {
@@ -331,6 +332,7 @@ export function SignUpForm({
                     <Input
                       placeholder={t('name@example.com')}
                       type='email'
+                      className={AUTH_INPUT_CLASSNAME}
                       {...field}
                     />
                   </FormControl>
@@ -344,6 +346,8 @@ export function SignUpForm({
               <div className='flex-1'>
                 <Input
                   placeholder={t('Verification code')}
+                  aria-label={t('Verification code')}
+                  className={AUTH_INPUT_CLASSNAME}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                 />
@@ -351,6 +355,7 @@ export function SignUpForm({
               <Button
                 variant='outline'
                 type='button'
+                className={AUTH_BUTTON_CLASSNAME}
                 disabled={
                   isLoading ||
                   isSendingCode ||
@@ -363,6 +368,7 @@ export function SignUpForm({
                 {verificationCodeAction}
               </Button>
             </div>
+            <EmailDeliveryHint />
           </>
         )}
 

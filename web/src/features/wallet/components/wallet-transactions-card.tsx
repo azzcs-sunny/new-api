@@ -42,6 +42,7 @@ const SOURCE_LABELS: Record<WalletTransactionSource, string> = {
   online_topup: 'Online top-up',
   redemption: 'Redemption Code',
   admin_adjustment: 'Administrator adjustment',
+  affiliate_reward: 'Referral reward',
 }
 
 function getAdjustmentLabel(record: WalletTransaction): string | null {
@@ -101,7 +102,7 @@ export function WalletTransactionsCard() {
         </p>
         <p className='mt-1 max-w-md text-xs'>
           {t(
-            'Balance changes will appear here after a top-up, redemption, or administrator update.'
+            'Balance changes will appear here after a top-up, referral reward, redemption, or administrator update.'
           )}
         </p>
       </div>
@@ -193,7 +194,7 @@ export function WalletTransactionsCard() {
     <TitledCard
       title={t('Balance History')}
       description={t(
-        'Review every balance change from payments, redemption codes, and administrator updates.'
+        'Review every balance change from payments, referral rewards, redemption codes, and administrator updates.'
       )}
       icon={<History className='h-4 w-4' />}
       iconTone='info'

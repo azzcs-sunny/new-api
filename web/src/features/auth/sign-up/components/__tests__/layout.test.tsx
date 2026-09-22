@@ -19,7 +19,32 @@ For commercial licensing, please contact support@quantumnous.com
 import { render, screen } from '@testing-library/react'
 import { describe, expect, test, vi } from 'vitest'
 
-import { ForgotPasswordForm } from '../forgot-password-form'
+import { SignUpForm } from '../sign-up-form'
+
+vi.mock('@/hooks/use-status', () => ({
+  useStatus: () => ({
+    status: {
+      email_verification: true,
+      oauth_register_enabled: false,
+    },
+  }),
+}))
+
+vi.mock('@/features/auth/hooks/use-auth-redirect', () => ({
+  useAuthRedirect: () => ({
+    redirectToLogin: vi.fn(),
+    handleLoginResult: vi.fn(),
+  }),
+}))
+
+vi.mock('@/features/auth/hooks/use-email-verification', () => ({
+  useEmailVerification: () => ({
+    isSending: false,
+    secondsLeft: 0,
+    isActive: false,
+    sendCode: vi.fn(),
+  }),
+}))
 
 vi.mock('@/features/auth/hooks/use-turnstile', () => ({
   useTurnstile: () => ({
@@ -31,23 +56,29 @@ vi.mock('@/features/auth/hooks/use-turnstile', () => ({
   }),
 }))
 
-describe('ForgotPasswordForm layout', () => {
-  test('uses the auth input and primary button sizing from sign-in', () => {
-    render(<ForgotPasswordForm />)
+describe('SignUpForm layout', () => {
+  test('uses the auth sizing for email verification controls', () => {
+    render(<SignUpForm />)
 
-    expect(screen.getByLabelText('Email')).toHaveClass(
+    expect(
+      screen.getByLabelText('Email (required for verification)')
+    ).toHaveClass('h-12', 'rounded-lg', 'px-4', 'text-base')
+    expect(screen.getByLabelText('Verification code')).toHaveClass(
       'h-12',
       'rounded-lg',
       'px-4',
       'text-base'
     )
-    expect(
-      screen.getByRole('button', { name: /send reset email/i })
-    ).toHaveClass('h-12', 'rounded-lg', 'px-4', 'text-base')
+    expect(screen.getByRole('button', { name: 'Send code' })).toHaveClass(
+      'h-12',
+      'rounded-lg',
+      'px-4',
+      'text-base'
+    )
   })
 
   test('shows the spam-folder reminder as a wrapping warning badge', () => {
-    render(<ForgotPasswordForm />)
+    render(<SignUpForm />)
 
     expect(screen.getByRole('note')).toHaveClass(
       'bg-warning/10',

@@ -45,9 +45,7 @@ export type AffiliateTransferResponse = ApiResponse
 export interface AffiliateRewardItem {
   invitee_id: number
   joined_at: number
-  top_up_count: number
   reward_quota: number
-  frozen_quota: number
   last_reward_at: number
 }
 
@@ -57,9 +55,7 @@ export interface AffiliateRelationItem {
   inviter_id: number
   inviter_username: string
   joined_at: number
-  top_up_count: number
   reward_quota: number
-  frozen_quota: number
 }
 
 export interface AffiliateRewardDetailItem {
@@ -97,7 +93,6 @@ export interface AffiliateRewardsResponse {
   total: number
   page: number
   page_size: number
-  frozen_quota: number
   ratio: number
 }
 export type AffiliateRewardDetailsResponse =
@@ -359,6 +354,7 @@ export type WalletTransactionSource =
   | 'online_topup'
   | 'redemption'
   | 'admin_adjustment'
+  | 'affiliate_reward'
 
 export interface WalletTransaction {
   id: string

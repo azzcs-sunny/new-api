@@ -14,6 +14,7 @@ const (
 	WalletTransactionSourceTopUp      = "online_topup"
 	WalletTransactionSourceRedemption = "redemption"
 	WalletTransactionSourceAdmin      = "admin_adjustment"
+	WalletTransactionSourceAffiliate  = "affiliate_reward"
 )
 
 type WalletTransaction struct {
@@ -30,8 +31,8 @@ type WalletTransaction struct {
 	InvoiceIssued  bool     `json:"invoice_issued,omitempty"`
 }
 
-// GetWalletTransactions combines payment orders, redeemed codes, and
-// administrator balance changes into one reverse-chronological wallet ledger.
+// GetWalletTransactions combines all balance credits and administrator
+// adjustments into one reverse-chronological wallet ledger.
 func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions []*WalletTransaction, total int64, err error) {
 	if pageInfo == nil || pageInfo.GetPage() < 1 || pageInfo.GetPageSize() < 1 {
 		return nil, 0, fmt.Errorf("invalid pagination")
@@ -65,7 +66,13 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 		Count(&adjustmentCount).Error; err != nil {
 		return nil, 0, err
 	}
-	total = topUpCount + redemptionCount + adjustmentCount
+	var affiliateCount int64
+	if err = DB.Model(&AffiliateReward{}).
+		Where("inviter_id = ? AND status = ?", userId, AffiliateRewardGranted).
+		Count(&affiliateCount).Error; err != nil {
+		return nil, 0, err
+	}
+	total = topUpCount + redemptionCount + adjustmentCount + affiliateCount
 	if fetchLimit == 0 {
 		return []*WalletTransaction{}, total, nil
 	}
@@ -90,8 +97,13 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 		Order(adjustmentOrder).Limit(fetchLimit).Find(&adjustments).Error; err != nil {
 		return nil, 0, err
 	}
+	var affiliateRewards []*AffiliateReward
+	if err = DB.Where("inviter_id = ? AND status = ?", userId, AffiliateRewardGranted).
+		Order("created_at desc, id desc").Limit(fetchLimit).Find(&affiliateRewards).Error; err != nil {
+		return nil, 0, err
+	}
 
-	transactions = make([]*WalletTransaction, 0, len(topUps)+len(redemptions)+len(adjustments))
+	transactions = make([]*WalletTransaction, 0, len(topUps)+len(redemptions)+len(adjustments)+len(affiliateRewards))
 	quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
 	for _, topUp := range topUps {
 		money := topUp.Money
@@ -157,6 +169,16 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 			CreateTime:     adjustment.CreatedAt,
 			CompleteTime:   adjustment.CreatedAt,
 			AdjustmentMode: meta.WalletAdjustment.Mode,
+		})
+	}
+	for _, reward := range affiliateRewards {
+		transactions = append(transactions, &WalletTransaction{
+			Id:           fmt.Sprintf("affiliate-%d", reward.Id),
+			Source:       WalletTransactionSourceAffiliate,
+			Amount:       int64(reward.RewardQuota),
+			Status:       common.TopUpStatusSuccess,
+			CreateTime:   reward.CreatedAt,
+			CompleteTime: reward.CreatedAt,
 		})
 	}
 

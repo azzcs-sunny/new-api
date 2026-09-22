@@ -86,18 +86,9 @@ export function AffiliateAdmin() {
         cell: ({ row }) => formatTimestampToDate(row.original.joined_at),
       },
       {
-        accessorKey: 'top_up_count',
-        header: t('Top-ups'),
-      },
-      {
         accessorKey: 'reward_quota',
         header: t('Reward Earned'),
         cell: ({ row }) => formatQuota(row.original.reward_quota),
-      },
-      {
-        accessorKey: 'frozen_quota',
-        header: t('Frozen Reward'),
-        cell: ({ row }) => formatQuota(row.original.frozen_quota),
       },
       {
         id: 'actions',

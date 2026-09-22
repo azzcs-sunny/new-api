@@ -20,8 +20,8 @@ import { ViewIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { Copy, Gift, Share2 } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { Copy, Share2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DataTablePage, useDataTable } from '@/components/data-table'
@@ -36,10 +36,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import { getAffiliateRewards } from '@/features/wallet/api'
-import { TransferDialog } from '@/features/wallet/components/dialogs/transfer-dialog'
 import { useAffiliate } from '@/features/wallet/hooks/use-affiliate'
-import { useTopupInfo } from '@/features/wallet/hooks/use-topup-info'
 import type {
   AffiliateRewardItem,
   UserWalletData,
@@ -56,15 +55,9 @@ export function Affiliate() {
     pageIndex: 0,
     pageSize: 20,
   })
-  const [transferOpen, setTransferOpen] = useState(false)
+  const [range, setRange] = useState<{ start?: Date; end?: Date }>({})
   const [detailsInviteeId, setDetailsInviteeId] = useState<number | null>(null)
-  const { topupInfo } = useTopupInfo()
-  const {
-    affiliateLink,
-    loading: linkLoading,
-    transferQuota,
-    transferring,
-  } = useAffiliate()
+  const { affiliateLink, loading: linkLoading } = useAffiliate()
 
   const userQuery = useQuery({
     queryKey: ['affiliate-self'],
@@ -78,13 +71,17 @@ export function Affiliate() {
       'affiliate-rewards',
       pagination.pageIndex + 1,
       pagination.pageSize,
+      range.start?.getTime(),
+      range.end?.getTime(),
     ],
     queryFn: async () => {
       const response = await getAffiliateRewards(
         pagination.pageIndex + 1,
-        pagination.pageSize
+        pagination.pageSize,
+        range.start,
+        range.end
       )
-      return response.data ?? { items: [], total: 0, frozen_quota: 0, ratio: 0 }
+      return response.data ?? { items: [], total: 0, ratio: 0 }
     },
     placeholderData: (previous) => previous,
   })
@@ -106,19 +103,9 @@ export function Affiliate() {
         cell: ({ row }) => formatTimestampToDate(row.original.joined_at),
       },
       {
-        accessorKey: 'top_up_count',
-        header: t('Top-ups'),
-        cell: ({ row }) => `${row.original.top_up_count}/3`,
-      },
-      {
         accessorKey: 'reward_quota',
         header: t('Amount Earned'),
         cell: ({ row }) => formatQuota(row.original.reward_quota),
-      },
-      {
-        accessorKey: 'frozen_quota',
-        header: t('Frozen Amount'),
-        cell: ({ row }) => formatQuota(row.original.frozen_quota),
       },
       {
         accessorKey: 'last_reward_at',
@@ -162,18 +149,7 @@ export function Affiliate() {
     withSortedRowModel: false,
   })
 
-  const handleTransfer = useCallback(
-    async (amount: number) => {
-      const success = await transferQuota(amount)
-      if (success) {
-        await userQuery.refetch()
-      }
-      return success
-    },
-    [transferQuota, userQuery]
-  )
   const user = userQuery.data
-  const complianceConfirmed = topupInfo?.payment_compliance_confirmed !== false
 
   return (
     <>
@@ -214,15 +190,7 @@ export function Affiliate() {
                     <Copy />
                   </Button>
                 </div>
-                <div className='grid grid-cols-2 gap-4 text-center sm:grid-cols-5 lg:min-w-[520px]'>
-                  <div>
-                    <div className='text-muted-foreground text-xs'>
-                      {t('Pending')}
-                    </div>
-                    <div className='font-semibold tabular-nums'>
-                      {formatQuota(user?.aff_quota ?? 0)}
-                    </div>
-                  </div>
+                <div className='grid grid-cols-3 gap-4 text-center lg:min-w-[360px]'>
                   <div>
                     <div className='text-muted-foreground text-xs'>
                       {t('Total Earned')}
@@ -236,15 +204,7 @@ export function Affiliate() {
                       {t('Invites')}
                     </div>
                     <div className='font-semibold tabular-nums'>
-                      {rewardsQuery.data?.total ?? 0}
-                    </div>
-                  </div>
-                  <div>
-                    <div className='text-muted-foreground text-xs'>
-                      {t('Frozen')}
-                    </div>
-                    <div className='font-semibold tabular-nums'>
-                      {formatQuota(rewardsQuery.data?.frozen_quota ?? 0)}
+                      {user?.aff_count ?? 0}
                     </div>
                   </div>
                   <div>
@@ -258,29 +218,14 @@ export function Affiliate() {
                 </div>
                 <p className='text-muted-foreground text-xs lg:col-span-2'>
                   {t(
-                    'The first three successful top-ups from each invited user earn a rebate.'
-                  )}
-                </p>
-                <p className='text-muted-foreground text-xs lg:col-span-2'>
-                  {t(
-                    'New rewards remain frozen for 24 hours before they become available for transfer.'
+                    'Eligible online payments from invited users earn a reward that is credited to your balance immediately. Redemption code purchases are excluded.'
                   )}
                 </p>
                 <p className='text-destructive text-xs lg:col-span-2'>
                   {t(
-                    'Referral rewards cannot be withdrawn and can only be used on this platform.'
+                    'Referral rewards cannot be invoiced or withdrawn and can only be used on this platform.'
                   )}
                 </p>
-                {user?.aff_quota ? (
-                  <Button
-                    className='w-full sm:w-auto lg:col-start-2 lg:justify-self-end'
-                    disabled={!complianceConfirmed}
-                    onClick={() => setTransferOpen(true)}
-                  >
-                    <Gift />
-                    {t('Transfer to Balance')}
-                  </Button>
-                ) : null}
               </CardContent>
             </Card>
 
@@ -294,19 +239,25 @@ export function Affiliate() {
                 'Share your referral link to start earning rewards.'
               )}
               skeletonKeyPrefix='affiliate-rewards'
-              toolbar={null}
+              toolbar={
+                <CompactDateTimeRangePicker
+                  start={range.start}
+                  end={range.end}
+                  onChange={(nextRange) => {
+                    setRange(nextRange)
+                    setPagination((current) => ({
+                      ...current,
+                      pageIndex: 0,
+                    }))
+                  }}
+                  className='sm:w-auto'
+                />
+              }
             />
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
 
-      <TransferDialog
-        open={transferOpen}
-        onOpenChange={setTransferOpen}
-        onConfirm={handleTransfer}
-        availableQuota={user?.aff_quota ?? 0}
-        transferring={transferring}
-      />
       <RewardDetailsDrawer
         open={detailsInviteeId !== null}
         inviteeId={detailsInviteeId}
