@@ -3,8 +3,9 @@ package constant
 type TaskPlatform string
 
 const (
-	TaskPlatformSuno       TaskPlatform = "suno"
-	TaskPlatformMidjourney              = "mj"
+	TaskPlatformSuno            TaskPlatform = "suno"
+	TaskPlatformMidjourney                   = "mj"
+	TaskPlatformImageGeneration              = "image_generation"
 )
 
 const (
@@ -13,6 +14,7 @@ const (
 	TaskActionFirstTailToVideo = "first_tail_to_video"
 	TaskActionReferenceToVideo = "reference_to_video"
 	TaskActionRemix            = "remix"
+	TaskActionImageGeneration  = "image_generation"
 )
 
 var legacyTaskActionAliases = map[string]string{

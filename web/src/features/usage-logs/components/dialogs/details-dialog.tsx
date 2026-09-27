@@ -88,6 +88,7 @@ import {
 } from '../../lib/utils'
 import { USAGE_BILLING_PATH, type LogOtherData } from '../../types'
 import { PluginAuthorLink } from '../plugin-author-link'
+import { TimingMetricsCell } from '../timing-metrics-cell'
 import { DetailRow, DetailSection } from './log-detail-layout'
 
 // Maps a channel-update changed-field token (as recorded by the backend audit)
@@ -176,6 +177,7 @@ function BillingBreakdown(props: {
   const priceOpts = { digitsLarge: 4, digitsSmall: 6, abbreviate: false }
   const fmtPrice = (usd: number) => formatBillingCurrencyFromUSD(usd, priceOpts)
   const baseInputUSD = other.model_ratio != null ? other.model_ratio * 2.0 : 0
+  const taskBilling = other.is_task ? other.task_billing : undefined
 
   if (isTieredExpr) {
     rows.push({
@@ -201,11 +203,45 @@ function BillingBreakdown(props: {
         value: other.matched_tier || t('No matching results'),
       })
     }
+  } else if (taskBilling?.billing_unit === 'second') {
+    rows.push(
+      { label: t('Billing Mode'), value: t('Per second') },
+      {
+        label: t('Base price'),
+        value: `${fmtPrice(taskBilling.base_price)}/${t('second')}`,
+      }
+    )
+    for (const [key, multiplier] of Object.entries(
+      taskBilling.multipliers ?? {}
+    )) {
+      rows.push({
+        label: key === 'resolution' ? t('Resolution multiplier') : key,
+        value: `${formatRatio(multiplier)}x`,
+      })
+    }
+    rows.push(
+      {
+        label: t('Unit price'),
+        value: `${fmtPrice(taskBilling.unit_price)}/${t('second')}`,
+      },
+      {
+        label: t('Billed duration'),
+        value: formatUseTime(taskBilling.quantity),
+      }
+    )
+  } else if (taskBilling?.billing_unit === 'request') {
+    rows.push(
+      { label: t('Billing Mode'), value: t('Per-call') },
+      { label: t('Model Price'), value: fmtPrice(taskBilling.unit_price) }
+    )
   } else if (isPerCall) {
-    rows.push({ label: t('Billing Mode'), value: t('Per-call') })
+    rows.push({
+      label: t('Billing Mode'),
+      value: other.is_task ? t('Task pricing') : t('Per-call'),
+    })
     if (other.model_price != null) {
       rows.push({
-        label: t('Model Price'),
+        label: other.is_task ? t('Base price') : t('Model Price'),
         value: fmtPrice(other.model_price),
       })
     }
@@ -710,7 +746,18 @@ export function DetailsDialog(props: DetailsDialogProps) {
             />
           )}
 
-          {showTiming && props.log.use_time > 0 && (
+          {showTiming && other?.is_task && (
+            <TimingMetricsCell
+              isTask
+              taskTiming={other.task_timing}
+              useTimeSec={props.log.use_time}
+              completionTokens={props.log.completion_tokens}
+              isStream={props.log.is_stream}
+              indicator='dot'
+              compact
+            />
+          )}
+          {showTiming && !other?.is_task && props.log.use_time > 0 && (
             <DetailRow
               label={t('Response Time')}
               value={

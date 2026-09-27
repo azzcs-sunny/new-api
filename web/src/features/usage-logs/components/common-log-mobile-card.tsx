@@ -207,6 +207,8 @@ export function CommonLogMobileCard<TData>(props: {
                   completionTokens={log.completion_tokens}
                   frtMs={other?.frt}
                   isStream={log.is_stream}
+                  isTask={other?.is_task === true}
+                  taskTiming={other?.task_timing}
                   indicator='dot'
                   compact
                   className='min-h-6 max-w-full min-w-0 items-center justify-end [&>div]:justify-end'

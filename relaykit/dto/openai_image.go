@@ -24,9 +24,13 @@ type ImageBillingParameters struct {
 type ImageRequest struct {
 	Model             string          `json:"model"`
 	Prompt            string          `json:"prompt" binding:"required"`
+	Async             *bool           `json:"async,omitempty"`
 	N                 *uint           `json:"n,omitempty"`
 	Size              string          `json:"size,omitempty"`
+	AspectRatio       string          `json:"aspect_ratio,omitempty"`
 	Quality           string          `json:"quality,omitempty"`
+	Seed              *int64          `json:"seed,omitempty"`
+	DetailLevel       string          `json:"detail_level,omitempty"`
 	ResponseFormat    string          `json:"response_format,omitempty"`
 	Style             json.RawMessage `json:"style,omitempty"`
 	User              json.RawMessage `json:"user,omitempty"`
@@ -92,7 +96,10 @@ func (i *ImageRequest) UnmarshalJSON(data []byte) error {
 	// 提取多余字段
 	i.Extra = make(map[string]json.RawMessage)
 	for k, v := range rawMap {
-		if _, ok := knownFields[k]; !ok {
+		_, known := knownFields[k]
+		// These fields were historically available through Extra. Keep that
+		// compatibility for provider adaptors while exposing typed async fields.
+		if !known || k == "async" || k == "aspect_ratio" || k == "seed" || k == "detail_level" {
 			i.Extra[k] = v
 		}
 	}
@@ -104,6 +111,14 @@ func (r ImageRequest) MarshalJSON() ([]byte, error) {
 	// 将已定义字段转为 map
 	type Alias ImageRequest
 	alias := Alias(r)
+	if r.Async == nil || !*r.Async {
+		// Before async image tasks were supported these provider fields were
+		// omitted by the generic OpenAI image path. Preserve that sync behavior.
+		alias.Async = nil
+		alias.AspectRatio = ""
+		alias.Seed = nil
+		alias.DetailLevel = ""
+	}
 	base, err := kitutil.Marshal(alias)
 	if err != nil {
 		return nil, err
@@ -191,6 +206,27 @@ type ImageResponse struct {
 	Created  int64           `json:"created"`
 	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
+
+type ImageTaskResponse struct {
+	ID       string             `json:"id,omitempty"`
+	TaskID   string             `json:"task_id,omitempty"`
+	Object   string             `json:"object,omitempty"`
+	Model    string             `json:"model,omitempty"`
+	Status   string             `json:"status,omitempty"`
+	Progress int                `json:"progress,omitempty"`
+	Metadata *ImageTaskMetadata `json:"metadata,omitempty"`
+	Error    *ImageTaskError    `json:"error,omitempty"`
+}
+
+type ImageTaskMetadata struct {
+	URL string `json:"url,omitempty"`
+}
+
+type ImageTaskError struct {
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 type ImageData struct {
 	Url           string `json:"url"`
 	B64Json       string `json:"b64_json"`

@@ -73,7 +73,11 @@ function makeLog(other: LogOtherData): UsageLog {
   }
 }
 
-function DetailPreview(props: { other: LogOtherData; isAdmin: boolean }) {
+function DetailPreview(props: {
+  other: LogOtherData
+  isAdmin: boolean
+  column?: string
+}) {
   const table = useReactTable({
     data: [makeLog(props.other)],
     columns: useCommonLogsColumns(props.isAdmin, false),
@@ -82,7 +86,7 @@ function DetailPreview(props: { other: LogOtherData; isAdmin: boolean }) {
   const cell = table
     .getRowModel()
     .rows[0].getAllCells()
-    .find((item) => item.column.id === 'content')
+    .find((item) => item.column.id === (props.column ?? 'content'))
   if (!cell) throw new Error('The log must have a content column')
   return flexRender(cell.column.columnDef.cell, cell.getContext())
 }
@@ -155,6 +159,20 @@ test.each([
   {
     name: 'per-call',
     other: { model_price: 0.25 },
+    expected: 'Per-call · $0.25',
+  },
+  {
+    name: 'task with a fixed charge',
+    other: {
+      is_task: true,
+      model_price: 0.25,
+      task_billing: {
+        billing_unit: 'request' as const,
+        base_price: 0.25,
+        unit_price: 0.25,
+        quantity: 1,
+      },
+    },
     expected: 'Per-call · $0.25',
   },
   {
@@ -362,5 +380,66 @@ test.each(['missing schema', 'unsupported expression', 'unknown tier'])(
       matched_tier: scenario === 'unknown tier' ? 'old' : 'music',
     })
     expect(preview.textContent).toBe('Dynamic Pricing · No matching results')
+  }
+)
+
+test('legacy video pricing shows the recorded resolution-adjusted price and duration in the preview and dialog', async () => {
+  const other = {
+    is_task: true,
+    model_price: 0.09,
+    group_ratio: 1,
+    task_billing: {
+      billing_unit: 'second' as const,
+      base_price: 0.09,
+      unit_price: 0.135,
+      quantity: 8,
+      multipliers: { resolution: 1.5 },
+    },
+    task_timing: { status: 'SUCCESS', duration_seconds: 125 },
+  }
+  const preview = renderPreview(other)
+  expect(preview).toHaveTextContent('Per second · $0.135/second × 8.0s')
+  expect(preview).not.toHaveTextContent('Per-call')
+  fireEvent.click(preview)
+  const dialog = within(await screen.findByRole('dialog'))
+  expect(dialog.getByText('Per second')).toBeVisible()
+  expect(dialog.getByText('$0.135/second')).toBeVisible()
+  expect(dialog.getByText('Resolution multiplier')).toBeVisible()
+  expect(dialog.getByText('1.5000x')).toBeVisible()
+  expect(dialog.getByText('Task duration')).toBeVisible()
+  expect(dialog.queryByText('Response Time')).not.toBeInTheDocument()
+})
+
+test('legacy task logs without a billing snapshot describe the amount as a base price', () => {
+  const preview = renderPreview({ is_task: true, model_price: 0.09 })
+  expect(preview).toHaveTextContent('Base price · $0.09')
+  expect(preview).not.toHaveTextContent('Per-call')
+})
+
+test.each([
+  { status: 'SUCCESS', duration: 42, expected: '42.0s' },
+  { status: 'IN_PROGRESS', duration: 18, expected: '18.0s' },
+  { status: 'FAILURE', duration: 12, expected: '12.0s' },
+  { status: undefined, duration: undefined, expected: 'N/A' },
+])(
+  'task timing uses the complete task duration for $status instead of submission time',
+  ({ status, duration, expected }) => {
+    const other = {
+      is_task: true,
+      task_timing: status ? { status, duration_seconds: duration } : undefined,
+    }
+    render(
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={client}>
+          <DetailPreview other={other} isAdmin column='use_time' />
+        </QueryClientProvider>
+      </I18nextProvider>
+    )
+    expect(screen.getByText('Task duration')).toBeVisible()
+    expect(screen.getByText(expected)).toBeVisible()
+    expect(screen.queryByText('0.0s')).not.toBeInTheDocument()
+    if (status === 'IN_PROGRESS') {
+      expect(screen.getByText('In progress')).toBeVisible()
+    }
   }
 )

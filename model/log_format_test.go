@@ -1,13 +1,165 @@
 package model
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/glebarez/sqlite"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
+
+func TestTaskLogDetailsAcrossDatabases(t *testing.T) {
+	previousDB, previousLogDB := DB, LOG_DB
+	mainType, logType := common.MainDatabaseType(), common.LogDatabaseType()
+	t.Cleanup(func() {
+		DB, LOG_DB = previousDB, previousLogDB
+		common.SetDatabaseTypes(mainType, logType)
+		initCol()
+	})
+	for _, dialect := range []string{"sqlite", "mysql", "postgres"} {
+		t.Run(dialect, func(t *testing.T) {
+			var driver gorm.Dialector
+			switch dialect {
+			case "sqlite":
+				driver = sqlite.Open(filepath.Join(t.TempDir(), "tasks.db"))
+			case "mysql":
+				dsn := os.Getenv("TEST_MYSQL_DSN")
+				if dsn == "" {
+					t.Skip("TEST_MYSQL_DSN is not configured")
+				}
+				driver = mysql.Open(dsn)
+			case "postgres":
+				dsn := os.Getenv("TEST_POSTGRES_DSN")
+				if dsn == "" {
+					t.Skip("TEST_POSTGRES_DSN is not configured")
+				}
+				driver = postgres.Open(dsn)
+			}
+			db, err := gorm.Open(driver, &gorm.Config{})
+			require.NoError(t, err)
+			sqlDB, err := db.DB()
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+			versionQuery := "SELECT version()"
+			if dialect == "sqlite" {
+				versionQuery = "SELECT sqlite_version()"
+			}
+			var version string
+			require.NoError(t, db.Raw(versionQuery).Scan(&version).Error)
+			t.Logf("%s version: %s", dialect, version)
+			DB = db
+			common.SetMainDatabaseType(common.DatabaseType(dialect))
+			require.NoError(t, db.AutoMigrate(&Task{}, &Log{}))
+			t.Cleanup(func() { require.NoError(t, db.Migrator().DropTable(&Task{}, &Log{})) })
+
+			for _, separateLogs := range []bool{false, true} {
+				t.Run(map[bool]string{false: "shared", true: "separate-logs"}[separateLogs], func(t *testing.T) {
+					LOG_DB = db
+					common.SetLogDatabaseType(common.DatabaseType(dialect))
+					if separateLogs {
+						LOG_DB, err = gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "logs.db")), &gorm.Config{})
+						require.NoError(t, err)
+						logSQL, err := LOG_DB.DB()
+						require.NoError(t, err)
+						t.Cleanup(func() { require.NoError(t, logSQL.Close()) })
+						common.SetLogDatabaseType(common.DatabaseTypeSQLite)
+						require.NoError(t, LOG_DB.AutoMigrate(&Log{}))
+					}
+					initCol()
+					require.NoError(t, DB.Where("1 = 1").Delete(&Task{}).Error)
+					require.NoError(t, LOG_DB.Where("1 = 1").Delete(&Log{}).Error)
+					tasks := []Task{
+						{TaskID: "task-priced", UserId: 7, Status: TaskStatusSuccess, SubmitTime: 100, StartTime: 120, FinishTime: 142,
+							PrivateData: TaskPrivateData{Key: "private-credential", BillingContext: &TaskBillingContext{ModelPrice: 0.09, GroupRatio: 2, OtherRatios: map[string]float64{"seconds": 8, "resolution": 1.5}}}},
+						{TaskID: "task-priced-480p", UserId: 7, Status: TaskStatusSuccess, SubmitTime: 100, FinishTime: 142,
+							PrivateData: TaskPrivateData{BillingContext: &TaskBillingContext{ModelPrice: 0.09, OtherRatios: map[string]float64{"seconds": 8, "resolution": 1}}}},
+						{TaskID: "task-priced-1080p", UserId: 7, Status: TaskStatusSuccess, SubmitTime: 100, FinishTime: 142,
+							PrivateData: TaskPrivateData{BillingContext: &TaskBillingContext{ModelPrice: 0.09, OtherRatios: map[string]float64{"seconds": 8, "resolution": 2}}}},
+						{TaskID: "task-fixed", UserId: 7, Status: TaskStatusFailure, SubmitTime: 100, FinishTime: 112,
+							PrivateData: TaskPrivateData{BillingContext: &TaskBillingContext{ModelPrice: 0.09, PerCallBilling: true, OtherRatios: map[string]float64{"seconds": 8, "resolution": 2}}}},
+						{TaskID: "task-pending", UserId: 7, Status: TaskStatusInProgress, SubmitTime: 100},
+						{TaskID: "task-missing-time", UserId: 7, Status: TaskStatusSuccess, SubmitTime: 100},
+					}
+					require.NoError(t, DB.Create(&tasks).Error)
+					for _, id := range []string{"task-priced", "task-priced-480p", "task-priced-1080p", "task-fixed", "task-pending", "task-missing-time", "task-deleted"} {
+						other := common.MapToJsonStr(map[string]any{"is_task": true, "task_id": id, "model_price": 0.09, "admin_info": map[string]any{"existing": true}})
+						require.NoError(t, LOG_DB.Create(&Log{UserId: 7, TokenId: 70, Type: LogTypeConsume, UseTime: 1, Quota: 1080, Other: other}).Error)
+					}
+					require.NoError(t, LOG_DB.Create(&Log{UserId: 8, TokenId: 80, Type: LogTypeConsume, Other: `{"is_task":true,"task_id":"task-priced"}`}).Error)
+
+					for _, audience := range []string{"admin", "user", "token"} {
+						t.Run(audience, func(t *testing.T) {
+							var logs []*Log
+							var err error
+							switch audience {
+							case "admin":
+								logs, _, err = GetAllLogs(LogTypeConsume, 0, 0, "", "", "", 0, 20, 0, "", "", "", nil)
+							case "user":
+								logs, _, err = GetUserLogs(7, LogTypeConsume, 0, 0, "", "", 0, 20, "", "", "", nil)
+							case "token":
+								logs, err = GetLogByTokenId(70)
+							}
+							require.NoError(t, err)
+							expectedCount := 7
+							if audience == "admin" {
+								expectedCount++
+							}
+							require.Len(t, logs, expectedCount)
+							for _, log := range logs {
+								other, err := common.StrToMap(log.Other)
+								require.NoError(t, err)
+								assert.NotContains(t, log.Other, "private-credential")
+								if log.UserId == 8 || other["task_id"] == "task-deleted" {
+									assert.NotContains(t, other, "task_timing")
+									assert.NotContains(t, other, "task_billing")
+									continue
+								}
+								assert.Equal(t, 1080, log.Quota, "display enrichment must not change the charge")
+								assert.Equal(t, 1, log.UseTime, "submission time remains available separately")
+								if audience != "admin" {
+									assert.NotContains(t, other, "admin_info")
+								}
+								timing, ok := other["task_timing"].(map[string]any)
+								require.True(t, ok)
+								switch other["task_id"] {
+								case "task-priced", "task-priced-480p", "task-priced-1080p":
+									assert.Equal(t, float64(42), timing["duration_seconds"], "includes queue time")
+									billing, ok := other["task_billing"].(map[string]any)
+									require.True(t, ok)
+									assert.Equal(t, "second", billing["billing_unit"])
+									prices := map[string]float64{"task-priced": 0.135, "task-priced-480p": 0.09, "task-priced-1080p": 0.18}
+									assert.Equal(t, prices[other["task_id"].(string)], billing["unit_price"])
+									assert.Equal(t, float64(8), billing["quantity"])
+								case "task-fixed":
+									assert.Equal(t, float64(12), timing["duration_seconds"])
+									billing, ok := other["task_billing"].(map[string]any)
+									require.True(t, ok)
+									assert.Equal(t, "request", billing["billing_unit"])
+									assert.Equal(t, 0.09, billing["unit_price"])
+								case "task-pending":
+									assert.Equal(t, "IN_PROGRESS", timing["status"])
+									assert.Contains(t, timing, "duration_seconds")
+								case "task-missing-time":
+									assert.NotContains(t, timing, "duration_seconds")
+								}
+							}
+						})
+					}
+					var stored Log
+					require.NoError(t, LOG_DB.Where("user_id = ?", 7).First(&stored).Error)
+					assert.NotContains(t, stored.Other, "task_timing", "enrichment must not rewrite historical logs")
+				})
+			}
+		})
+	}
+}
 
 // TestFormatUserLogsStripsQuotaSaturation verifies the admin-only quota
 // saturation marker (nested under other.admin_info) is removed for non-admin

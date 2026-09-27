@@ -232,6 +232,26 @@ it('omits unused token and throughput placeholders for async jobs', () => {
   expect(within(timing as HTMLElement).queryByText('—')).not.toBeInTheDocument()
 })
 
+it('shows full async task duration on mobile instead of the submission duration', () => {
+  renderLogs({
+    logs: [
+      {
+        ...log,
+        use_time: 1,
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        other: JSON.stringify({
+          is_task: true,
+          task_timing: { status: 'SUCCESS', duration_seconds: 125 },
+        }),
+      },
+    ],
+  })
+  expect(screen.getByText('Task duration')).toBeVisible()
+  expect(screen.getByText('2m 5s')).toBeVisible()
+  expect(screen.queryByText('1.0s')).not.toBeInTheDocument()
+})
+
 it('shows mapped model names in full when inspecting a mobile model badge', async () => {
   const user = userEvent.setup()
   renderLogs({

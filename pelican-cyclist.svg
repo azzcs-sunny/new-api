@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768" role="img" aria-labelledby="title desc">
+  <title id="title">骑自行车的鹈鹕</title>
+  <desc id="desc">一只戴着蓝色头盔的鹈鹕，骑着红色自行车经过海边。</desc>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fd8f8"/>
+      <stop offset="1" stop-color="#e8f7fb"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2b9eb3"/>
+      <stop offset="1" stop-color="#61c7c3"/>
+    </linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f7b53c"/>
+      <stop offset="1" stop-color="#ef7137"/>
+    </linearGradient>
+    <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Coastal setting -->
+  <rect width="1024" height="768" fill="url(#sky)"/>
+  <circle cx="848" cy="116" r="58" fill="#ffd75a" opacity="0.95"/>
+  <path d="M0 346 C140 322 250 364 385 340 S646 324 770 352 S930 332 1024 340 V526 H0Z" fill="url(#sea)"/>
+  <path d="M0 372 C120 350 230 394 360 368 S610 354 744 382 S910 360 1024 370" fill="none" stroke="#d9fbf6" stroke-width="8" opacity="0.75"/>
+  <path d="M0 500 C140 474 250 510 390 492 S690 472 1024 500 V768 H0Z" fill="#edce7d"/>
+  <path d="M0 574 C185 548 344 587 520 562 S824 550 1024 570 V768 H0Z" fill="#92b95e"/>
+  <path d="M0 646 C210 618 376 655 578 632 S842 622 1024 640 V768 H0Z" fill="#55675b"/>
+  <path d="M0 660 C220 634 400 670 600 648 S848 640 1024 655" fill="none" stroke="#e8e2cb" stroke-width="16" opacity="0.9"/>
+
+  <!-- Distant birds -->
+  <path d="M133 170 q18 -18 36 0 q18 -18 36 0" fill="none" stroke="#3d6470" stroke-width="5" stroke-linecap="round"/>
+  <path d="M257 116 q13 -13 26 0 q13 -13 26 0" fill="none" stroke="#3d6470" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Ground shadow -->
+  <ellipse cx="536" cy="675" rx="338" ry="29" fill="#23343a" opacity="0.25" filter="url(#softShadow)"/>
+
+  <!-- Bicycle wheels -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="304" cy="590" r="132" fill="#f7fbf4" fill-opacity="0.18" stroke="#26383e" stroke-width="14"/>
+    <circle cx="757" cy="590" r="132" fill="#f7fbf4" fill-opacity="0.18" stroke="#26383e" stroke-width="14"/>
+    <g stroke="#76888b" stroke-width="3" opacity="0.85">
+      <path d="M304 458V722M172 590H436M211 497L397 683M211 683L397 497"/>
+      <path d="M757 458V722M625 590H889M664 497L850 683M664 683L850 497"/>
+    </g>
+    <circle cx="304" cy="590" r="13" fill="#26383e" stroke="none"/>
+    <circle cx="757" cy="590" r="13" fill="#26383e" stroke="none"/>
+
+    <!-- Bicycle frame -->
+    <path d="M304 590 L441 421 L554 590 Z M441 421 L625 438 L554 590 M554 590 L757 590 L625 438" stroke="#cf3d35" stroke-width="18"/>
+    <path d="M625 438 L691 381 L757 590" stroke="#cf3d35" stroke-width="15"/>
+    <path d="M675 381 H724" stroke="#26383e" stroke-width="14"/>
+    <path d="M408 409 H475" stroke="#26383e" stroke-width="15"/>
+    <circle cx="554" cy="590" r="34" stroke="#26383e" stroke-width="9"/>
+    <path d="M554 590 L601 616 M554 590 L507 564" stroke="#26383e" stroke-width="8"/>
+    <path d="M591 620 H622 M476 559 H507" stroke="#26383e" stroke-width="9"/>
+  </g>
+
+  <!-- Pelican body and tail -->
+  <path d="M467 397 C412 428 403 507 451 549 C503 595 617 574 655 500 C674 463 650 421 598 398 C554 379 507 376 467 397Z" fill="#f5f0dc" stroke="#283b42" stroke-width="9"/>
+  <path d="M438 445 C397 450 365 431 344 399 C386 398 423 405 458 426Z" fill="#d9d5c7" stroke="#283b42" stroke-width="8"/>
+
+  <!-- Wing gripping handlebar -->
+  <path d="M571 421 C620 430 651 459 676 493 C686 507 704 508 718 496 C731 485 730 466 716 455 C683 425 650 399 603 386Z" fill="#ded9c9" stroke="#283b42" stroke-width="9"/>
+  <path d="M708 487 C716 478 724 470 734 465" fill="none" stroke="#283b42" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Neck -->
+  <path d="M493 420 C455 380 457 328 486 287 C516 245 580 231 623 260 C654 281 658 321 632 348 C611 371 587 389 584 430Z" fill="#f8f4e4" stroke="#283b42" stroke-width="9"/>
+
+  <!-- Head -->
+  <path d="M474 280 C464 224 496 177 550 164 C607 150 659 181 667 233 C674 282 642 316 589 321 C532 327 483 312 474 280Z" fill="#fbf7e8" stroke="#283b42" stroke-width="9"/>
+
+  <!-- Beak and pouch -->
+  <path d="M647 228 C742 219 833 239 879 266 C824 289 728 294 640 278Z" fill="url(#beak)" stroke="#283b42" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M641 278 C704 289 795 287 858 273 C827 336 747 358 671 326 C653 318 643 299 641 278Z" fill="#f58b52" stroke="#283b42" stroke-width="8"/>
+  <path d="M671 281 C721 288 777 285 827 278" fill="none" stroke="#c6533c" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Face -->
+  <circle cx="615" cy="221" r="16" fill="#ffffff" stroke="#283b42" stroke-width="6"/>
+  <circle cx="620" cy="223" r="7" fill="#18282e"/>
+  <path d="M585 190 C605 178 629 180 648 192" fill="none" stroke="#283b42" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Helmet -->
+  <path d="M482 211 C487 160 523 126 575 124 C622 122 657 148 669 189 C611 171 546 177 482 211Z" fill="#2379a8" stroke="#283b42" stroke-width="9"/>
+  <path d="M535 135 L542 181 M592 130 L607 177" fill="none" stroke="#9ed8eb" stroke-width="8" stroke-linecap="round"/>
+  <path d="M487 209 C491 226 503 239 522 245" fill="none" stroke="#283b42" stroke-width="7"/>
+
+  <!-- Legs and webbed feet -->
+  <path d="M501 539 C513 562 525 579 554 590" fill="none" stroke="#e9923d" stroke-width="18" stroke-linecap="round"/>
+  <path d="M592 538 C596 570 603 598 610 616" fill="none" stroke="#e9923d" stroke-width="18" stroke-linecap="round"/>
+  <path d="M489 560 C506 557 521 566 531 580 C512 582 494 578 480 568Z" fill="#f3a146" stroke="#283b42" stroke-width="6"/>
+  <path d="M596 609 C613 603 630 608 643 620 C625 627 606 625 590 617Z" fill="#f3a146" stroke="#283b42" stroke-width="6"/>
+
+  <!-- Motion accents -->
+  <g fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.8">
+    <path d="M141 418 H255"/>
+    <path d="M99 454 H221"/>
+    <path d="M810 420 H914"/>
+  </g>
+</svg>

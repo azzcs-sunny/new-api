@@ -55,6 +55,8 @@ interface TimingMetricsCellProps {
   completionTokens: number
   frtMs?: number
   isStream: boolean
+  isTask?: boolean
+  taskTiming?: LogOtherData['task_timing']
   className?: string
   /**
    * `bar` (default) draws a full-height color segment beside the labels,
@@ -69,20 +71,37 @@ interface TimingMetricsCellProps {
 export function TimingMetricsCell(props: TimingMetricsCellProps) {
   const { t } = useTranslation()
   const indicator = props.indicator ?? 'bar'
-  const showFirstToken = props.isStream
+  const showFirstToken = props.isStream && !props.isTask
   const firstTokenSeconds =
     props.frtMs != null && props.frtMs > 0 ? props.frtMs / 1000 : null
   const firstTokenVariant: StatusVariant =
     firstTokenSeconds == null
       ? 'neutral'
       : getFirstResponseTimeColor(firstTokenSeconds)
-  const totalTimeVariant = getResponseTimeColor(
+  let totalTimeVariant: StatusVariant = getResponseTimeColor(
     props.useTimeSec,
     props.completionTokens
   )
   const firstTokenLabel =
     firstTokenSeconds == null ? t('N/A') : formatUseTime(firstTokenSeconds)
-  const totalTimeLabel = formatUseTime(props.useTimeSec)
+  let totalTimeLabel = formatUseTime(props.useTimeSec)
+  let taskStatusLabel = ''
+  if (props.isTask) {
+    const duration = props.taskTiming?.duration_seconds
+    totalTimeLabel =
+      duration != null && Number.isFinite(duration) && duration >= 0
+        ? formatUseTime(duration)
+        : t('N/A')
+    totalTimeVariant = 'neutral'
+    if (props.taskTiming?.status === 'SUCCESS') {
+      totalTimeVariant = 'success'
+    } else if (props.taskTiming?.status === 'FAILURE') {
+      totalTimeVariant = 'danger'
+      taskStatusLabel = t('Failed')
+    } else if (props.taskTiming?.status) {
+      taskStatusLabel = t('In progress')
+    }
+  }
 
   const labels = (
     <div
@@ -121,10 +140,15 @@ export function TimingMetricsCell(props: TimingMetricsCellProps) {
             )}
           />
         )}
-        <span className='text-muted-foreground shrink-0'>{t('Duration')}</span>
+        <span className='text-muted-foreground shrink-0'>
+          {props.isTask ? t('Task duration') : t('Duration')}
+        </span>
         <span className={cn('tabular-nums', textColorMap[totalTimeVariant])}>
           {totalTimeLabel}
         </span>
+        {taskStatusLabel && (
+          <span className='text-muted-foreground'>{taskStatusLabel}</span>
+        )}
       </div>
     </div>
   )

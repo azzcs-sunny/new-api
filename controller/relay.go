@@ -18,10 +18,12 @@ import (
 	pluginruntime "github.com/QuantumNous/new-api/pkg/jsplugin"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/relay"
+	relaychannel "github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/task/taskcommon"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
+	kitdto "github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -122,6 +124,23 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, request, ws)
 	if err != nil {
 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
+		return
+	}
+
+	if imageRequest, ok := request.(*kitdto.ImageRequest); ok &&
+		relayInfo.RelayMode == relayconstant.RelayModeImagesGenerations &&
+		imageRequest.Async != nil && *imageRequest.Async {
+		relayInfo.TaskRelayInfo = &relaycommon.TaskRelayInfo{}
+		relayInfo.ForcePreConsume = true
+		if newAPIError = relay.PrepareRequestBilling(c, relayInfo); newAPIError != nil {
+			return
+		}
+		outcome, taskErr := executeTaskSubmissionWith(c, relayInfo, relay.RelayImageTaskSubmit)
+		if taskErr != nil {
+			respondTaskSubmissionError(c, taskErr)
+			return
+		}
+		presentTaskSubmission(c, outcome)
 		return
 	}
 
@@ -594,6 +613,9 @@ func executeTaskSubmissionWith(
 	task := model.InitTask(result.Platform, relayInfo)
 	task.PrivateData.Execution = service.TaskExecutionSnapshotFromContext(c)
 	task.PrivateData.UpstreamTaskID = result.UpstreamTaskID
+	if result.Platform == constant.TaskPlatformImageGeneration {
+		task.PrivateData.Key = relayInfo.ApiKey
+	}
 	task.PrivateData.BillingSource = relayInfo.BillingSource
 	task.PrivateData.SubscriptionId = relayInfo.SubscriptionId
 	task.PrivateData.TokenId = relayInfo.TokenId
@@ -624,7 +646,7 @@ func executeTaskSubmissionWith(
 		}
 		if immediate.Url != "" {
 			task.PrivateData.ResultURL = immediate.Url
-		} else if immediate.Status == model.TaskStatusSuccess {
+		} else if immediate.Status == model.TaskStatusSuccess && result.Platform != constant.TaskPlatformImageGeneration {
 			task.PrivateData.ResultURL = taskcommon.BuildProxyURL(task.TaskID)
 		}
 	}
@@ -660,6 +682,21 @@ func presentTaskSubmission(c *gin.Context, outcome *taskSubmissionOutcome) {
 	}
 	if ratiosJSON, err := common.Marshal(otherRatios); err == nil {
 		c.Header("X-New-Api-Other-Ratios", string(ratiosJSON))
+	}
+	if outcome.Result.Platform == constant.TaskPlatformImageGeneration {
+		adaptor := relay.GetTaskAdaptor(outcome.Result.Platform)
+		converter, ok := adaptor.(relaychannel.OpenAIVideoConverter)
+		if !ok {
+			respondTaskSubmissionError(c, service.TaskErrorWrapperLocal(errors.New("image task presenter is unavailable"), "task_protocol_error", http.StatusInternalServerError))
+			return
+		}
+		body, err := converter.ConvertToOpenAIVideo(outcome.Task)
+		if err != nil {
+			respondTaskSubmissionError(c, service.TaskErrorWrapperLocal(err, "task_protocol_error", http.StatusInternalServerError))
+			return
+		}
+		c.Data(http.StatusOK, "application/json", body)
+		return
 	}
 	if pinnedValue, exists := c.Get(pluginruntime.ContextKeyPinnedRoute); exists {
 		if pinned, ok := pinnedValue.(pluginruntime.PinnedRoute); ok && pinned.Plugin != nil && pinned.Route.Render != "" {

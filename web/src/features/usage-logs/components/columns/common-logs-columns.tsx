@@ -49,7 +49,11 @@ import { taskUsageUnitLabel } from '@/features/pricing/lib/task-price-display'
 import type { BillingUsageSchema } from '@/features/pricing/types'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
-import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
+import {
+  formatLogQuota,
+  formatTimestampToDate,
+  formatUseTime,
+} from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { LOG_TYPE_ALL_VALUE } from '../../constants'
@@ -270,9 +274,18 @@ function buildTypeDetailSegments(
   } else {
     const modelPrice = other.model_price
     const isPerCall = isPerCallBilling(modelPrice)
-    if (isPerCall && modelPrice != null) {
+    const taskBilling = other.is_task ? other.task_billing : undefined
+    if (taskBilling?.billing_unit === 'second') {
       segments.push({
-        text: `${t('Per-call')} · ${formatBillingCurrencyFromUSD(modelPrice, priceOpts)}`,
+        text: `${t('Per second')} · ${formatBillingCurrencyFromUSD(taskBilling.unit_price, priceOpts)}/${t('second')} × ${formatUseTime(taskBilling.quantity)}`,
+      })
+    } else if (taskBilling?.billing_unit === 'request') {
+      segments.push({
+        text: `${t('Per-call')} · ${formatBillingCurrencyFromUSD(taskBilling.unit_price, priceOpts)}`,
+      })
+    } else if (isPerCall && modelPrice != null) {
+      segments.push({
+        text: `${other.is_task ? t('Base price') : t('Per-call')} · ${formatBillingCurrencyFromUSD(modelPrice, priceOpts)}`,
       })
     } else if (other.model_ratio != null) {
       const inputPriceUSD = other.model_ratio * 2.0
@@ -776,6 +789,8 @@ export function useCommonLogsColumns(
             completionTokens={log.completion_tokens}
             frtMs={other?.frt}
             isStream={log.is_stream}
+            isTask={other?.is_task === true}
+            taskTiming={other?.task_timing}
           />
         )
       },

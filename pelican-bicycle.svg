@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">骑自行车的鹈鹕</title>
+  <desc id="desc">一只戴着红色头盔的白色鹈鹕，骑着蓝色自行车穿过阳光明媚的海滨。</desc>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ed8ff"/>
+      <stop offset="1" stop-color="#e9f8ff"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3cc8d0"/>
+      <stop offset="1" stop-color="#287bbd"/>
+    </linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffc34f"/>
+      <stop offset="1" stop-color="#f08a32"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <circle cx="1020" cy="130" r="66" fill="#ffd65a"/>
+  <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".8">
+    <path d="M90 150c30-31 62-31 94 0 32-31 65-31 97 0"/>
+    <path d="M790 95c22-23 46-23 70 0 24-23 49-23 73 0"/>
+  </g>
+  <path d="M0 330c144-46 251 28 386 2 147-29 264-46 416 0 144 44 266-29 398-2v244H0z" fill="url(#sea)"/>
+  <g fill="none" stroke="#baf4f1" stroke-width="8" stroke-linecap="round" opacity=".75">
+    <path d="M65 408c64-27 126-27 190 0"/>
+    <path d="M820 400c79-30 158-30 237 0"/>
+    <path d="M390 485c82-25 163-25 244 0"/>
+  </g>
+  <path d="M0 560c177-39 317-6 454 7 174 17 314-28 481-14 89 7 177 19 265 9v238H0z" fill="#f3d58a"/>
+  <path d="M0 641c278-34 527-21 747 4 179 20 330 16 453-1v156H0z" fill="#e9bd65"/>
+  <ellipse cx="590" cy="720" rx="370" ry="34" fill="#a87438" opacity=".22" filter="url(#shadow)"/>
+
+  <!-- Bicycle wheels -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#253543">
+      <circle cx="350" cy="620" r="145" stroke-width="18" fill="#fff" fill-opacity=".12"/>
+      <circle cx="835" cy="620" r="145" stroke-width="18" fill="#fff" fill-opacity=".12"/>
+      <circle cx="350" cy="620" r="17" stroke-width="9" fill="#d9e3e7"/>
+      <circle cx="835" cy="620" r="17" stroke-width="9" fill="#d9e3e7"/>
+    </g>
+    <g stroke="#80909a" stroke-width="4" opacity=".9">
+      <path d="M350 475v290M205 620h290M247 517l206 206M247 723l206-206"/>
+      <path d="M835 475v290M690 620h290M732 517l206 206M732 723l206-206"/>
+    </g>
+  </g>
+
+  <!-- Bicycle frame -->
+  <g fill="none" stroke="#176ba0" stroke-width="25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M350 620l155-255 165 255z"/>
+    <path d="M505 365l95 255-250 0"/>
+    <path d="M600 620l235 0-94-278"/>
+  </g>
+  <path d="M703 337h102" fill="none" stroke="#273843" stroke-width="18" stroke-linecap="round"/>
+  <path d="M470 362h85" fill="none" stroke="#273843" stroke-width="21" stroke-linecap="round"/>
+  <circle cx="600" cy="620" r="42" fill="#f1b83d" stroke="#273843" stroke-width="10"/>
+  <path d="M600 620l84 40" fill="none" stroke="#273843" stroke-width="12" stroke-linecap="round"/>
+  <rect x="672" y="650" width="50" height="18" rx="9" transform="rotate(8 672 650)" fill="#273843"/>
+
+  <!-- Pelican body and neck -->
+  <path d="M447 424c-51 14-88 69-75 122 16 65 93 87 161 57 62-27 95-82 73-129-20-44-93-68-159-50z" fill="#f7faf7" stroke="#354851" stroke-width="10"/>
+  <path d="M504 445c33-62 71-99 106-135 39-41 48-90 34-139 49 10 76 46 75 91-1 46-26 82-51 117-28 39-39 78-35 118z" fill="#fffdf3" stroke="#354851" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M395 477c39-23 87-14 112 23 24 36 4 70-36 74-53 5-97-42-76-97z" fill="#dfe8e7" stroke="#354851" stroke-width="8"/>
+  <path d="M422 487c18 15 38 30 64 43" fill="none" stroke="#b7cacb" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Head -->
+  <ellipse cx="670" cy="180" rx="86" ry="75" fill="#fffdf3" stroke="#354851" stroke-width="10" transform="rotate(-10 670 180)"/>
+  <circle cx="690" cy="164" r="11" fill="#253543"/>
+  <circle cx="694" cy="160" r="3.5" fill="#fff"/>
+
+  <!-- Beak and pouch -->
+  <path d="M641 189c-88 7-174 29-255 59 100 14 201 14 300-5 20-4 28-22 14-34-15-13-35-22-59-20z" fill="url(#beak)" stroke="#354851" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M392 249c77 4 176-2 294-18-7 59-53 92-122 80-64-11-120-33-172-62z" fill="#ef9d43" stroke="#354851" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M420 252c80 14 160 11 239-8" fill="none" stroke="#ffd070" stroke-width="8" stroke-linecap="round" opacity=".8"/>
+
+  <!-- Helmet -->
+  <path d="M602 151c2-60 42-96 94-89 45 6 75 39 79 82-47-18-112-16-173 7z" fill="#e7463f" stroke="#354851" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M688 66l-4 72M646 78l21 64M730 81l-25 59" fill="none" stroke="#ff8a72" stroke-width="8" stroke-linecap="round"/>
+  <path d="M598 150c50-17 108-21 177-6" fill="none" stroke="#293b45" stroke-width="13" stroke-linecap="round"/>
+  <path d="M750 146c2 25-7 42-27 53" fill="none" stroke="#293b45" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Wings on handlebars -->
+  <path d="M570 390c58-36 108-41 154-14 22 13 36 30 48 48-72-20-126-10-164 27z" fill="#f7faf7" stroke="#354851" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M761 419c12 3 22 9 31 19M750 431c12 4 21 11 29 20" fill="none" stroke="#354851" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Legs -->
+  <path d="M492 571c18 18 46 34 108 49M495 565c-13 36-25 67-42 91" fill="none" stroke="#e99139" stroke-width="18" stroke-linecap="round"/>
+  <path d="M450 656c-16 11-29 18-47 20M450 656c7 13 16 22 28 28" fill="none" stroke="#e99139" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Motion marks -->
+  <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".85">
+    <path d="M129 519h104M92 561h102M112 607h70"/>
+  </g>
+</svg>

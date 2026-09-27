@@ -247,6 +247,17 @@ export interface LogOtherData {
   // Task-related fields (for refund logs, type=6)
   is_task?: boolean
   task_id?: string
+  task_timing?: {
+    status: string
+    duration_seconds?: number
+  }
+  task_billing?: {
+    billing_unit: 'second' | 'request'
+    base_price: number
+    unit_price: number
+    quantity: number
+    multipliers?: Record<string, number>
+  }
   reason?: string
   // Subscription billing fields
   subscription_plan_id?: string
