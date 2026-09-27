@@ -23,17 +23,17 @@ import { afterEach, describe, expect, test } from 'vitest'
 import {
   DEFAULT_THEME_CUSTOMIZATION,
   THEME_BASE_PRESET,
-  THEME_COOKIE_KEYS,
 } from '@/lib/theme-customization'
+import { THEME_STORAGE_KEYS } from '@/lib/theme-storage'
 
 import {
   ThemeCustomizationProvider,
   useThemeCustomization,
 } from '../theme-customization-provider'
 
-function clearThemeCookies() {
-  for (const value of Object.values(THEME_COOKIE_KEYS)) {
-    document.cookie = `${value}=; path=/; max-age=0`
+function clearThemePreferences() {
+  for (const value of Object.values(THEME_STORAGE_KEYS)) {
+    localStorage.removeItem(value)
   }
 }
 
@@ -59,7 +59,7 @@ function Harness() {
 }
 
 afterEach(() => {
-  clearThemeCookies()
+  clearThemePreferences()
   document.body.removeAttribute('data-theme-preset')
 })
 
@@ -78,7 +78,7 @@ describe('ThemeCustomizationProvider', () => {
       DEFAULT_THEME_CUSTOMIZATION.preset
     )
     expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.cookie).not.toContain(`${THEME_COOKIE_KEYS.preset}=`)
+    expect(localStorage.getItem(THEME_STORAGE_KEYS.preset)).toBeNull()
   })
 
   test('resets a custom preset back to the base preset', async () => {
@@ -95,8 +95,8 @@ describe('ThemeCustomizationProvider', () => {
       'lavender-dream'
     )
     expect(document.body).toHaveAttribute('data-theme-preset', 'lavender-dream')
-    expect(document.cookie).toContain(
-      `${THEME_COOKIE_KEYS.preset}=lavender-dream`
+    expect(localStorage.getItem(THEME_STORAGE_KEYS.preset)).toBe(
+      'lavender-dream'
     )
 
     await user.click(screen.getByRole('button', { name: 'Reset preset' }))
@@ -104,6 +104,6 @@ describe('ThemeCustomizationProvider', () => {
       DEFAULT_THEME_CUSTOMIZATION.preset
     )
     expect(document.body).not.toHaveAttribute('data-theme-preset')
-    expect(document.cookie).not.toContain(`${THEME_COOKIE_KEYS.preset}=`)
+    expect(localStorage.getItem(THEME_STORAGE_KEYS.preset)).toBeNull()
   })
 })

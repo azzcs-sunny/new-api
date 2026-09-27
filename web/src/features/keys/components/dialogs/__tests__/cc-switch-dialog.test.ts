@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { beforeEach, describe, expect, test } from 'vitest'
 
-import { buildCCSwitchURL } from '../cc-switch-dialog'
+import { buildCCSwitchURL } from '../cc-switch-url'
 
 describe('CC Switch import URL', () => {
   beforeEach(() => {
