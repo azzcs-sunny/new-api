@@ -27,6 +27,7 @@ function stableStringify(obj) {
 
 const newKeys = {
   en: {
+    'Import to CCS': 'Import to CCS',
     'Service fee': 'Service fee',
     'Channel status notices': 'Channel status notices',
     'Show one editable notice in the upper-right corner of each channel platform group.':
@@ -286,6 +287,7 @@ const newKeys = {
       'Used redemption codes can only be updated through batch invoice settings',
   },
   zh: {
+    'Import to CCS': '导入到 CCS',
     'Service fee': '手续费',
     'Channel status notices': '渠道状态提示',
     'Show one editable notice in the upper-right corner of each channel platform group.':
@@ -527,6 +529,7 @@ const newKeys = {
       '已使用的兑换码只能通过批量开票设置更新',
   },
   'zh-TW': {
+    'Import to CCS': '匯入至 CCS',
     'Service fee': '手續費',
     'Channel status notices': '渠道狀態提示',
     'Show one editable notice in the upper-right corner of each channel platform group.':
@@ -770,6 +773,7 @@ const newKeys = {
       '已使用的兌換碼只能透過批量開票設定更新',
   },
   fr: {
+    'Import to CCS': 'Importer dans CCS',
     'Service fee': 'Frais de service',
     'Channel status notices': 'Avis d’état des canaux',
     'Show one editable notice in the upper-right corner of each channel platform group.':
@@ -1037,6 +1041,7 @@ const newKeys = {
       'Les codes déjà utilisés ne peuvent être mis à jour que via les paramètres de facture en lot',
   },
   ja: {
+    'Import to CCS': 'CCS にインポート',
     'Service fee': '手数料',
     'Channel status notices': 'チャネル状態のお知らせ',
     'Show one editable notice in the upper-right corner of each channel platform group.':
@@ -1296,6 +1301,7 @@ const newKeys = {
       '使用済みの引換コードは請求設定の一括変更でのみ更新できます',
   },
   ru: {
+    'Import to CCS': 'Импортировать в CCS',
     'Service fee': 'Комиссия',
     'Channel status notices': 'Уведомления о состоянии каналов',
     'Show one editable notice in the upper-right corner of each channel platform group.':
@@ -1559,6 +1565,7 @@ const newKeys = {
       'Использованные коды можно обновлять только через массовые настройки счёта',
   },
   vi: {
+    'Import to CCS': 'Nhập vào CCS',
     'Service fee': 'Phí dịch vụ',
     'Channel status notices': 'Thông báo trạng thái kênh',
     'Show one editable notice in the upper-right corner of each channel platform group.':

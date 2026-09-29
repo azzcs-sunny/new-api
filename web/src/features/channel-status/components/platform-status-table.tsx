@@ -38,6 +38,7 @@ import { getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
 import { PluginModelList } from '@/features/task-plugins/components/plugin-model-list'
 import { formatTimestampToDate } from '@/lib/format'
 import { getLobeIcon } from '@/lib/lobe-icon'
+import { resolveModelProvider } from '@/lib/model-provider'
 import { cn } from '@/lib/utils'
 
 import type {
@@ -106,11 +107,11 @@ const preferredPlatformOrder = new Map<string, number>(
   [
     'OpenAI',
     'Claude',
+    'xAI',
     'DeepSeek',
     'Gemini',
     'Azure',
     'OpenRouter',
-    'xAI',
     'Moonshot',
     'ZhipuV4',
     'Zhipu',
@@ -279,7 +280,19 @@ function groupRowsByPlatform(rows: ChannelStatusRow[]): PlatformGroup[] {
     }))
 }
 
+function getStatusModelProvider(row: ChannelStatusRow) {
+  if (row.channel_type !== 1 && row.channel_type !== 58) return null
+
+  const modelName = row.model_name.trim().replace(/^openai[/.:]/i, '')
+  return resolveModelProvider(modelName)
+}
+
 function getStatusPlatform(row: ChannelStatusRow): string {
+  const modelProvider = getStatusModelProvider(row)
+  if (modelProvider) {
+    return platformDisplayNames.get(modelProvider.name) ?? modelProvider.name
+  }
+
   const provider = row.provider?.trim() || 'Unknown'
   return platformDisplayNames.get(provider) ?? provider
 }
@@ -485,11 +498,13 @@ function ChannelTypeLogo(props: {
   size: number
   className?: string
 }) {
+  const modelIcon = getStatusModelProvider(props.row)?.icon
   const iconName =
-    typeof props.row.channel_type === 'number'
-      ? getChannelTypeIcon(props.row.channel_type)
-      : undefined
-  const icon = iconName ? getLobeIcon(`${iconName}.Color`, props.size) : null
+    modelIcon ??
+    (typeof props.row.channel_type === 'number'
+      ? `${getChannelTypeIcon(props.row.channel_type)}.Color`
+      : undefined)
+  const icon = iconName ? getLobeIcon(iconName, props.size) : null
 
   return (
     <div

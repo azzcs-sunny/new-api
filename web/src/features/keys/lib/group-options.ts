@@ -16,36 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-const USER_GROUP_LABELS = new Set([
-  'usergroup',
-  '用户分组',
-  '用户组',
-  '用戶分組',
-  '用戶組',
-])
-
-function normalizeGroupLabel(label: string): string {
-  return label.trim().replaceAll(/\s+/g, '').toLowerCase()
-}
-
-type ApiKeyGroupOptionLike = {
-  value: string
-  label: string
-  desc?: string
-}
-
-export function isUserGroupOption(option: ApiKeyGroupOptionLike): boolean {
-  const label = normalizeGroupLabel(option.label)
-  const desc = option.desc ? normalizeGroupLabel(option.desc) : undefined
-  return (
-    option.value === '' ||
-    USER_GROUP_LABELS.has(label) ||
-    (desc ? USER_GROUP_LABELS.has(desc) : false)
-  )
-}
-
-export function filterApiKeyGroupOptions<T extends ApiKeyGroupOptionLike>(
-  options: T[]
-): T[] {
-  return options.filter((option) => !isUserGroupOption(option))
-}
+export {
+  filterGroupOptions as filterApiKeyGroupOptions,
+  isUserGroupOption,
+} from '@/components/categorized-group-selector/group-categories'

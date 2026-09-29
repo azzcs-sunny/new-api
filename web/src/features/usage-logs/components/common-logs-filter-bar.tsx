@@ -23,9 +23,10 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { CategorizedGroupSelector } from '@/components/categorized-group-selector'
+import { useGroupModelOptions } from '@/components/categorized-group-selector/use-group-model-options'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Combobox } from '@/components/ui/combobox'
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { getSystemOptions } from '@/features/system-settings/api'
 import { getGroups } from '@/features/users/api'
 import { useMediaQuery } from '@/hooks'
 import { getUserGroups } from '@/lib/api'
@@ -63,6 +65,7 @@ type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 const logTypeValueSet = new Set<string>(
   LOG_TYPE_FILTERS.map((type) => type.value)
 )
+const excludedLogGroupValues = ['auto'] as const
 
 type CommonLogDraft = {
   sourceKey: string
@@ -93,6 +96,7 @@ function buildSearchSourceKey(values: {
   username?: unknown
   requestId?: unknown
   upstreamRequestId?: unknown
+  stream?: unknown
   type?: unknown
 }) {
   return [
@@ -105,6 +109,7 @@ function buildSearchSourceKey(values: {
     values.username,
     values.requestId,
     values.upstreamRequestId,
+    values.stream,
     Array.isArray(values.type) ? values.type.join(',') : values.type,
   ]
     .map((value) => String(value ?? ''))
@@ -131,19 +136,66 @@ export function CommonLogsFilterBar<TData>(
     queryFn: async () => requireServerSuccess(await getGroups()),
     enabled: isAdmin,
   })
+  const { data: systemOptions } = useQuery({
+    queryKey: ['system-options'],
+    queryFn: async () => requireServerSuccess(await getSystemOptions()),
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+  })
   const { data: userGroups } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => requireServerSuccess(await getUserGroups()),
     enabled: !isAdmin,
   })
-  const groupOptions = useMemo(() => {
-    const groups = isAdmin
-      ? (adminGroups?.data ?? [])
-      : Object.keys(userGroups?.data ?? {})
-    return groups
-      .filter((group) => group !== 'auto')
-      .map((group) => ({ label: group, value: group }))
-  }, [isAdmin, adminGroups, userGroups])
+  const rawGroupOptions = useMemo(() => {
+    if (isAdmin) {
+      const optionValues = new Map(
+        (systemOptions?.data ?? []).map((option) => [option.key, option.value])
+      )
+      const tokenGroups = new Set<string>()
+
+      try {
+        const userUsableGroups: unknown = JSON.parse(
+          optionValues.get('UserUsableGroups') ?? '{}'
+        )
+        if (
+          userUsableGroups &&
+          typeof userUsableGroups === 'object' &&
+          !Array.isArray(userUsableGroups)
+        ) {
+          Object.keys(userUsableGroups).forEach((group) =>
+            tokenGroups.add(group)
+          )
+        }
+      } catch {
+        // Invalid settings should not expose unrelated user groups.
+      }
+
+      return (adminGroups?.data ?? [])
+        .filter((group) => tokenGroups.has(group))
+        .map((group) => ({
+          label: group,
+          value: group,
+        }))
+    }
+
+    return Object.entries(userGroups?.data ?? {}).map(([group, info]) => ({
+      label: group,
+      value: group,
+      desc: info.desc,
+      ratio: info.ratio,
+    }))
+  }, [isAdmin, adminGroups, systemOptions, userGroups])
+  const groupOptions = useGroupModelOptions(rawGroupOptions)
+  const excludedGroupValues = useMemo(() => {
+    if (!isAdmin) return excludedLogGroupValues
+
+    const tokenGroups = new Set(rawGroupOptions.map((option) => option.value))
+    return [
+      ...excludedLogGroupValues,
+      ...(adminGroups?.data ?? []).filter((group) => !tokenGroups.has(group)),
+    ]
+  }, [adminGroups, isAdmin, rawGroupOptions])
 
   const searchState = useMemo<CommonLogDraft>(() => {
     const { start, end } = getDefaultTimeRange()
@@ -157,6 +209,7 @@ export function CommonLogsFilterBar<TData>(
       username: searchParams.username,
       requestId: searchParams.requestId,
       upstreamRequestId: searchParams.upstreamRequestId,
+      stream: searchParams.stream,
       type: searchParams.type,
     }
     const filters: CommonLogFilters = {
@@ -171,6 +224,7 @@ export function CommonLogsFilterBar<TData>(
       username: searchParams.username || undefined,
       requestId: searchParams.requestId || undefined,
       upstreamRequestId: searchParams.upstreamRequestId || undefined,
+      stream: searchParams.stream,
     }
     return {
       sourceKey: buildSearchSourceKey(sourceValues),
@@ -187,6 +241,7 @@ export function CommonLogsFilterBar<TData>(
     searchParams.username,
     searchParams.requestId,
     searchParams.upstreamRequestId,
+    searchParams.stream,
     searchParams.type,
   ])
   const [draft, setDraft] = useState<CommonLogDraft>(() => searchState)
@@ -269,8 +324,14 @@ export function CommonLogsFilterBar<TData>(
     !!filters.upstreamRequestId
 
   const hasTypeFilter = logType !== LOG_TYPE_ALL_VALUE
+  const hasStreamFilter =
+    filters.stream === 'true' || filters.stream === 'false'
   const hasAdditionalFilters =
-    !!filters.model || !!filters.group || hasTypeFilter || hasExpandedFilters
+    !!filters.model ||
+    !!filters.group ||
+    hasTypeFilter ||
+    hasStreamFilter ||
+    hasExpandedFilters
 
   const expandedFilterCount = [
     filters.token,
@@ -292,6 +353,9 @@ export function CommonLogsFilterBar<TData>(
     [t]
   )
   const selectedLogType = logTypeItems.find((type) => type.value === logType)
+  let streamModeLabel = t('Stream Mode')
+  if (filters.stream === 'true') streamModeLabel = t('Stream')
+  if (filters.stream === 'false') streamModeLabel = t('Non-stream')
   const deprecatedTypeDescription = t(
     'Only used to find historical logs. New records are available in Audit Logs.'
   )
@@ -345,9 +409,11 @@ export function CommonLogsFilterBar<TData>(
   )
   const groupFilter = (
     <LogsFilterField className={sensitiveInputClass}>
-      <Combobox
+      <CategorizedGroupSelector
         options={groupOptions}
         allowCustomValue
+        clearable
+        excludeValues={excludedGroupValues}
         aria-label={t('Group')}
         emptyText={t('No group found.')}
         placeholder={t('Group')}
@@ -355,7 +421,6 @@ export function CommonLogsFilterBar<TData>(
         popupClassName={sensitiveInputClass}
         value={filters.group || ''}
         onValueChange={(value) => handleChange('group', value ?? '')}
-        onKeyDown={handleKeyDown}
       />
     </LogsFilterField>
   )
@@ -432,6 +497,37 @@ export function CommonLogsFilterBar<TData>(
       </Select>
     </LogsFilterField>
   )
+  const streamFilter = (
+    <LogsFilterField>
+      <Select
+        items={[
+          { value: 'all', label: t('All') },
+          { value: 'true', label: t('Stream') },
+          { value: 'false', label: t('Non-stream') },
+        ]}
+        value={filters.stream ?? 'all'}
+        onValueChange={(value) =>
+          handleChange(
+            'stream',
+            value === 'all' ? undefined : (value ?? undefined)
+          )
+        }
+      >
+        <SelectTrigger aria-label={t('Stream Mode')}>
+          <SelectValue className='min-w-0'>
+            <span className='truncate'>{streamModeLabel}</span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            <SelectItem value='all'>{t('All')}</SelectItem>
+            <SelectItem value='true'>{t('Stream')}</SelectItem>
+            <SelectItem value='false'>{t('Non-stream')}</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </LogsFilterField>
+  )
   const advancedFilters = (
     <>
       <LogsFilterField>
@@ -495,6 +591,7 @@ export function CommonLogsFilterBar<TData>(
           {modelFilter}
           {groupFilter}
           {typeFilter}
+          {streamFilter}
         </>
       }
       advancedFilters={advancedFilters}
@@ -504,12 +601,14 @@ export function CommonLogsFilterBar<TData>(
           {modelFilter}
           {groupFilter}
           {typeFilter}
+          {streamFilter}
           {advancedFilters}
         </>
       }
       mobileFilterCount={
-        [filters.model, filters.group, hasTypeFilter].filter(Boolean).length +
-        expandedFilterCount
+        [filters.model, filters.group, hasTypeFilter, hasStreamFilter].filter(
+          Boolean
+        ).length + expandedFilterCount
       }
       hasAdvancedActiveFilters={hasExpandedFilters}
       advancedFilterCount={expandedFilterCount}

@@ -62,11 +62,28 @@ function FilterFixture() {
 async function renderFilter(
   initialEntry = '/usage-logs/common',
   groups: Record<string, { desc: string; ratio: number }> | null = {
-    default: { desc: '', ratio: 1 },
-    premium: { desc: '', ratio: 2 },
-  }
+    default: { desc: 'OpenAI standard group', ratio: 1 },
+    premium: { desc: 'Claude priority group', ratio: 2 },
+  },
+  systemGroupOptions: Array<{ key: string; value: string }> = [
+    {
+      key: 'UserUsableGroups',
+      value: JSON.stringify(
+        Object.fromEntries(
+          Object.keys(groups ?? {}).map((group) => [group, ''])
+        )
+      ),
+    },
+    {
+      key: 'group_ratio_setting.group_special_usable_group',
+      value: '{}',
+    },
+  ]
 ) {
   vi.spyOn(api, 'get').mockImplementation(async (url) => {
+    if (url === '/api/option/') {
+      return { data: { success: true, data: systemGroupOptions } }
+    }
     if (url === '/api/user/self/groups' || url === '/api/group/') {
       if (groups === null) throw new Error('Group loading failed')
       return {
@@ -124,15 +141,20 @@ afterEach(() => {
 
 it('loads personal groups and filters choices without submitting until Search', async () => {
   const router = await renderFilter()
-  const input = screen.getByRole('combobox', { name: 'Group' })
-  await userEvent.click(input)
-  expect(await screen.findByRole('option', { name: 'default' })).toBeVisible()
-  await userEvent.type(input, 'prem')
+  const trigger = screen.getByRole('combobox', { name: 'Group' })
+  await userEvent.click(trigger)
+  expect(screen.getByRole('tab', { name: 'OpenAI' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  )
+  expect(await screen.findByRole('option', { name: /^default/ })).toBeVisible()
+  const searchInput = screen.getByPlaceholderText('Search...')
+  await userEvent.type(searchInput, 'prem')
   expect(
     screen.queryByRole('option', { name: 'default' })
   ).not.toBeInTheDocument()
-  await userEvent.click(screen.getByRole('option', { name: 'premium' }))
-  expect(input).toHaveValue('premium')
+  await userEvent.click(screen.getByRole('option', { name: /^premium/ }))
+  expect(trigger).toHaveTextContent('premium')
   expect(router.state.location.search).not.toHaveProperty('group')
   await userEvent.click(screen.getByRole('button', { name: 'Search' }))
   await waitFor(() =>
@@ -143,27 +165,85 @@ it('loads personal groups and filters choices without submitting until Search', 
   )
   expect(api.get).toHaveBeenCalledWith('/api/user/self/groups')
   expect(api.get).not.toHaveBeenCalledWith('/api/group/')
+  expect(
+    vi
+      .mocked(api.get)
+      .mock.calls.filter(([url]) => url === '/api/user/self/groups')
+  ).toHaveLength(1)
 })
 
-it('loads all groups in the administrator view', async () => {
+it('loads configured token groups in the administrator view', async () => {
   useAuthStore.getState().auth.setUser({ id: 1, username: 'admin', role: 10 })
   await renderFilter()
   await userEvent.click(screen.getByRole('combobox', { name: 'Group' }))
+  await userEvent.type(screen.getByPlaceholderText('Search...'), 'premium')
   expect(await screen.findByRole('option', { name: 'premium' })).toBeVisible()
   expect(api.get).toHaveBeenCalledWith('/api/group/')
+  expect(api.get).toHaveBeenCalledWith('/api/option/')
   expect(api.get).not.toHaveBeenCalledWith('/api/user/self/groups')
 })
 
-it('confirms a keyboard choice before Enter submits the selected group', async () => {
+it('shows only globally enabled token groups in administrator choices', async () => {
+  useAuthStore.getState().auth.setUser({ id: 1, username: 'admin', role: 10 })
+  await renderFilter(
+    '/usage-logs/common',
+    {
+      'openai-team': { desc: '', ratio: 1 },
+      'special-openai': { desc: '', ratio: 1 },
+      hidden: { desc: '', ratio: 1 },
+      vip: { desc: '', ratio: 1 },
+      svip: { desc: '', ratio: 1 },
+    },
+    [
+      {
+        key: 'UserUsableGroups',
+        value: JSON.stringify({ 'openai-team': '' }),
+      },
+      {
+        key: 'group_ratio_setting.group_special_usable_group',
+        value: JSON.stringify({
+          vip: {
+            '+:special-openai': 'Special access',
+            '-:hidden': 'remove',
+          },
+        }),
+      },
+    ]
+  )
+
+  await userEvent.click(screen.getByRole('combobox', { name: 'Group' }))
+  const searchInput = screen.getByPlaceholderText('Search...')
+
+  await userEvent.type(searchInput, 'openai-team')
+  expect(
+    await screen.findByRole('option', { name: 'openai-team' })
+  ).toBeVisible()
+  await userEvent.clear(searchInput)
+  await userEvent.type(searchInput, 'special-openai')
+  expect(
+    screen.queryByRole('option', { name: 'special-openai' })
+  ).not.toBeInTheDocument()
+
+  for (const group of ['hidden', 'vip', 'svip']) {
+    await userEvent.clear(searchInput)
+    await userEvent.type(searchInput, group)
+    expect(
+      screen.queryByRole('option', { name: group })
+    ).not.toBeInTheDocument()
+  }
+})
+
+it('confirms a keyboard choice without submitting the selected group', async () => {
   const router = await renderFilter()
-  const input = screen.getByRole('combobox', { name: 'Group' })
-  await userEvent.click(input)
-  await screen.findByRole('option', { name: 'default' })
+  const trigger = screen.getByRole('combobox', { name: 'Group' })
+  await userEvent.click(trigger)
+  await screen.findByRole('option', { name: /^default/ })
+  screen.getByPlaceholderText('Search...').focus()
   await userEvent.keyboard('{ArrowDown}{Enter}')
-  expect(input).toHaveValue('default')
-  expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(trigger).toHaveTextContent('default')
+  expect(trigger).toHaveAttribute('aria-expanded', 'false')
   expect(router.state.location.search).not.toHaveProperty('group')
-  await userEvent.keyboard('{Enter}')
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
   await waitFor(() =>
     expect(router.state.location.search).toMatchObject({ group: 'default' })
   )
@@ -176,17 +256,19 @@ it.each([{}, null])(
       '/usage-logs/common?group=retired',
       groups
     )
-    const input = screen.getByRole('combobox', { name: 'Group' })
-    expect(input).toHaveValue('retired')
-    await userEvent.clear(input)
-    await userEvent.type(input, 'historical')
+    const trigger = screen.getByRole('combobox', { name: 'Group' })
+    expect(trigger).toHaveTextContent('retired')
+    await userEvent.click(trigger)
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'historical')
+    await userEvent.click(screen.getByRole('option', { name: 'historical' }))
     await userEvent.click(screen.getByRole('button', { name: 'Search' }))
     await waitFor(() =>
       expect(router.state.location.search).toMatchObject({
         group: 'historical',
       })
     )
-    await userEvent.clear(input)
+    await userEvent.click(trigger)
+    await userEvent.click(screen.getByRole('option', { name: 'Clear' }))
     await userEvent.click(screen.getByRole('button', { name: 'Search' }))
     await waitFor(() =>
       expect(router.state.location.search).not.toHaveProperty('group')
@@ -196,23 +278,23 @@ it.each([{}, null])(
 
 it('resets the selected group and restores a group from URL navigation', async () => {
   const router = await renderFilter('/usage-logs/common?group=premium')
-  const input = screen.getByRole('combobox', { name: 'Group' })
-  expect(input).toHaveValue('premium')
+  const trigger = screen.getByRole('combobox', { name: 'Group' })
+  expect(trigger).toHaveTextContent('premium')
   await userEvent.click(screen.getByRole('button', { name: 'Reset' }))
-  await waitFor(() => expect(input).toHaveValue(''))
+  await waitFor(() => expect(trigger).toHaveTextContent('Group'))
   expect(router.state.location.search).not.toHaveProperty('group')
   await router.history.push('/usage-logs/common?group=retired')
-  await waitFor(() => expect(input).toHaveValue('retired'))
+  await waitFor(() => expect(trigger).toHaveTextContent('retired'))
 })
 
 it('keeps a selected group visible on focus and can clear it without choosing another option', async () => {
   const router = await renderFilter('/usage-logs/common?group=premium')
-  const input = screen.getByRole('combobox', { name: 'Group' })
-  await userEvent.click(input)
-  expect(input).toHaveValue('premium')
-  expect(await screen.findByRole('option', { name: 'default' })).toBeVisible()
-  await userEvent.clear(input)
-  await userEvent.keyboard('{Enter}')
+  const trigger = screen.getByRole('combobox', { name: 'Group' })
+  await userEvent.click(trigger)
+  expect(trigger).toHaveTextContent('premium')
+  expect(await screen.findByRole('option', { name: 'Clear' })).toBeVisible()
+  await userEvent.click(screen.getByRole('option', { name: 'Clear' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
   await waitFor(() =>
     expect(router.state.location.search).not.toHaveProperty('group')
   )
@@ -220,16 +302,17 @@ it('keeps a selected group visible on focus and can clear it without choosing an
 
 it('keeps the compact input and masks the dropdown together with other sensitive filters', async () => {
   await renderFilter()
-  const input = screen.getByRole('combobox', { name: 'Group' })
-  expect(input).toHaveClass('h-8', 'text-sm', 'leading-5')
+  const trigger = screen.getByRole('combobox', { name: 'Group' })
+  expect(trigger).toHaveClass('h-8', 'text-sm', 'leading-5')
   await userEvent.click(screen.getByRole('button', { name: /^Hide$/ }))
-  await userEvent.click(input)
-  const option = await screen.findByRole('option', { name: 'premium' })
-  const maskedField = input.closest('.\\[-webkit-text-security\\:disc\\]')
+  await userEvent.click(trigger)
+  await userEvent.type(screen.getByPlaceholderText('Search...'), 'premium')
+  const option = await screen.findByRole('option', { name: /^premium/ })
+  const maskedField = trigger.closest('.\\[-webkit-text-security\\:disc\\]')
   expect(maskedField).not.toBeNull()
   expect(option.closest('.\\[-webkit-text-security\\:disc\\]')).not.toBeNull()
   await userEvent.keyboard('{Escape}')
-  expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(trigger).toHaveAttribute('aria-expanded', 'false')
   await userEvent.tab()
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
 })
@@ -249,12 +332,13 @@ it('lets mobile users select a long group name inside the filter drawer and subm
     [longGroup]: { desc: '', ratio: 1 },
   })
   const dialog = screen.getByRole('dialog')
-  const input = within(dialog).getByRole('combobox', { name: 'Group' })
-  await userEvent.click(input)
-  const option = await within(dialog).findByRole('option', { name: longGroup })
+  const trigger = within(dialog).getByRole('combobox', { name: 'Group' })
+  await userEvent.click(trigger)
+  await userEvent.type(screen.getByPlaceholderText('Search...'), longGroup)
+  const option = await screen.findByRole('option', { name: longGroup })
   expect(option).toBeVisible()
   await userEvent.click(option)
-  expect(input).toHaveValue(longGroup)
+  expect(trigger).toHaveTextContent(longGroup)
   expect(dialog).toBeVisible()
   await userEvent.click(within(dialog).getByRole('button', { name: 'Search' }))
   await waitFor(() =>
@@ -266,18 +350,27 @@ it('lets mobile users select a long group name inside the filter drawer and subm
 })
 
 it.each([1, 10])(
-  'excludes only auto from group choices for role %s',
+  'excludes auto and user-group placeholders for role %s',
   async (role) => {
     useAuthStore.getState().auth.setUser({ id: 1, username: 'viewer', role })
     const router = await renderFilter('/usage-logs/common', {
       auto: { desc: '', ratio: 1 },
       'auto-team': { desc: '', ratio: 1 },
+      'User Group': { desc: '', ratio: 1 },
+      用户分组: { desc: '', ratio: 1 },
     })
-    const input = screen.getByRole('combobox', { name: 'Group' })
-    await userEvent.click(input)
+    const trigger = screen.getByRole('combobox', { name: 'Group' })
+    await userEvent.click(trigger)
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'auto')
     const option = await screen.findByRole('option', { name: 'auto-team' })
     expect(
       screen.queryByRole('option', { name: 'auto' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: 'User Group' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: '用户分组' })
     ).not.toBeInTheDocument()
     await userEvent.click(option)
     await userEvent.click(screen.getByRole('button', { name: 'Search' }))
@@ -287,16 +380,41 @@ it.each([1, 10])(
   }
 )
 
+it('filters user-group placeholders returned by the personal group endpoint', async () => {
+  await renderFilter('/usage-logs/common', {
+    'openai-team': { desc: 'OpenAI access', ratio: 1 },
+    'User Group': { desc: '', ratio: 1 },
+    legacy: { desc: '用户分组', ratio: 1 },
+  })
+
+  await userEvent.click(screen.getByRole('combobox', { name: 'Group' }))
+  expect(
+    await screen.findByRole('option', { name: /^openai-team/ })
+  ).toBeVisible()
+
+  const searchInput = screen.getByPlaceholderText('Search...')
+  await userEvent.type(searchInput, 'User Group')
+  expect(
+    screen.queryByRole('option', { name: 'User Group' })
+  ).not.toBeInTheDocument()
+
+  await userEvent.clear(searchInput)
+  await userEvent.type(searchInput, 'legacy')
+  expect(
+    screen.queryByRole('option', { name: 'legacy' })
+  ).not.toBeInTheDocument()
+})
+
 it('keeps historical auto values editable when auto is the only available group', async () => {
   const router = await renderFilter('/usage-logs/common?group=auto', {
     auto: { desc: '', ratio: 1 },
   })
-  const input = screen.getByRole('combobox', { name: 'Group' })
-  expect(input).toHaveValue('auto')
-  await userEvent.click(input)
+  const trigger = screen.getByRole('combobox', { name: 'Group' })
+  expect(trigger).toHaveTextContent('auto')
+  await userEvent.click(trigger)
   expect(screen.queryByRole('option', { name: 'auto' })).not.toBeInTheDocument()
-  await userEvent.clear(input)
-  await userEvent.type(input, 'retired')
+  await userEvent.type(screen.getByPlaceholderText('Search...'), 'retired')
+  await userEvent.click(screen.getByRole('option', { name: 'retired' }))
   await userEvent.click(screen.getByRole('button', { name: 'Search' }))
   await waitFor(() =>
     expect(router.state.location.search).toMatchObject({ group: 'retired' })

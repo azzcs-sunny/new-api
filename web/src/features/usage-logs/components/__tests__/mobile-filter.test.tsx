@@ -170,6 +170,26 @@ it('applies mobile drawer filters only when Search is pressed', async () => {
   )
 })
 
+it('applies a stream filter from the mobile drawer', async () => {
+  const router = await renderMobileFilter()
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Filter' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Filter' })
+  await user.click(
+    within(dialog).getByRole('combobox', { name: 'Stream Mode' })
+  )
+  await user.click(within(dialog).getByRole('option', { name: 'Stream' }))
+  expect(router.state.location.search).not.toHaveProperty('stream')
+
+  await user.click(within(dialog).getByRole('button', { name: 'Search' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({
+      stream: 'true',
+      page: 1,
+    })
+  )
+})
+
 it('keeps all quick actions visible without opening a menu', async () => {
   await renderMobileFilter()
   const user = userEvent.setup()

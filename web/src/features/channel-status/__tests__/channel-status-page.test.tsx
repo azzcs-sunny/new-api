@@ -438,17 +438,38 @@ describe('channel status page', () => {
     clipboard.mockRestore()
   })
 
-  test('orders major platforms as OpenAI, Claude, and DeepSeek before remaining providers', async () => {
+  test('orders xAI between Claude and DeepSeek before remaining providers', async () => {
     const baseRow = populatedResponse.data.items[0]
     vi.mocked(getChannelStatus).mockResolvedValue({
       success: true,
       data: {
         items: [
-          { ...baseRow, channel_id: 10, provider: 'Zulu' },
-          { ...baseRow, channel_id: 11, provider: 'DeepSeek' },
-          { ...baseRow, channel_id: 12, provider: 'Anthropic' },
+          {
+            ...baseRow,
+            channel_id: 10,
+            channel_type: undefined,
+            provider: 'Zulu',
+          },
+          {
+            ...baseRow,
+            channel_id: 11,
+            channel_type: 43,
+            provider: 'DeepSeek',
+          },
+          {
+            ...baseRow,
+            channel_id: 12,
+            channel_type: 14,
+            provider: 'Anthropic',
+          },
           { ...baseRow, channel_id: 13, provider: 'OpenAI' },
-          { ...baseRow, channel_id: 14, provider: 'Alpha' },
+          {
+            ...baseRow,
+            channel_id: 14,
+            channel_type: undefined,
+            provider: 'Alpha',
+          },
+          { ...baseRow, channel_id: 15, provider: 'xAI', channel_type: 48 },
         ],
       },
     })
@@ -463,7 +484,152 @@ describe('channel status page', () => {
           (platform) =>
             within(platform).getByRole('heading', { level: 2 }).textContent
         )
-    ).toEqual(['OpenAI', 'Claude', 'DeepSeek', 'Alpha', 'Zulu'])
+    ).toEqual(['OpenAI', 'Claude', 'xAI', 'DeepSeek', 'Alpha', 'Zulu'])
+  })
+
+  test('groups advanced custom channels by their test model provider and keeps unknown models under Advanced Custom', async () => {
+    const baseRow = populatedResponse.data.items[0]
+    vi.mocked(getChannelStatus).mockResolvedValue({
+      success: true,
+      data: {
+        items: [
+          {
+            ...baseRow,
+            channel_id: 10,
+            channel_name: 'custom-gpt',
+            channel_type: 58,
+            provider: 'Advanced Custom',
+            model_name: 'gpt-4.1',
+          },
+          {
+            ...baseRow,
+            channel_id: 11,
+            channel_name: 'custom-claude',
+            channel_type: 58,
+            provider: 'Advanced Custom',
+            model_name: 'claude-sonnet-4',
+          },
+          {
+            ...baseRow,
+            channel_id: 12,
+            channel_name: 'custom-unknown',
+            channel_type: 58,
+            provider: 'Advanced Custom',
+            model_name: 'internal-model',
+          },
+          {
+            ...baseRow,
+            channel_id: 16,
+            channel_name: 'custom-glm',
+            channel_type: 58,
+            provider: 'Advanced Custom',
+            model_name: 'glm-5.3',
+          },
+          {
+            ...baseRow,
+            channel_id: 14,
+            channel_name: 'native-claude',
+            channel_type: 14,
+            provider: 'Anthropic',
+            model_name: 'claude-opus-4',
+          },
+          {
+            ...baseRow,
+            channel_id: 13,
+            channel_name: 'regular-custom',
+            channel_type: 8,
+            provider: 'Custom',
+            model_name: 'gpt-4.1',
+          },
+        ],
+      },
+    })
+
+    renderPage()
+
+    await screen.findByText('custom-claude')
+    const platforms = screen.getAllByTestId('channel-status-platform')
+    expect(
+      platforms.map(
+        (platform) =>
+          within(platform).getByRole('heading', { level: 2 }).textContent
+      )
+    ).toEqual(['OpenAI', 'Claude', 'Zhipu', 'Advanced Custom', 'Custom'])
+    expect(within(platforms[0]).getByText('custom-gpt')).toBeInTheDocument()
+    expect(within(platforms[1]).getByText('custom-claude')).toBeInTheDocument()
+    expect(within(platforms[1]).getByText('native-claude')).toBeInTheDocument()
+    expect(within(platforms[2]).getByText('custom-glm')).toBeInTheDocument()
+    expect(within(platforms[3]).getByText('custom-unknown')).toBeInTheDocument()
+    expect(within(platforms[4]).getByText('regular-custom')).toBeInTheDocument()
+    expect(
+      within(platforms[1])
+        .getAllByTestId('lobe-icon')
+        .map((icon) => icon.textContent)
+    ).toEqual(['Claude.Color', 'Claude.Color', 'Claude.Color'])
+  })
+
+  test('groups OpenAI-compatible channels by model while retaining OpenAI for unknown models', async () => {
+    const baseRow = populatedResponse.data.items[0]
+    vi.mocked(getChannelStatus).mockResolvedValue({
+      success: true,
+      data: {
+        items: [
+          {
+            ...baseRow,
+            channel_id: 20,
+            channel_name: 'oai-glm',
+            model_name: 'openai/glm-5.3',
+          },
+          {
+            ...baseRow,
+            channel_id: 21,
+            channel_name: 'oai-deepseek',
+            model_name: 'deepseek-chat',
+          },
+          {
+            ...baseRow,
+            channel_id: 22,
+            channel_name: 'oai-gpt',
+            model_name: 'openai/gpt-4o',
+          },
+          {
+            ...baseRow,
+            channel_id: 23,
+            channel_name: 'oai-unknown',
+            model_name: 'internal-model',
+          },
+          {
+            ...baseRow,
+            channel_id: 24,
+            channel_name: 'legacy-custom',
+            channel_type: 8,
+            provider: 'Custom',
+            model_name: 'deepseek-chat',
+          },
+        ],
+      },
+    })
+
+    renderPage()
+
+    await screen.findByText('oai-glm')
+    const platforms = screen.getAllByTestId('channel-status-platform')
+    expect(
+      platforms.map(
+        (platform) =>
+          within(platform).getByRole('heading', { level: 2 }).textContent
+      )
+    ).toEqual(['OpenAI', 'DeepSeek', 'Zhipu', 'Custom'])
+    expect(within(platforms[0]).getByText('oai-gpt')).toBeInTheDocument()
+    expect(within(platforms[0]).getByText('oai-unknown')).toBeInTheDocument()
+    expect(within(platforms[1]).getByText('oai-deepseek')).toBeInTheDocument()
+    expect(within(platforms[2]).getByText('oai-glm')).toBeInTheDocument()
+    expect(within(platforms[3]).getByText('legacy-custom')).toBeInTheDocument()
+    expect(
+      within(platforms[2])
+        .getAllByTestId('lobe-icon')
+        .map((icon) => icon.textContent)
+    ).toEqual(['Zhipu.Color', 'Zhipu.Color'])
   })
 
   test('orders rows in each platform by the lowest group ratio and puts missing ratios last', async () => {

@@ -144,9 +144,25 @@ function findButton(container: HTMLElement, label: string): HTMLButtonElement {
 }
 
 function getCommandItem(label: string): HTMLElement {
-  const item = [
+  const normalizedLabel = label.toLowerCase()
+  let item = [
     ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
-  ].find((candidate) => candidate.textContent?.includes(label))
+  ].find((candidate) =>
+    candidate.textContent?.toLowerCase().includes(normalizedLabel)
+  )
+  if (!item) {
+    const searchInput = document.querySelector<HTMLInputElement>(
+      '[data-slot="command-input"]'
+    )
+    if (searchInput) {
+      fireEvent.input(searchInput, { target: { value: label } })
+      item = [
+        ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
+      ].find((candidate) =>
+        candidate.textContent?.toLowerCase().includes(normalizedLabel)
+      )
+    }
+  }
   if (!item) {
     throw new Error(`Expected command item containing "${label}"`)
   }

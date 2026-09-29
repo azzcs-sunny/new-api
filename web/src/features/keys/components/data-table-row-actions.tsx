@@ -215,6 +215,26 @@ export function DataTableRowActions<TData>({
         <TooltipContent>{t('Edit')}</TooltipContent>
       </Tooltip>
 
+      <Button
+        variant='outline'
+        size='sm'
+        disabled={isRealKeyLoading}
+        onClick={async () => {
+          const realKey = await resolveRealKey(apiKey.id)
+          if (!realKey) return
+          setResolvedKey(realKey)
+          setCurrentRow(apiKey)
+          setOpen('cc-switch')
+        }}
+      >
+        {isRealKeyLoading ? (
+          <Loader2 data-icon='inline-start' className='animate-spin' />
+        ) : (
+          <ArrowRightLeft data-icon='inline-start' />
+        )}
+        {t('Import to CCS')}
+      </Button>
+
       <DataTableRowActionMenu
         ariaLabel={t('Open menu')}
         contentClassName='w-[200px]'
@@ -250,21 +270,6 @@ export function DataTableRowActions<TData>({
           {t('Copy Connection Info')}
           <DropdownMenuShortcut>
             <Link size={16} />
-          </DropdownMenuShortcut>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={async () => {
-            const realKey = await resolveRealKey(apiKey.id)
-            if (!realKey) return
-            setResolvedKey(realKey)
-            setCurrentRow(apiKey)
-            setOpen('cc-switch')
-          }}
-        >
-          {t('CC Switch')}
-          <DropdownMenuShortcut>
-            <ArrowRightLeft size={16} />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
         {hasChatPresets && (

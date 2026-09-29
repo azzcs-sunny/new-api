@@ -18,6 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { describe, expect, test } from 'vitest'
 
+import {
+  getGroupCategories,
+  getGroupCategory,
+} from '@/components/categorized-group-selector/group-categories'
+
 import { filterApiKeyGroupOptions, isUserGroupOption } from '../group-options'
 
 describe('API key group option filtering', () => {
@@ -54,5 +59,34 @@ describe('API key group option filtering', () => {
       { value: 'default', label: 'default', desc: 'Standard access' },
       { value: 'vip', label: 'vip', desc: 'Priority access' },
     ])
+  })
+
+  test.each([
+    ['claude-team', 'Anthropic access', 'anthropic'],
+    ['gpt-team', 'OpenAI access', 'openai'],
+    ['qwen-team', '通义千问', 'domestic'],
+    ['premium', 'Priority access', 'other'],
+  ] as const)(
+    'classifies %s from its name and description as %s',
+    (value, desc, expectedCategory) => {
+      expect(getGroupCategory({ value, label: value, desc })).toBe(
+        expectedCategory
+      )
+    }
+  )
+
+  test('uses available models to categorize an advanced custom group', () => {
+    expect(
+      getGroupCategories({
+        value: 'advanced-custom',
+        label: 'Advanced custom',
+        models: [
+          'claude-sonnet-4',
+          'text-embedding-3-small',
+          'abab6.5s-chat',
+          'gemini-2.5-pro',
+        ],
+      })
+    ).toEqual(['anthropic', 'openai', 'domestic', 'other'])
   })
 })

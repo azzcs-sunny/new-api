@@ -24,6 +24,7 @@ import { useForm, type SubmitErrorHandler } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { useGroupModelOptions } from '@/components/categorized-group-selector/use-group-model-options'
 import { DateTimePicker } from '@/components/datetime-picker'
 import {
   SideDrawerSection,
@@ -160,7 +161,7 @@ export function ApiKeysMutateDrawer({
   })
 
   const models = modelsData?.data || []
-  const groups = useMemo<ApiKeyGroupOption[]>(
+  const rawGroups = useMemo<ApiKeyGroupOption[]>(
     () =>
       filterApiKeyGroupOptions(
         Object.entries(groupsData?.data || {}).map(([key, info]) => ({
@@ -172,6 +173,7 @@ export function ApiKeysMutateDrawer({
       ),
     [groupsData]
   )
+  const groups = useGroupModelOptions(rawGroups, open)
   const backendHasAuto = groups.some((g) => g.value === 'auto')
   const availableAutoGroupNames = useMemo(
     () => groups.filter((group) => group.value !== 'auto').map((g) => g.value),

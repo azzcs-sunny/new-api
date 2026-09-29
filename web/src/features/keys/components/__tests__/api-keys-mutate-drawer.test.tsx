@@ -186,6 +186,12 @@ function selectComboboxOption(
   optionDescription: string
 ): void {
   fireEvent.click(trigger)
+  const searchInput = document.querySelector<HTMLInputElement>(
+    '[data-slot="command-input"]'
+  )
+  if (searchInput) {
+    fireEvent.input(searchInput, { target: { value: optionDescription } })
+  }
   const option = [
     ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
   ].find((candidate) => candidate.textContent?.includes(optionDescription))

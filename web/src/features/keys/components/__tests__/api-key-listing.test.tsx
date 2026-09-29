@@ -446,6 +446,24 @@ it.each([true, false])(
   }
 )
 
+it('shows CCS import as a direct action instead of hiding it in the overflow menu', async () => {
+  const user = userEvent.setup()
+  const { post } = await renderKeysPage()
+  const importButton = screen.getByRole('button', { name: 'Import to CCS' })
+
+  expect(importButton).toBeVisible()
+  expect(post).not.toHaveBeenCalled()
+
+  await user.click(screen.getByRole('button', { name: 'Open menu' }))
+  expect(
+    screen.queryByRole('menuitem', { name: 'CC Switch' })
+  ).not.toBeInTheDocument()
+  await user.keyboard('{Escape}')
+
+  await user.click(importButton)
+  await waitFor(() => expect(post).toHaveBeenCalledWith('/api/token/7/key'))
+})
+
 it('keeps full mobile information without group or quota section headings', async () => {
   const matchMedia = window.matchMedia
   vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({

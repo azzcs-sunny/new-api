@@ -190,6 +190,7 @@ describe('API key group table cell', () => {
     expect(trigger).toHaveClass('border-input', 'bg-muted/40', 'cursor-pointer')
 
     await user.click(trigger)
+    await user.click(screen.getByRole('tab', { name: 'Other' }))
     const vipOption = await screen.findByRole('option', { name: /vip/i })
     expect(screen.queryByRole('option', { name: /default/i })).toBeNull()
     expect(vipOption).toHaveTextContent('3x')

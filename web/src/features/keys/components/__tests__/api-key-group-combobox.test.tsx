@@ -51,6 +51,11 @@ await i18n.use(initReactI18next).init({
         'Search...': 'Search...',
         'No group found.': 'No group found.',
         'Select a group': 'Select a group',
+        Vendor: 'Vendor',
+        Anthropic: 'Anthropic',
+        OpenAI: 'OpenAI',
+        'Chinese Models': 'Chinese Models',
+        Other: 'Other',
       },
     },
   },
@@ -65,6 +70,31 @@ const options = [
   },
   { value: 'default', label: 'default', desc: 'Standard group', ratio: 1 },
   { value: 'vip', label: 'vip', desc: 'Priority group', ratio: 3 },
+  {
+    value: 'openai-prod',
+    label: 'openai-prod',
+    desc: 'OpenAI production group',
+    ratio: 2,
+  },
+  {
+    value: 'claude-prod',
+    label: 'claude-prod',
+    desc: 'Claude production group',
+    ratio: 2,
+  },
+  {
+    value: 'qwen-prod',
+    label: 'qwen-prod',
+    desc: 'Qwen production group',
+    ratio: 2,
+  },
+  {
+    value: 'advanced-custom',
+    label: 'advanced-custom',
+    desc: 'Advanced custom group',
+    ratio: 2,
+    models: ['gpt-5', 'claude-sonnet-4'],
+  },
   { value: 'legacy', label: 'legacy', desc: '用户分组', ratio: 1 },
 ]
 
@@ -119,9 +149,7 @@ describe('API key group combobox Auto effect', () => {
       'auto-group-flow-border'
     )
 
-    const triggerRatio = within(trigger)
-      .getByText('Auto')
-      .closest('[data-slot="badge"]')
+    const triggerRatio = trigger.querySelector('[data-slot="badge"]')
     expect(triggerRatio).toHaveTextContent('Auto')
     expect(triggerRatio).not.toHaveTextContent('Ratio')
     expect(triggerRatio).not.toHaveTextContent('x')
@@ -145,7 +173,7 @@ describe('API key group combobox Auto effect', () => {
     )
     expect(popup).toHaveClass(
       'min-w-[var(--anchor-width)]',
-      'w-[440px]',
+      'w-[480px]',
       'max-w-[calc(100vw-2rem)]',
       'overflow-hidden',
       'rounded-lg',
@@ -157,16 +185,16 @@ describe('API key group combobox Auto effect', () => {
     expect(
       document.querySelector<HTMLElement>('[data-slot="command-list"]')
     ).toHaveClass(
-      'max-h-[min(20rem,var(--available-height))]',
+      'max-h-[min(17rem,var(--available-height))]',
       'overflow-y-auto',
       'overscroll-contain',
       'p-1.5'
     )
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Other' }))
     const autoOption = getCommandItem('Global automatic routing')
     expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
     expect(autoOption).toHaveAttribute('data-checked', 'true')
-    expect(autoOption).toHaveAttribute('aria-selected', 'true')
     expect(autoOption).not.toHaveClass('bg-linear-to-r')
     expect(autoOption).toHaveClass(
       'cursor-pointer',
@@ -177,9 +205,7 @@ describe('API key group combobox Auto effect', () => {
     expect(
       autoOption.querySelector('[data-auto-group-flow-border]')
     ).toBeInTheDocument()
-    const optionRatio = within(autoOption)
-      .getByText('Auto')
-      .closest('[data-slot="badge"]')
+    const optionRatio = autoOption.querySelector('[data-slot="badge"]')
     expect(optionRatio).toHaveTextContent('Auto')
     expect(optionRatio).not.toHaveTextContent('Ratio')
     expect(
@@ -245,6 +271,7 @@ describe('API key group combobox Auto effect', () => {
     expect(trigger).toHaveTextContent('default')
 
     fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('tab', { name: 'Other' }))
     expect(() => getCommandItem('Standard group')).toThrow(
       'Expected command item containing "Standard group"'
     )
@@ -256,6 +283,7 @@ describe('API key group combobox Auto effect', () => {
     render(<Harness initialValue='vip' />)
 
     fireEvent.click(getTrigger())
+    fireEvent.click(screen.getByRole('tab', { name: 'Other' }))
 
     expect(() => getCommandItem('用户分组')).toThrow(
       'Expected command item containing "用户分组"'
@@ -270,13 +298,37 @@ describe('API key group combobox Auto effect', () => {
     const trigger = getTrigger()
     expect(trigger).toHaveAttribute('data-auto-group-effect', 'trigger')
     expect(trigger.querySelector('[data-auto-group-flow-border]')).toBe(null)
-    expect(within(trigger).getByText('Auto')).toBeInTheDocument()
+    expect(within(trigger).getAllByText('Auto')).toHaveLength(2)
 
     fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('tab', { name: 'Other' }))
     const autoOption = getCommandItem('Global automatic routing')
     expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
     expect(autoOption.querySelector('[data-auto-group-flow-border]')).toBe(null)
-    expect(within(autoOption).getByText('Auto')).toBeInTheDocument()
+    expect(within(autoOption).getAllByText('Auto')).toHaveLength(2)
     setReducedMotion(false)
+  })
+
+  test('defaults to OpenAI and reveals each provider category separately', () => {
+    setReducedMotion(false)
+    render(<Harness initialValue='' />)
+
+    fireEvent.click(getTrigger())
+
+    expect(screen.getByRole('tab', { name: 'OpenAI' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    expect(getCommandItem('OpenAI production group')).toBeInTheDocument()
+    expect(getCommandItem('Advanced custom group')).toBeInTheDocument()
+    expect(() => getCommandItem('Claude production group')).toThrow()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Anthropic' }))
+    expect(getCommandItem('Claude production group')).toBeInTheDocument()
+    expect(getCommandItem('Advanced custom group')).toBeInTheDocument()
+    expect(() => getCommandItem('OpenAI production group')).toThrow()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Chinese Models' }))
+    expect(getCommandItem('Qwen production group')).toBeInTheDocument()
   })
 })

@@ -53,7 +53,7 @@ function FilterFixture() {
   )
 }
 
-async function renderFilter() {
+async function renderFilter(initialEntry = '/usage-logs/common') {
   vi.spyOn(api, 'get').mockImplementation(async (url) => ({
     data: {
       success: true,
@@ -70,7 +70,7 @@ async function renderFilter() {
   })
   const router = createRouter({
     routeTree: root.addChildren([auth.addChildren([logs])]),
-    history: createMemoryHistory({ initialEntries: ['/usage-logs/common'] }),
+    history: createMemoryHistory({ initialEntries: [initialEntry] }),
   })
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -127,4 +127,52 @@ it('marks only retired log types as deprecated while keeping historical filters 
   await waitFor(() =>
     expect(router.state.location.search).toMatchObject({ type: ['7'], page: 1 })
   )
+})
+
+it('filters common logs by stream mode and clears the filter with All', async () => {
+  const router = await renderFilter()
+  const streamMode = screen.getByRole('combobox', { name: 'Stream Mode' })
+
+  await userEvent.click(streamMode)
+  await userEvent.click(screen.getByRole('option', { name: 'Stream' }))
+  expect(router.state.location.search).not.toHaveProperty('stream')
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({
+      stream: 'true',
+      page: 1,
+    })
+  )
+
+  await userEvent.click(streamMode)
+  await userEvent.click(screen.getByRole('option', { name: 'Non-stream' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({
+      stream: 'false',
+      page: 1,
+    })
+  )
+
+  await userEvent.click(streamMode)
+  await userEvent.click(screen.getByRole('option', { name: 'All' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() =>
+    expect(router.state.location.search).not.toHaveProperty('stream')
+  )
+})
+
+it('restores a stream filter from the URL and clears it with Reset', async () => {
+  const router = await renderFilter('/usage-logs/common?stream=%22false%22')
+  expect(
+    screen.getByRole('combobox', { name: 'Stream Mode' })
+  ).toHaveTextContent('Non-stream')
+
+  await userEvent.click(screen.getByRole('button', { name: 'Reset' }))
+  await waitFor(() =>
+    expect(router.state.location.search).not.toHaveProperty('stream')
+  )
+  expect(
+    screen.getByRole('combobox', { name: 'Stream Mode' })
+  ).toHaveTextContent('Stream Mode')
 })

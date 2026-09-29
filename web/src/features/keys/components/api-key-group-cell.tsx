@@ -16,20 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell, TruncatedCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Tooltip,
   TooltipContent,
@@ -39,13 +30,11 @@ import { useMediaQuery } from '@/hooks'
 import { cn } from '@/lib/utils'
 
 import { filterApiKeyGroupOptions } from '../lib/group-options'
-import type { ApiKeyGroupOption } from './api-key-group-combobox'
+import {
+  ApiKeyGroupCombobox,
+  type ApiKeyGroupOption,
+} from './api-key-group-combobox'
 import { GroupRatioBadge, type GroupRatio } from './auto-group-visuals'
-
-const groupSelectContentClassName =
-  'max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] w-[440px] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-1.5'
-const groupSelectItemClassName =
-  'cursor-pointer items-center py-2.5 pr-10 pl-1.5 text-xs whitespace-normal hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground [&_[data-slot=select-item-text]]:min-w-0 [&_[data-slot=select-item-text]]:shrink [&_[data-slot=select-item-text]]:whitespace-normal'
 
 type ApiKeyGroupCellProps = {
   crossGroupRetry: boolean
@@ -137,74 +126,18 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
   }
 
   return (
-    <Select
-      items={selectableOptions.map((option) => ({
-        label: option.label || t('User Group'),
-        value: option.value,
-      }))}
+    <ApiKeyGroupCombobox
+      options={options}
       value={props.group}
+      hideDefaultOption
+      disabled={props.isUpdating}
+      loading={props.isUpdating}
+      aria-label={t('Group')}
+      className='h-8'
+      renderValue={() => <ApiKeyGroupDisplay {...props} />}
       onValueChange={(value) => {
-        if (value !== null && value !== props.group) {
-          props.onGroupChange?.(value)
-        }
+        if (value !== props.group) props.onGroupChange?.(value)
       }}
-    >
-      <SelectTrigger
-        size='sm'
-        aria-label={t('Group')}
-        aria-busy={props.isUpdating}
-        disabled={props.isUpdating}
-        className='border-input bg-muted/40 hover:border-ring hover:bg-muted data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 h-8 w-full min-w-0 cursor-pointer px-2.5 shadow-xs disabled:cursor-not-allowed data-popup-open:ring-[3px]'
-      >
-        <SelectValue className='min-w-0'>
-          <ApiKeyGroupDisplay {...props} />
-        </SelectValue>
-        {props.isUpdating && (
-          <Loader2 aria-hidden='true' className='size-3.5 animate-spin' />
-        )}
-      </SelectTrigger>
-      <SelectContent
-        align='start'
-        alignItemWithTrigger={false}
-        className={groupSelectContentClassName}
-      >
-        <SelectGroup>
-          {selectableOptions.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              className={groupSelectItemClassName}
-            >
-              <span
-                data-api-key-group-option-content='true'
-                className='flex min-w-0 flex-1 items-center justify-between gap-4 whitespace-normal'
-              >
-                <span className='flex min-w-0 flex-1 flex-col items-start gap-1'>
-                  <GroupBadge
-                    group={option.value}
-                    className='h-5 max-w-full px-1.5 text-[11px] leading-none [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal'
-                  />
-                  {option.desc && option.desc !== option.label && (
-                    <span className='text-muted-foreground w-full pl-1.5 text-[11px] leading-snug break-words whitespace-normal'>
-                      {option.desc}
-                    </span>
-                  )}
-                </span>
-                <span
-                  data-api-key-group-option-ratio='true'
-                  className='shrink-0 [&_[data-slot=badge]]:text-[10px]'
-                >
-                  <GroupRatioBadge
-                    ratio={option.ratio}
-                    isAuto={option.value === 'auto'}
-                    shouldReduceMotion={props.shouldReduceMotion}
-                  />
-                </span>
-              </span>
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    />
   )
 }

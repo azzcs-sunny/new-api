@@ -21,6 +21,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useGroupModelOptions } from '@/components/categorized-group-selector/use-group-model-options'
 import { StatusBadge } from '@/components/status-badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useMediaQuery } from '@/hooks'
@@ -78,7 +79,12 @@ function useApiKeyGroupData(): ApiKeyGroupData {
     },
   })
 
-  return data ?? EMPTY_GROUP_DATA
+  const groupData = data ?? EMPTY_GROUP_DATA
+  const options = useGroupModelOptions(groupData.options)
+  return useMemo(
+    () => ({ options, ratios: groupData.ratios }),
+    [groupData.ratios, options]
+  )
 }
 
 export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
@@ -127,6 +133,33 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         meta: { mobileTitle: true },
       },
       {
+        id: 'key',
+        accessorKey: 'key',
+        header: t('API Key'),
+        cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
+        enableSorting: false,
+        size: 260,
+      },
+      {
+        accessorKey: 'group',
+        header: t('Group'),
+        cell: ({ row }) => {
+          const apiKey = row.original
+          const group = row.getValue('group') as string
+          return (
+            <ApiKeyGroupTableCell
+              key={`${apiKey.id}:${group}`}
+              apiKey={apiKey}
+              options={groupData.options}
+              ratios={groupData.ratios}
+              shouldReduceMotion={shouldReduceMotion}
+            />
+          )
+        },
+        size: 220,
+        meta: { mobileHidden: true },
+      },
+      {
         accessorKey: 'status',
         header: t('Status'),
         cell: ({ row }) => {
@@ -147,39 +180,12 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         meta: { mobileBadge: true },
       },
       {
-        id: 'key',
-        accessorKey: 'key',
-        header: t('API Key'),
-        cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
-        enableSorting: false,
-        size: 260,
-      },
-      {
         id: 'quota',
         accessorKey: 'remain_quota',
         header: `${t('Quota')} (${quotaUnit})`,
         cell: ({ row }) => <ApiKeyQuotaCell apiKey={row.original} now={now} />,
         size: 260,
         minSize: 260,
-      },
-      {
-        accessorKey: 'group',
-        header: t('Group'),
-        cell: ({ row }) => {
-          const apiKey = row.original
-          const group = row.getValue('group') as string
-          return (
-            <ApiKeyGroupTableCell
-              key={`${apiKey.id}:${group}`}
-              apiKey={apiKey}
-              options={groupData.options}
-              ratios={groupData.ratios}
-              shouldReduceMotion={shouldReduceMotion}
-            />
-          )
-        },
-        size: 220,
-        meta: { mobileHidden: true },
       },
       {
         id: 'model_limits',
