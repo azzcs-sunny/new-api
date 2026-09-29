@@ -632,6 +632,101 @@ describe('channel status page', () => {
     ).toEqual(['Zhipu.Color', 'Zhipu.Color'])
   })
 
+  test('shows notices for the inferred platform instead of the compatible channel type', async () => {
+    const baseRow = populatedResponse.data.items[0]
+    vi.mocked(getChannelStatus).mockResolvedValue({
+      success: true,
+      data: {
+        notices: [
+          {
+            channel_type: 1,
+            level: 'normal',
+            content: 'OpenAI notice',
+            enabled: true,
+          },
+          {
+            channel_type: 14,
+            level: 'normal',
+            content: 'Claude notice',
+            enabled: true,
+          },
+          {
+            channel_type: 26,
+            level: 'normal',
+            content: 'Zhipu V4 notice',
+            enabled: true,
+          },
+          {
+            channel_type: 17,
+            level: 'normal',
+            content: 'Qwen notice',
+            enabled: true,
+          },
+          {
+            channel_type: 43,
+            level: 'warning',
+            content: 'DeepSeek notice',
+            enabled: true,
+          },
+          {
+            channel_type: 58,
+            level: 'normal',
+            content: 'Custom notice',
+            enabled: true,
+          },
+        ],
+        items: [
+          { ...baseRow, channel_id: 20, model_name: 'deepseek-chat' },
+          {
+            ...baseRow,
+            channel_id: 21,
+            channel_type: 43,
+            provider: 'DeepSeek',
+            model_name: 'deepseek-reasoner',
+          },
+          { ...baseRow, channel_id: 22, model_name: 'claude-sonnet-4' },
+          { ...baseRow, channel_id: 23, model_name: 'qwen-plus' },
+          {
+            ...baseRow,
+            channel_id: 24,
+            channel_type: 58,
+            provider: 'Advanced Custom',
+            model_name: 'glm-5.3',
+          },
+          {
+            ...baseRow,
+            channel_id: 25,
+            channel_type: 58,
+            provider: 'Advanced Custom',
+            model_name: 'internal-model',
+          },
+          { ...baseRow, channel_id: 26, model_name: 'internal-model' },
+          { ...baseRow, channel_id: 27, model_name: 'mistral-large' },
+        ],
+      },
+    })
+
+    renderPage()
+
+    await screen.findByText('deepseek-chat')
+    const platforms = screen.getAllByTestId('channel-status-platform')
+    const noticeFor = (name: string) => {
+      const platform = platforms.find((item) =>
+        within(item).queryByRole('heading', { name })
+      )
+      if (!platform) throw new Error(`Missing ${name} platform`)
+      return within(platform).queryByTestId('channel-status-notice')
+    }
+
+    expect(noticeFor('DeepSeek')).toHaveTextContent('DeepSeek notice')
+    expect(noticeFor('Claude')).toHaveTextContent('Claude notice')
+    expect(noticeFor('Qwen')).toHaveTextContent('Qwen notice')
+    expect(noticeFor('Zhipu')).toHaveTextContent('Zhipu V4 notice')
+    expect(noticeFor('Advanced Custom')).toHaveTextContent('Custom notice')
+    expect(noticeFor('OpenAI')).toHaveTextContent('OpenAI notice')
+    expect(noticeFor('Mistral')).not.toBeInTheDocument()
+  })
+
   test('orders rows in each platform by the lowest group ratio and puts missing ratios last', async () => {
     const baseRow = populatedResponse.data.items[0]
     vi.mocked(getChannelStatus).mockResolvedValue({

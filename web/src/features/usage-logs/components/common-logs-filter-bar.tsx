@@ -152,7 +152,7 @@ export function CommonLogsFilterBar<TData>(
       const optionValues = new Map(
         (systemOptions?.data ?? []).map((option) => [option.key, option.value])
       )
-      const tokenGroups = new Set<string>()
+      const tokenGroups = new Map<string, string>()
 
       try {
         const userUsableGroups: unknown = JSON.parse(
@@ -163,9 +163,9 @@ export function CommonLogsFilterBar<TData>(
           typeof userUsableGroups === 'object' &&
           !Array.isArray(userUsableGroups)
         ) {
-          Object.keys(userUsableGroups).forEach((group) =>
-            tokenGroups.add(group)
-          )
+          Object.entries(userUsableGroups).forEach(([group, desc]) => {
+            if (typeof desc === 'string') tokenGroups.set(group, desc)
+          })
         }
       } catch {
         // Invalid settings should not expose unrelated user groups.
@@ -176,6 +176,7 @@ export function CommonLogsFilterBar<TData>(
         .map((group) => ({
           label: group,
           value: group,
+          desc: tokenGroups.get(group),
         }))
     }
 

@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { CHANNEL_TYPES } from '@/features/channels/constants'
 import { getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
 import { PluginModelList } from '@/features/task-plugins/components/plugin-model-list'
 import { formatTimestampToDate } from '@/lib/format'
@@ -103,6 +104,27 @@ const noticePresentation = {
 } as const
 
 const platformDisplayNames = new Map<string, string>([['Anthropic', 'Claude']])
+const platformNoticeTypes = new Map<string, number>([
+  ...Object.entries(CHANNEL_TYPES).map(([type, name]): [string, number] => [
+    name,
+    Number(type),
+  ]),
+  ['Claude', 14],
+  ['360 AI', 19],
+  ['Qwen', 17],
+  ['Wan', 17],
+  ['iFlytek', 18],
+  ['Yi', 31],
+  ['Amazon', 33],
+  ['Suno', 36],
+  ['Midjourney', 2],
+])
+const alternateInferredNoticeTypes = new Map<string, number>([
+  ['Zhipu', 26],
+  ['Baidu', 46],
+  ['Doubao', 45],
+  ['Midjourney', 5],
+])
 const preferredPlatformOrder = new Map<string, number>(
   [
     'OpenAI',
@@ -184,11 +206,7 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
                   </Badge>
                 </div>
                 <PlatformStatusNotice
-                  notice={props.notices?.find((notice) =>
-                    group.rows.some(
-                      (row) => row.channel_type === notice.channel_type
-                    )
-                  )}
+                  notice={getPlatformNotice(group, props.notices)}
                 />
               </div>
               <Card data-card-hover='false' className='overflow-hidden'>
@@ -226,6 +244,29 @@ export function PlatformStatusTable(props: PlatformStatusTableProps) {
         </div>
       </div>
     </TooltipProvider>
+  )
+}
+
+function getPlatformNotice(
+  group: PlatformGroup,
+  notices: ChannelStatusNotice[] | undefined
+): ChannelStatusNotice | undefined {
+  const noticeType = platformNoticeTypes.get(group.label)
+  const platformNotice = notices?.find(
+    (notice) => notice.channel_type === noticeType
+  )
+  if (group.rows.some((row) => getStatusModelProvider(row))) {
+    const alternateType = alternateInferredNoticeTypes.get(group.label)
+    return (
+      platformNotice ??
+      notices?.find((notice) => notice.channel_type === alternateType)
+    )
+  }
+  return (
+    platformNotice ??
+    notices?.find((candidate) =>
+      group.rows.some((row) => row.channel_type === candidate.channel_type)
+    )
   )
 }
 

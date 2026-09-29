@@ -191,13 +191,14 @@ it('shows only globally enabled token groups in administrator choices', async ()
       'openai-team': { desc: '', ratio: 1 },
       'special-openai': { desc: '', ratio: 1 },
       hidden: { desc: '', ratio: 1 },
+      default: { desc: '', ratio: 1 },
       vip: { desc: '', ratio: 1 },
       svip: { desc: '', ratio: 1 },
     },
     [
       {
         key: 'UserUsableGroups',
-        value: JSON.stringify({ 'openai-team': '' }),
+        value: JSON.stringify({ 'openai-team': '', default: '用户分组' }),
       },
       {
         key: 'group_ratio_setting.group_special_usable_group',
@@ -224,7 +225,7 @@ it('shows only globally enabled token groups in administrator choices', async ()
     screen.queryByRole('option', { name: 'special-openai' })
   ).not.toBeInTheDocument()
 
-  for (const group of ['hidden', 'vip', 'svip']) {
+  for (const group of ['hidden', 'default', 'vip', 'svip']) {
     await userEvent.clear(searchInput)
     await userEvent.type(searchInput, group)
     expect(
