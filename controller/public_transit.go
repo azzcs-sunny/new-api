@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -21,8 +23,10 @@ import (
 )
 
 const (
-	publicTransitSchemaVersion = "ai-transit.v1"
-	publicTransitCacheSeconds  = 300
+	publicTransitSchemaVersion     = "ai-transit.v1"
+	publicTransitCacheSeconds      = 300
+	publicTransitRefreshTimeout    = 3 * time.Second
+	publicTransitRefreshRetryDelay = 15 * time.Minute
 )
 
 type publicTransitDiscovery struct {
@@ -101,6 +105,7 @@ type publicTransitGroup struct {
 }
 
 type publicTransitCacheUsage struct {
+	UpdatedAt   string                        `json:"updated_at"`
 	Last24Hours publicTransitCacheUsagePeriod `json:"last_24h"`
 	Last7Days   publicTransitCacheUsagePeriod `json:"last_7d"`
 	Total       publicTransitCacheUsagePeriod `json:"total"`
@@ -231,19 +236,17 @@ type publicTransitTesting struct {
 	UserTrial            string `json:"user_trial"`
 }
 
-type publicTransitCacheUsageSnapshot struct {
-	Last24Hours map[string]model.PublicTransitCacheUsage
-	Last7Days   map[string]model.PublicTransitCacheUsage
-	Total       map[string]model.PublicTransitCacheUsage
+type publicTransitCacheUsageCache struct {
+	sync.Mutex
+	groupKey   string
+	expiresAt  time.Time
+	data       model.PublicTransitCacheUsageSnapshot
+	available  bool
+	refreshing chan struct{}
+	load       func(context.Context, time.Time, []string) (model.PublicTransitCacheUsageSnapshot, error)
 }
 
-var publicTransitCacheUsageState struct {
-	sync.Mutex
-	groupKey  string
-	expiresAt time.Time
-	data      publicTransitCacheUsageSnapshot
-	available bool
-}
+var publicTransitCacheUsageState = publicTransitCacheUsageCache{load: model.GetPublicTransitCacheUsage}
 
 func GetAITransitDiscovery(c *gin.Context) {
 	baseURL := publicTransitBaseURL(c)
@@ -268,7 +271,7 @@ func GetPublicTransitSnapshot(c *gin.Context) {
 	usableGroups := service.GetUserUsableGroups("")
 	groupRatios := ratio_setting.GetGroupRatioCopy()
 	groupNames := publicTransitGroupNames(usableGroups, groupRatios)
-	cacheUsage, cacheUsageAvailable := getPublicTransitCacheUsage(groupNames, time.Now())
+	cacheUsage, cacheUsageAvailable := publicTransitCacheUsageState.get(groupNames, time.Now())
 	snapshot := buildPublicTransitSnapshot(
 		baseURL,
 		model.GetPricing(),
@@ -290,7 +293,7 @@ func buildPublicTransitSnapshot(
 	vendors []model.PricingVendor,
 	usableGroups map[string]string,
 	groupRatios map[string]float64,
-	cacheUsage publicTransitCacheUsageSnapshot,
+	cacheUsage model.PublicTransitCacheUsageSnapshot,
 	cacheUsageAvailable bool,
 	now time.Time,
 ) publicTransitSnapshot {
@@ -586,46 +589,80 @@ func publicTransitGroupNames(usableGroups map[string]string, groupRatios map[str
 	return groupNames
 }
 
-func getPublicTransitCacheUsage(groupNames []string, now time.Time) (publicTransitCacheUsageSnapshot, bool) {
+// get never waits for log aggregation. A cold cache omits usage, while an
+// expired cache keeps serving the last successful snapshot during refresh.
+func (cache *publicTransitCacheUsageCache) get(groupNames []string, now time.Time) (model.PublicTransitCacheUsageSnapshot, bool) {
 	groupKey := strings.Join(groupNames, "\x00")
-	publicTransitCacheUsageState.Lock()
-	defer publicTransitCacheUsageState.Unlock()
-	if publicTransitCacheUsageState.groupKey == groupKey && now.Before(publicTransitCacheUsageState.expiresAt) {
-		return publicTransitCacheUsageState.data, publicTransitCacheUsageState.available
+	cache.Lock()
+	defer cache.Unlock()
+	if cache.groupKey != groupKey {
+		cache.groupKey = groupKey
+		cache.data = model.PublicTransitCacheUsageSnapshot{}
+		cache.available = false
+		cache.expiresAt = time.Time{}
 	}
-
-	last24Hours, err := model.GetPublicTransitCacheUsage(now.Add(-24*time.Hour).Unix(), groupNames)
-	if err != nil {
-		common.SysError("failed to aggregate public transit 24h cache usage: " + err.Error())
-		storePublicTransitCacheUsage(groupKey, now, publicTransitCacheUsageSnapshot{}, false)
-		return publicTransitCacheUsageSnapshot{}, false
+	if cache.refreshing == nil && !now.Before(cache.expiresAt) {
+		cache.refreshing = make(chan struct{})
+		go cache.refresh(groupKey, slices.Clone(groupNames), now)
 	}
-	last7Days, err := model.GetPublicTransitCacheUsage(now.Add(-7*24*time.Hour).Unix(), groupNames)
-	if err != nil {
-		common.SysError("failed to aggregate public transit 7d cache usage: " + err.Error())
-		storePublicTransitCacheUsage(groupKey, now, publicTransitCacheUsageSnapshot{}, false)
-		return publicTransitCacheUsageSnapshot{}, false
-	}
-	total, err := model.GetPublicTransitCacheUsage(0, groupNames)
-	if err != nil {
-		common.SysError("failed to aggregate public transit total cache usage: " + err.Error())
-		storePublicTransitCacheUsage(groupKey, now, publicTransitCacheUsageSnapshot{}, false)
-		return publicTransitCacheUsageSnapshot{}, false
-	}
-	data := publicTransitCacheUsageSnapshot{Last24Hours: last24Hours, Last7Days: last7Days, Total: total}
-	storePublicTransitCacheUsage(groupKey, now, data, true)
-	return data, true
+	return cache.data, cache.available
 }
 
-func storePublicTransitCacheUsage(groupKey string, now time.Time, data publicTransitCacheUsageSnapshot, available bool) {
-	publicTransitCacheUsageState.groupKey = groupKey
-	publicTransitCacheUsageState.expiresAt = now.Add(time.Duration(publicTransitCacheSeconds) * time.Second)
-	publicTransitCacheUsageState.data = data
-	publicTransitCacheUsageState.available = available
+func (cache *publicTransitCacheUsageCache) refresh(groupKey string, groupNames []string, now time.Time) {
+	var data model.PublicTransitCacheUsageSnapshot
+	var err error
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("cache usage refresh panic: %v", recovered)
+		}
+		cache.Lock()
+		if cache.groupKey == groupKey {
+			if err == nil || errors.Is(err, model.ErrPublicTransitCacheUsageBusy) && !data.AsOf.IsZero() {
+				cache.data = data
+				cache.available = true
+				cache.expiresAt = time.Now().Add(time.Duration(publicTransitCacheSeconds) * time.Second)
+			} else {
+				// Retain stale data and back off after database failures/timeouts.
+				cache.expiresAt = time.Now().Add(publicTransitRefreshRetryDelay)
+			}
+		}
+		close(cache.refreshing)
+		cache.refreshing = nil
+		cache.Unlock()
+		if err != nil && !errors.Is(err, model.ErrPublicTransitCacheUsageBusy) && !errors.Is(err, model.ErrPublicTransitCacheUsagePending) {
+			common.SysError("failed to aggregate public transit cache usage: " + err.Error())
+		}
+	}()
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), publicTransitRefreshTimeout)
+		data, err = cache.load(ctx, now, groupNames)
+		if err == nil || errors.Is(err, model.ErrPublicTransitCacheUsagePending) {
+			if ctx.Err() != nil {
+				err = ctx.Err()
+			}
+		}
+		cancel()
+		if !errors.Is(err, model.ErrPublicTransitCacheUsagePending) {
+			return
+		}
+		cache.Lock()
+		changed := cache.groupKey != groupKey
+		if !changed && !data.AsOf.IsZero() {
+			cache.data, cache.available = data, true
+		}
+		cache.Unlock()
+		if changed {
+			return
+		}
+		// Each batch has its own deadline. Yield between batches rather than
+		// requiring a multi-million-row backfill to finish in three seconds.
+		time.Sleep(time.Second)
+	}
 }
 
-func buildPublicTransitGroupCacheUsage(groupName string, snapshot publicTransitCacheUsageSnapshot) *publicTransitCacheUsage {
+func buildPublicTransitGroupCacheUsage(groupName string, snapshot model.PublicTransitCacheUsageSnapshot) *publicTransitCacheUsage {
 	return &publicTransitCacheUsage{
+		UpdatedAt:   snapshot.AsOf.UTC().Format(time.RFC3339),
 		Last24Hours: publicTransitCacheUsagePeriodFromModel("last_24h", snapshot.Last24Hours[groupName]),
 		Last7Days:   publicTransitCacheUsagePeriodFromModel("last_7d", snapshot.Last7Days[groupName]),
 		Total:       publicTransitCacheUsagePeriodFromModel("total", snapshot.Total[groupName]),
@@ -633,11 +670,11 @@ func buildPublicTransitGroupCacheUsage(groupName string, snapshot publicTransitC
 }
 
 func publicTransitCacheUsagePeriodFromModel(period string, usage model.PublicTransitCacheUsage) publicTransitCacheUsagePeriod {
-	// input_tokens preserves the historical prompt_tokens aggregate. The explicit
-	// total includes caches exactly once across upstream usage semantics.
+	// Counts use only records with known usage semantics. The explicit total
+	// includes caches exactly once. Completeness still reports filtered records.
 	var totalInput *int64
 	var hitRate *float64
-	if usage.IncompleteRequests == 0 {
+	if usage.KnownRequests > 0 || usage.IncompleteRequests == 0 {
 		totalInput = &usage.TotalInputTokens
 		rate := 0.0
 		if usage.TotalInputTokens > 0 {

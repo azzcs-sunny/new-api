@@ -522,13 +522,22 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 	if billingUsage != nil {
 		// Record the input denominator independently of billing's prompt_tokens.
 		// Claude (including legacy Claude-derived usage) logs uncached input;
-		// OpenAI/Gemini totals already contain cache hits. Do not label an
-		// untagged OpenAI-compatible payload using the default billing semantic.
+		// OpenAI/Gemini totals already contain cache hits. Untagged usage can
+		// use a known final upstream protocol, but not billing's default semantic.
+		usageSemantic := billingUsage.UsageSemantic
+		if usageSemantic == "" && originUsage != nil {
+			switch relayInfo.GetFinalRequestRelayFormat() {
+			case types.RelayFormatOpenAI, types.RelayFormatOpenAIResponses, types.RelayFormatOpenAIResponsesCompaction:
+				usageSemantic = "openai"
+			case types.RelayFormatGemini:
+				usageSemantic = "gemini"
+			}
+		}
 		if summary.IsClaudeUsageSemantic || isLegacyClaudeDerivedOpenAIUsage(relayInfo, billingUsage) {
 			other.SetPublic("usage_semantic", "anthropic")
 			other.SetPublic("input_tokens_total", int64(summary.PromptTokens)+int64(summary.CacheTokens)+int64(cacheWriteTokens))
-		} else if billingUsage.UsageSemantic == "openai" || billingUsage.UsageSemantic == "gemini" {
-			other.SetPublic("usage_semantic", billingUsage.UsageSemantic)
+		} else if usageSemantic == "openai" || usageSemantic == "gemini" {
+			other.SetPublic("usage_semantic", usageSemantic)
 			totalInput := billingUsage.InputTokens
 			if totalInput == 0 {
 				totalInput = summary.PromptTokens

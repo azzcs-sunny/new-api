@@ -117,11 +117,17 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 		requestedImages, actualImages             int
 		wantInputTotal                            *int
 		wantUsageSemantic                         string
+		finalFormat                               types.RelayFormat
 	}{
 		{name: "cache statistics preserve OpenAI total", expression: flat, usage: &dto.Usage{PromptTokens: 100, UsageSemantic: "openai", PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "openai"},
 		{name: "cache statistics preserve Gemini total", expression: flat, usage: &dto.Usage{PromptTokens: 100, UsageSemantic: "gemini", PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "gemini"},
 		{name: "cache statistics include Claude split writes", expression: flat, usage: &dto.Usage{PromptTokens: 10, UsageSemantic: "anthropic", ClaudeCacheCreation5mTokens: 4, ClaudeCacheCreation1hTokens: 6, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "anthropic"},
 		{name: "cache statistics recognize legacy Claude conversion", expression: flat, usage: &dto.Usage{PromptTokens: 10, ClaudeCacheCreation5mTokens: 10, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "anthropic"},
+		{name: "untagged Responses cache total", expression: flat, stream: true, finalFormat: types.RelayFormatOpenAIResponses, usage: &dto.Usage{PromptTokens: 154218, CompletionTokens: 202, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 153088}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(154218), wantUsageSemantic: "openai"},
+		{name: "untagged DeepSeek cache total", expression: flat, stream: true, usage: &dto.Usage{PromptTokens: 157251, CompletionTokens: 1078, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 156160}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(157251), wantUsageSemantic: "openai"},
+		{name: "untagged converted Gemini total", expression: flat, finalFormat: types.RelayFormatGemini, usage: &dto.Usage{PromptTokens: 100, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "gemini"},
+		{name: "explicit usage overrides final protocol", expression: flat, finalFormat: types.RelayFormatOpenAIResponses, usage: &dto.Usage{PromptTokens: 10, UsageSemantic: "anthropic", PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(90), wantUsageSemantic: "anthropic"},
+		{name: "unknown protocol keeps unknown usage", expression: flat, finalFormat: "unknown", usage: &dto.Usage{PromptTokens: 100, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest},
 		{name: "missing usage charges once", expression: flat, want: 5000, unit: billingexpr.BillingUnitRequest},
 		{name: "zero usage charges once", expression: flat, usage: &dto.Usage{}, want: 5000, unit: billingexpr.BillingUnitRequest},
 		{name: "stream charges once", expression: flat, stream: true, usage: &dto.Usage{PromptTokens: 100, CompletionTokens: 20, TotalTokens: 120}, want: 5000, unit: billingexpr.BillingUnitRequest},
@@ -183,6 +189,7 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 			snapshot.EstimatedImageCount = trace.ImageCount
 			info := &relaycommon.RelayInfo{UserId: user.Id, TokenId: token.Id, TokenKey: token.Key, ChannelMeta: &relaycommon.ChannelMeta{ChannelId: channel.Id}, OriginModelName: "fixed-test", UsingGroup: "default", UserGroup: "default", UserSetting: dto.UserSetting{BillingPreference: "wallet_only"}, ForcePreConsume: true, StartTime: time.Now(), IsStream: tc.stream, RelayFormat: types.RelayFormatOpenAI, PriceData: hosttypes.PriceData{GroupRatioInfo: hosttypes.GroupRatioInfo{GroupRatio: group}}, TieredBillingSnapshot: snapshot, BillingRequestInput: request}
 			info.SetEstimatePromptTokens(tc.estimate)
+			info.FinalRequestRelayFormat = tc.finalFormat
 			ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 			ctx.Request = httptest.NewRequest("POST", "/v1/chat/completions", nil)
 			if tc.expression == imageExpression {
@@ -255,11 +262,11 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 						assert.Equal(t, float64(*tc.wantInputTotal), other["input_tokens_total"])
 						assert.Equal(t, tc.wantUsageSemantic, other["usage_semantic"])
 						assert.Equal(t, tc.usage.PromptTokens, log.PromptTokens, "statistics must preserve billing's prompt count")
-						usage, err := model.GetPublicTransitCacheUsage(0, []string{"default"})
-						require.NoError(t, err)
-						assert.Equal(t, int64(100), usage["default"].TotalInputTokens)
-						assert.Equal(t, int64(80), usage["default"].CacheReadTokens)
-						assert.Zero(t, usage["default"].IncompleteRequests)
+						assert.Equal(t, float64(tc.usage.PromptTokensDetails.CachedTokens), other["cache_tokens"], "consume logs must retain cache reads for the background rollup")
+					}
+					if tc.finalFormat == "unknown" {
+						assert.NotContains(t, other, "usage_semantic")
+						assert.NotContains(t, other, "input_tokens_total")
 					}
 					if tc.requestedImages > 0 {
 						count := tc.actualImages
