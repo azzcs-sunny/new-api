@@ -147,6 +147,7 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 
 	usage, newAPIError := adaptor.DoResponse(c, httpResp, info)
 	if newAPIError != nil {
+		settleInterruptedClaudeStream(c, info, usage, newAPIError)
 		// reset status code 重置状态码
 		service.ResetStatusCode(newAPIError, statusCodeMappingStr)
 		return newAPIError
@@ -154,4 +155,17 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 
 	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), nil)
 	return nil
+}
+
+// settleInterruptedClaudeStream preserves observed usage when collection fails
+// after the upstream has already consumed tokens. BillingSession prevents refunds
+// of this settled charge in the outer error cleanup.
+func settleInterruptedClaudeStream(c *gin.Context, info *relaycommon.RelayInfo, usage any, apiErr *types.NewAPIError) {
+	if info.ClaudeStreamDrain == nil {
+		return
+	}
+	types.ErrOptionWithSkipRetry()(apiErr)
+	if tokens, ok := usage.(*dto.Usage); ok && tokens != nil {
+		service.PostTextConsumeQuota(c, info, tokens, []string{"流式响应中断，按已接收的 Claude 用量结算"})
+	}
 }

@@ -115,7 +115,13 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 		want                                      int
 		unit                                      billingexpr.BillingUnit
 		requestedImages, actualImages             int
+		wantInputTotal                            *int
+		wantUsageSemantic                         string
 	}{
+		{name: "cache statistics preserve OpenAI total", expression: flat, usage: &dto.Usage{PromptTokens: 100, UsageSemantic: "openai", PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "openai"},
+		{name: "cache statistics preserve Gemini total", expression: flat, usage: &dto.Usage{PromptTokens: 100, UsageSemantic: "gemini", PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "gemini"},
+		{name: "cache statistics include Claude split writes", expression: flat, usage: &dto.Usage{PromptTokens: 10, UsageSemantic: "anthropic", ClaudeCacheCreation5mTokens: 4, ClaudeCacheCreation1hTokens: 6, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "anthropic"},
+		{name: "cache statistics recognize legacy Claude conversion", expression: flat, usage: &dto.Usage{PromptTokens: 10, ClaudeCacheCreation5mTokens: 10, PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 80}}, want: 5000, unit: billingexpr.BillingUnitRequest, wantInputTotal: common.GetPointer(100), wantUsageSemantic: "anthropic"},
 		{name: "missing usage charges once", expression: flat, want: 5000, unit: billingexpr.BillingUnitRequest},
 		{name: "zero usage charges once", expression: flat, usage: &dto.Usage{}, want: 5000, unit: billingexpr.BillingUnitRequest},
 		{name: "stream charges once", expression: flat, stream: true, usage: &dto.Usage{PromptTokens: 100, CompletionTokens: 20, TotalTokens: 120}, want: 5000, unit: billingexpr.BillingUnitRequest},
@@ -245,6 +251,16 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 					var other map[string]any
 					require.NoError(t, common.UnmarshalJsonStr(log.Other, &other))
 					assert.Equal(t, string(tc.unit), other["billing_unit"])
+					if tc.wantInputTotal != nil {
+						assert.Equal(t, float64(*tc.wantInputTotal), other["input_tokens_total"])
+						assert.Equal(t, tc.wantUsageSemantic, other["usage_semantic"])
+						assert.Equal(t, tc.usage.PromptTokens, log.PromptTokens, "statistics must preserve billing's prompt count")
+						usage, err := model.GetPublicTransitCacheUsage(0, []string{"default"})
+						require.NoError(t, err)
+						assert.Equal(t, int64(100), usage["default"].TotalInputTokens)
+						assert.Equal(t, int64(80), usage["default"].CacheReadTokens)
+						assert.Zero(t, usage["default"].IncompleteRequests)
+					}
 					if tc.requestedImages > 0 {
 						count := tc.actualImages
 						if count == 0 {

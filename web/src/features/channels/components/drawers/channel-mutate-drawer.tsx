@@ -210,6 +210,7 @@ import { ChannelPluginExtensions } from '../channel-plugin-extensions'
 import { ChannelQuickOptions } from '../channel-quick-options'
 import { ChannelTypeLogo } from '../channel-type-badge'
 import { useChannels } from '../channels-provider'
+import { ClaudeStreamDrainSetting } from '../claude-stream-drain-setting'
 import { AdvancedCustomEditorDialog } from '../dialogs/advanced-custom-editor-dialog'
 import { ConfigureModelsDialog } from '../dialogs/configure-models-dialog'
 import {
@@ -301,6 +302,8 @@ const SENSITIVE_FORM_FIELDS = [
   'http2_connection_shards',
   'pass_through_body_enabled',
   'responses_websocket_enabled',
+  'claude_stream_drain_enabled',
+  'claude_stream_drain_timeout',
   'system_prompt',
   'system_prompt_override',
   'allow_service_tier',
@@ -4651,6 +4654,10 @@ export function ChannelMutateDrawer({
                 disabled={sensitiveLocked}
                 className='space-y-4 disabled:opacity-60'
               >
+                <ClaudeStreamDrainSetting
+                  channelType={currentType}
+                  disabled={sensitiveLocked || isSubmitting}
+                />
                 <ResponsesWebSocketSetting
                   channelType={currentType}
                   disabled={sensitiveLocked || isSubmitting}

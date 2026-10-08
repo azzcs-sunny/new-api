@@ -92,6 +92,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		if newAPIError != nil {
 			service.RecordRequestPolicyTermination(c, newAPIError)
 			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
+			// A stream may already contain a protocol-native error, or its client
+			// may be gone. Never append an HTTP JSON error to that response.
+			if relayFormat != types.RelayFormatOpenAIRealtime && (c.Writer.Written() || c.Request.Context().Err() != nil) {
+				return
+			}
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
@@ -175,6 +180,15 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	relayInfo.LastError = nil
 
 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
+		if err := c.Request.Context().Err(); err != nil {
+			newAPIError = types.NewError(err, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
+			// Cancellation before the first attempt (or between retries) never
+			// reaches the usual per-channel failure path, but still needs a log.
+			channelID := common.GetContextKeyInt(c, constant.ContextKeyChannelId)
+			service.RecordPolicyFailure(c, channelID, newAPIError, service.PolicyDecision{Action: "stop", Reason: "client_canceled", Source: "system"})
+			processChannelError(c, types.ChannelError{ChannelId: channelID}, newAPIError, relayInfo)
+			break
+		}
 		relayInfo.StreamStatus = nil
 		relayInfo.PerformanceBusinessRejection = false
 		relayInfo.PerformanceOutputTokens = 0

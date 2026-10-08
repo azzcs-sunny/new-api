@@ -519,12 +519,24 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		// to cache_creation_tokens.
 		other.SetPublic("cache_write_tokens", cacheWriteTokens)
 	}
-	if relayInfo.GetFinalRequestRelayFormat() != types.RelayFormatClaude && billingUsage != nil && billingUsage.UsageSource != "" && billingUsage.InputTokens > 0 {
-		// input_tokens_total: explicit normalized total input used by the usage log UI.
-		// Only write this field when upstream/current conversion has already provided a
-		// reliable total input value and tagged the usage source. Do not infer it from
-		// prompt/cache fields here, otherwise old upstream payloads may be double-counted.
-		other.SetPublic("input_tokens_total", billingUsage.InputTokens)
+	if billingUsage != nil {
+		// Record the input denominator independently of billing's prompt_tokens.
+		// Claude (including legacy Claude-derived usage) logs uncached input;
+		// OpenAI/Gemini totals already contain cache hits. Do not label an
+		// untagged OpenAI-compatible payload using the default billing semantic.
+		if summary.IsClaudeUsageSemantic || isLegacyClaudeDerivedOpenAIUsage(relayInfo, billingUsage) {
+			other.SetPublic("usage_semantic", "anthropic")
+			other.SetPublic("input_tokens_total", int64(summary.PromptTokens)+int64(summary.CacheTokens)+int64(cacheWriteTokens))
+		} else if billingUsage.UsageSemantic == "openai" || billingUsage.UsageSemantic == "gemini" {
+			other.SetPublic("usage_semantic", billingUsage.UsageSemantic)
+			totalInput := billingUsage.InputTokens
+			if totalInput == 0 {
+				totalInput = summary.PromptTokens
+			}
+			other.SetPublic("input_tokens_total", totalInput)
+		} else if billingUsage.UsageSource != "" && billingUsage.InputTokens > 0 {
+			other.SetPublic("input_tokens_total", billingUsage.InputTokens)
+		}
 	}
 	if tieredBillingApplied {
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)

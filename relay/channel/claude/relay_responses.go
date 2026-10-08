@@ -38,12 +38,11 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 		Usage:        &dto.Usage{},
 	}
 	var streamErr *types.NewAPIError
-	// streamFailed means a Responses-native terminal error was sent successfully.
-	// In that case the scanner stops without a transport error and the partial
-	// upstream usage remains billable.
-	streamFailed := false
 
 	sendResponsesEvent := func(eventType string, payload dto.ResponsesStreamResponse) bool {
+		if info.ClaudeStreamDrain.Disconnected() {
+			return true
+		}
 		payload.Type = eventType
 		data, err := common.Marshal(payload)
 		if err != nil {
@@ -51,6 +50,9 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 			return false
 		}
 		if err := helper.ResponseChunkData(c, dto.ResponsesStreamResponse{Type: eventType}, string(data)); err != nil {
+			if info.ClaudeStreamDrain.Disconnected() {
+				return true
+			}
 			streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 			return false
 		}
@@ -69,6 +71,8 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 		return sendResponsesEvent(event.Type, event.Payload)
 	}
 	failResponsesStream := func(err error) bool {
+		streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
+		info.StreamStatus.MarkFailed(string(streamErr.GetErrorCode()), "server_error", streamErr.StatusCode)
 		failureResults, handled := state.FailResponsesStream("server_error", err.Error(), "")
 		if !handled {
 			return false
@@ -78,7 +82,6 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 				return true
 			}
 		}
-		streamFailed = true
 		return true
 	}
 
@@ -87,8 +90,6 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 		if err := common.UnmarshalJsonStr(data, &claudeResponse); err != nil {
 			logger.LogError(c, "failed to unmarshal Claude stream event: "+err.Error())
 			if failResponsesStream(err) {
-				// A nil streamErr here is intentional: the protocol-level failure
-				// event was delivered, so only the scanner needs to stop.
 				sr.Stop(streamErr)
 				return
 			}
@@ -121,6 +122,16 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 		}
 		FormatClaudeResponseInfo(&claudeResponse, nil, claudeInfo)
 		countClaudeStreamBillableTools(c, info, &claudeResponse)
+		if info.ClaudeStreamDrain != nil && claudeResponse.Type == "message_stop" {
+			defer func() {
+				if !sr.IsStopped() {
+					sr.Done()
+				}
+			}()
+		}
+		if info.ClaudeStreamDrain.Disconnected() {
+			return
+		}
 		hostedEvents, consumed, err := hostedBridge.Convert(&claudeResponse, state)
 		if err != nil {
 			if failResponsesStream(err) {
@@ -158,26 +169,47 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 			}
 		}
 	})
-	if streamErr != nil {
-		return nil, streamErr
+	info.StreamStatus.RequireTerminal()
+	// Only estimate missing usage after observing billable upstream data. An
+	// empty/failed stream must not charge the request's prompt estimate.
+	var usage *dto.Usage
+	if dto.HasOpenAIUsageTokens(claudeInfo.Usage) || claudeInfo.ResponseText.Len() > 0 {
+		HandleStreamFinalResponse(c, info, claudeInfo)
+		usage = claudeInfo.Usage
 	}
-	if streamFailed {
-		return claudeInfo.Usage, nil
+	if streamErr != nil {
+		return usage, streamErr
+	}
+	if err := c.Request.Context().Err(); err != nil && info.ClaudeStreamDrain == nil {
+		info.StreamStatus.RecordError(err.Error())
+		return usage, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
+	}
+	if info.StreamStatus.ResponseOutcome() != string(relaycommon.ResponseOutcomeCompleted) {
+		err := info.StreamStatus.EndError
+		if err == nil {
+			err = fmt.Errorf("Claude stream ended without message_stop (%s)", info.StreamStatus.EndReason)
+		}
+		failResponsesStream(err)
+		return usage, streamErr
 	}
 
-	HandleStreamFinalResponse(c, info, claudeInfo)
+	if info.ClaudeStreamDrain.Disconnected() {
+		return claudeInfo.Usage, nil
+	}
 	openAIUsage := buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)
 	state.SetUsage(&openAIUsage)
 	finalResults, err := service.FinalizeStreamResponse(c, info, state)
 	if err != nil {
 		if failResponsesStream(err) {
-			return claudeInfo.Usage, streamErr
+			return usage, streamErr
 		}
-		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
+		return usage, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 	}
 	for _, result := range finalResults {
 		if !sendResult(result) {
-			return nil, streamErr
+			// The scanner no longer records failures while sending final events.
+			info.StreamStatus.RecordError(streamErr.Error())
+			return usage, streamErr
 		}
 	}
 	return claudeInfo.Usage, nil

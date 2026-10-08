@@ -645,6 +645,121 @@ type Stat struct {
 	Tpm   int `json:"tpm"`
 }
 
+type PublicTransitCacheUsage struct {
+	Group               string `gorm:"column:group_name"`
+	InputTokens         int64
+	CacheCreationTokens int64
+	CacheReadTokens     int64
+	TotalInputTokens    int64
+	IncompleteRequests  int64
+}
+
+// GetPublicTransitCacheUsage aggregates public, group-level cache usage without
+// exposing user, token, channel, or upstream details. startTimestamp == 0 means
+// the complete retained log history.
+func GetPublicTransitCacheUsage(startTimestamp int64, groups []string) (map[string]PublicTransitCacheUsage, error) {
+	result := make(map[string]PublicTransitCacheUsage, len(groups))
+	if LOG_DB == nil || len(groups) == 0 {
+		return result, nil
+	}
+
+	groupCol := "`group`"
+	if common.UsingLogDatabase(common.DatabaseTypePostgreSQL) {
+		groupCol = `"group"`
+	}
+
+	// Keep aggregation in the log database: fetching retained logs into the
+	// gateway would make this public endpoint scale with the entire log history.
+	fields := []string{groupCol + " AS group_name", "prompt_tokens"}
+	for _, field := range []string{"cache_tokens", "cache_creation_tokens", "cache_creation_tokens_5m", "cache_creation_tokens_1h", "cache_write_tokens", "input_tokens_total"} {
+		fields = append(fields, publicTransitLogValueSQL(field, true)+" AS "+field)
+	}
+	for _, field := range []string{"usage_semantic", "claude", "admin_info.usage_billing_path"} {
+		_, alias, found := strings.Cut(field, ".")
+		if !found {
+			alias = field
+		}
+		fields = append(fields, publicTransitLogValueSQL(field, false)+" AS "+alias)
+	}
+	query := LOG_DB.Table("logs").Select(strings.Join(fields, ", ")).
+		Where("type = ?", LogTypeConsume).Where(groupCol+" IN ?", groups)
+	if startTimestamp > 0 {
+		query = query.Where("created_at >= ?", startTimestamp)
+	}
+
+	cacheWrites := `COALESCE(cache_write_tokens, CASE
+		WHEN COALESCE(cache_creation_tokens, 0) > COALESCE(cache_creation_tokens_5m, 0) + COALESCE(cache_creation_tokens_1h, 0)
+		THEN cache_creation_tokens ELSE COALESCE(cache_creation_tokens_5m, 0) + COALESCE(cache_creation_tokens_1h, 0) END)`
+	semantic := `COALESCE(NULLIF(usage_semantic, ''), CASE
+		WHEN usage_billing_path IN ('billing-usage-anthropic', 'billing-usage-anthropic-estimated') THEN 'anthropic'
+		WHEN usage_billing_path IN ('billing-usage-openai', 'billing-usage-openai-estimated') THEN 'openai'
+		WHEN usage_billing_path IN ('billing-usage-gemini', 'billing-usage-gemini-estimated') THEN 'gemini'
+		WHEN claude IN ('true', '1') THEN 'anthropic' END)`
+	normalized := LOG_DB.Table("(?) AS extracted", query).Select(
+		"group_name, prompt_tokens, input_tokens_total, COALESCE(cache_tokens, 0) AS cache_reads, " +
+			cacheWrites + " AS cache_writes, " + semantic + " AS semantic")
+	// Unknown historical semantics cannot safely be inferred from a model name
+	// or client protocol. Preserve their recorded counts, but flag the rate as
+	// unavailable instead of silently treating missing metadata as a cache miss.
+	totals := LOG_DB.Table("(?) AS normalized", normalized).Select(`group_name, prompt_tokens, cache_reads, cache_writes,
+		CASE WHEN prompt_tokens < 0 OR cache_reads < 0 OR cache_writes < 0 THEN NULL
+		WHEN input_tokens_total IS NOT NULL THEN CASE WHEN input_tokens_total >= cache_reads THEN input_tokens_total END
+		WHEN semantic = 'anthropic' THEN prompt_tokens + cache_reads + cache_writes
+		WHEN semantic IN ('openai', 'gemini') AND prompt_tokens >= cache_reads THEN prompt_tokens END AS total_input`)
+	rows := make([]PublicTransitCacheUsage, 0, len(groups))
+	err := LOG_DB.Table("(?) AS totals", totals).Select(`group_name,
+		COALESCE(SUM(prompt_tokens), 0) AS input_tokens,
+		COALESCE(SUM(cache_writes), 0) AS cache_creation_tokens,
+		COALESCE(SUM(cache_reads), 0) AS cache_read_tokens,
+		COALESCE(SUM(total_input), 0) AS total_input_tokens,
+		SUM(CASE WHEN total_input IS NULL THEN 1 ELSE 0 END) AS incomplete_requests`).
+		Group("group_name").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		row.InputTokens = max(row.InputTokens, 0)
+		row.CacheCreationTokens = max(row.CacheCreationTokens, 0)
+		row.CacheReadTokens = max(row.CacheReadTokens, 0)
+		result[row.Group] = row
+	}
+	return result, nil
+}
+
+// publicTransitLogValueSQL reads only fixed, internal metadata paths. Missing
+// values stay NULL, so explicit zero totals/writes take precedence over fallbacks.
+func publicTransitLogValueSQL(path string, numeric bool) string {
+	switch common.LogDatabaseType() {
+	case common.DatabaseTypePostgreSQL:
+		// PostgreSQL 9.6 cannot safely cast malformed historical TEXT to JSON.
+		// The token fields and usage markers are unique in our log metadata.
+		parts := strings.Split(path, ".")
+		key := parts[len(parts)-1]
+		if numeric {
+			return `substring(other from '"` + key + `"[[:space:]]*:[[:space:]]*(-?[0-9]{1,18})[[:space:]]*[,}]')::bigint`
+		}
+		return `COALESCE(substring(other from '"` + key + `"[[:space:]]*:[[:space:]]*"([^"\\]*)"'), substring(other from '"` + key + `"[[:space:]]*:[[:space:]]*(true|false)[[:space:]]*[,}]'))`
+	case common.DatabaseTypeMySQL:
+		value := `NULLIF(JSON_UNQUOTE(JSON_EXTRACT(CASE WHEN JSON_VALID(other) THEN other ELSE '{}' END, '$.` + path + `')), 'null')`
+		if numeric {
+			return "CAST(" + value + " AS SIGNED)"
+		}
+		return value
+	case common.DatabaseTypeClickHouse:
+		value := "JSONExtractRaw(other, '" + strings.ReplaceAll(path, ".", "', '") + "')"
+		if numeric {
+			return "toInt64OrNull(" + value + ")"
+		}
+		return `nullIf(trim(BOTH '"' FROM ` + value + `), '')`
+	default:
+		value := `json_extract(CASE WHEN json_valid(other) THEN other ELSE '{}' END, '$.` + path + `')`
+		if numeric {
+			return "CAST(" + value + " AS INTEGER)"
+		}
+		return "CAST(" + value + " AS TEXT)"
+	}
+}
+
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string, isStream *bool) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota")
 

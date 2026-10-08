@@ -18,6 +18,8 @@ type ChannelSettings struct {
 	Proxy                     string `json:"proxy"`
 	PassThroughBodyEnabled    bool   `json:"pass_through_body_enabled,omitempty"`
 	ResponsesWebSocketEnabled bool   `json:"responses_websocket_enabled,omitempty"`
+	ClaudeStreamDrainEnabled  bool   `json:"claude_stream_drain_enabled,omitempty"`
+	ClaudeStreamDrainTimeout  int    `json:"claude_stream_drain_timeout,omitempty"`
 	SystemPrompt              string `json:"system_prompt,omitempty"`
 	SystemPromptOverride      bool   `json:"system_prompt_override,omitempty"`
 	// TaskExtendPluginKeys lists the task plugins a New API channel (type 60)
@@ -32,6 +34,22 @@ type ChannelSettings struct {
 	// HTTP2ConnectionShards spreads HTTP/2 traffic across N independent transports
 	// (1-8). Zero/unset means 1. Ignored when HTTPProtocol is "http1".
 	HTTP2ConnectionShards int `json:"http2_connection_shards,omitempty"`
+}
+
+// ClaudeStreamDrainTimeoutSeconds bounds collection after the client disconnects.
+// Zero uses the default; runtime clamping also protects settings from older imports.
+func (s ChannelSettings) ClaudeStreamDrainTimeoutSeconds() int {
+	if s.ClaudeStreamDrainTimeout <= 0 {
+		return 300
+	}
+	return min(s.ClaudeStreamDrainTimeout, 1800)
+}
+
+func (s ChannelSettings) ValidateClaudeStreamDrain() error {
+	if s.ClaudeStreamDrainTimeout < 0 || s.ClaudeStreamDrainTimeout > 1800 {
+		return fmt.Errorf("claude_stream_drain_timeout must be between 0 and 1800 seconds (0 uses 300 seconds)")
+	}
+	return nil
 }
 
 // BindsTaskPlugin reports whether the channel is bound to the task plugin,

@@ -41,6 +41,7 @@ import {
   validateAdvancedCustomConfig,
 } from './advanced-custom'
 import { readTaskExtendPluginKeys } from './channel-plugin-extensions'
+import { supportsClaudeStreamDrain } from './claude-stream-drain'
 import { supportsResponsesWebSocket } from './responses-websocket'
 
 // ============================================================================
@@ -271,6 +272,8 @@ export const channelFormSchema = z
     http2_connection_shards: z.number().int().optional(),
     pass_through_body_enabled: z.boolean().optional(),
     responses_websocket_enabled: z.boolean().optional(),
+    claude_stream_drain_enabled: z.boolean().optional(),
+    claude_stream_drain_timeout: z.number().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
     // Type-specific settings (stored in settings JSON)
@@ -294,6 +297,20 @@ export const channelFormSchema = z
     upstream_model_update_ignored_models: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    const drainTimeout = data.claude_stream_drain_timeout ?? 300
+    if (
+      supportsClaudeStreamDrain(data.type) &&
+      data.claude_stream_drain_enabled &&
+      (!Number.isInteger(drainTimeout) ||
+        drainTimeout < 1 ||
+        drainTimeout > 1800)
+    ) {
+      addRequiredIssue(
+        ctx,
+        'claude_stream_drain_timeout',
+        'Enter a whole number from 1 to 1800'
+      )
+    }
     if (
       [
         3,
@@ -462,6 +479,8 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   http2_connection_shards: 1,
   pass_through_body_enabled: false,
   responses_websocket_enabled: false,
+  claude_stream_drain_enabled: false,
+  claude_stream_drain_timeout: 300,
   system_prompt: '',
   system_prompt_override: false,
   // Type-specific settings
@@ -506,6 +525,8 @@ export function transformChannelToFormDefaults(
     http2_connection_shards: 1,
     pass_through_body_enabled: false,
     responses_websocket_enabled: false,
+    claude_stream_drain_enabled: false,
+    claude_stream_drain_timeout: 300,
     system_prompt: '',
     system_prompt_override: false,
   }
@@ -528,6 +549,9 @@ export function transformChannelToFormDefaults(
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         responses_websocket_enabled:
           parsed.responses_websocket_enabled === true,
+        claude_stream_drain_enabled:
+          parsed.claude_stream_drain_enabled === true,
+        claude_stream_drain_timeout: parsed.claude_stream_drain_timeout || 300,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
       }
@@ -664,6 +688,15 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
       formData.responses_websocket_enabled === true,
     system_prompt: formData.system_prompt || '',
     system_prompt_override: formData.system_prompt_override || false,
+  }
+
+  if (
+    supportsClaudeStreamDrain(formData.type) &&
+    formData.claude_stream_drain_enabled
+  ) {
+    settingObj.claude_stream_drain_enabled = true
+    settingObj.claude_stream_drain_timeout =
+      formData.claude_stream_drain_timeout ?? 300
   }
 
   const protocol = normalizeHttpProtocol(formData.http_protocol)

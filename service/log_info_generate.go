@@ -166,6 +166,17 @@ func appendStreamStatus(relayInfo *relaycommon.RelayInfo, other *model.LogOther)
 		"status":     status,
 		"end_reason": string(ss.EndReason),
 	}
+	if drain := relayInfo.ClaudeStreamDrain; drain != nil {
+		disconnectedAt, waited, timedOut := drain.Snapshot()
+		streamInfo["claude_drain_enabled"] = true
+		streamInfo["client_disconnected"] = !disconnectedAt.IsZero()
+		streamInfo["drain_timeout"] = timedOut
+		streamInfo["upstream_completed"] = ss.ResponseOutcome() == string(relaycommon.ResponseOutcomeCompleted)
+		if !disconnectedAt.IsZero() {
+			streamInfo["client_disconnected_at"] = disconnectedAt.UnixMilli()
+			streamInfo["drain_duration_ms"] = waited.Milliseconds()
+		}
+	}
 	if outcome := ss.ResponseOutcome(); outcome != "" {
 		streamInfo["response_status"] = outcome
 	}

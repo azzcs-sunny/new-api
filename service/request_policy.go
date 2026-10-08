@@ -101,6 +101,13 @@ func RecordPolicyFailure(c *gin.Context, channelID int, err *types.NewAPIError, 
 	if c == nil || err == nil {
 		return
 	}
+	if c.Request != nil && c.Request.Context().Err() != nil {
+		RequestPolicy(c).AddEvent(PolicyEvent{
+			ChannelID: channelID, Status: 499, ErrorCode: "client_canceled", ErrorSource: "client",
+			Decision: decision, Health: "unchanged",
+		})
+		return
+	}
 	source := "upstream"
 	switch {
 	case types.IsChannelError(err):

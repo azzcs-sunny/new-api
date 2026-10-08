@@ -182,6 +182,9 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 						err = PingData(c)
 					}()
 					if err != nil {
+						if info.ClaudeStreamDrain != nil && info.ClaudeStreamDrain.Disconnected() {
+							return
+						}
 						logger.LogError(c, "ping data error: "+err.Error())
 						info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonPingFail, err)
 						return
@@ -289,19 +292,29 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 		if err := scanner.Err(); err != nil {
 			if err != io.EOF {
 				logger.LogError(c, "scanner error: "+err.Error())
+				if info.ClaudeStreamDrain != nil {
+					if _, _, timedOut := info.ClaudeStreamDrain.Snapshot(); timedOut {
+						info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonTimeout, err)
+					}
+				}
 				info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonScannerErr, err)
 			}
 		}
 		info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonEOF, nil)
 	})
 
+	clientDone := c.Request.Context().Done()
+	if info.ClaudeStreamDrain != nil {
+		// The detached upstream context has its own bounded disconnect deadline.
+		clientDone = nil
+	}
 	// 主循环等待完成或超时
 	select {
 	case <-ticker.C:
 		info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonTimeout, nil)
 	case <-stopChan:
 		// EndReason already set by the goroutine that triggered stopChan
-	case <-c.Request.Context().Done():
+	case <-clientDone:
 		// 客户端断开：立即 cleanup 关闭上游 resp.Body，解除 scanner 阻塞并让上游停止生成，
 		// 避免为已放弃的请求继续消费上游 token。
 		info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonClientGone, c.Request.Context().Err())

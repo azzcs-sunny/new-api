@@ -12,6 +12,7 @@ import (
 	"time"
 
 	common2 "github.com/QuantumNous/new-api/common"
+	channeltype "github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/constant"
@@ -316,7 +317,30 @@ func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 		return nil, fmt.Errorf("get request url failed: %w", err)
 	}
 	logger.LogDebug(c, "fullRequestURL: %s", common.SanitizeURLForLog(fullRequestURL))
-	req, err := http.NewRequest(c.Request.Method, fullRequestURL, requestBody)
+	requestContext := c.Request.Context()
+	if err := requestContext.Err(); err != nil {
+		return nil, err
+	}
+	// A retry must not inherit the previous attempt's delivery state.
+	if writer, ok := c.Writer.(*helper.ClaudeStreamWriter); ok {
+		c.Writer = writer.ResponseWriter
+	}
+	var drain *common.ClaudeStreamDrain
+	if info.IsStream && info.ChannelSetting.ClaudeStreamDrainEnabled && info.GetFinalRequestRelayFormat() == types.RelayFormatClaude {
+		switch info.ChannelType {
+		case channeltype.ChannelTypeAnthropic, channeltype.ChannelTypeSub2API, channeltype.ChannelTypeNewAPI, channeltype.ChannelTypeAdvancedCustom:
+			requestContext, drain = common.NewClaudeStreamDrain(requestContext, time.Duration(info.ChannelSetting.ClaudeStreamDrainTimeoutSeconds())*time.Second)
+			info.ClaudeStreamDrain = drain
+			c.Writer = &helper.ClaudeStreamWriter{ResponseWriter: c.Writer, Drain: drain}
+		}
+	}
+	responseOwnsDrain := false
+	defer func() {
+		if drain != nil && !responseOwnsDrain {
+			drain.Finish()
+		}
+	}()
+	req, err := http.NewRequestWithContext(requestContext, c.Request.Method, fullRequestURL, requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("new request failed: %w", err)
 	}
@@ -337,7 +361,21 @@ func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 	if err != nil {
 		return nil, fmt.Errorf("do request failed: %w", err)
 	}
+	if drain != nil {
+		resp.Body = &claudeStreamBody{ReadCloser: resp.Body, drain: drain}
+		responseOwnsDrain = true
+	}
 	return resp, nil
+}
+
+type claudeStreamBody struct {
+	io.ReadCloser
+	drain *common.ClaudeStreamDrain
+}
+
+func (b *claudeStreamBody) Close() error {
+	b.drain.Finish()
+	return b.ReadCloser.Close()
 }
 
 func DoFormRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (*http.Response, error) {

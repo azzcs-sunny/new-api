@@ -73,6 +73,13 @@ func ResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 
 	usage, newAPIError := adaptor.DoResponse(c, httpResp, info)
 	if newAPIError != nil {
+		// Claude-to-Responses preserves billable usage even when delivery fails.
+		// Settle it before returning the error; the billing session prevents
+		// the outer failure cleanup from refunding the settled charge.
+		if usageDto, ok := usage.(*dto.Usage); info.IsStream && info.GetFinalRequestRelayFormat() == types.RelayFormatClaude && ok && usageDto != nil {
+			service.PostTextConsumeQuota(c, info, usageDto, []string{"流式响应中断，按已接收用量结算"})
+			types.ErrOptionWithSkipRetry()(newAPIError)
+		}
 		// reset status code 重置状态码
 		service.ResetStatusCode(newAPIError, statusCodeMappingStr)
 		return newAPIError

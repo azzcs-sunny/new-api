@@ -13,6 +13,8 @@ import (
 )
 
 func SetApiRouter(router *gin.Engine) {
+	router.GET("/.well-known/ai-transit.json", middleware.RouteTag("api"), middleware.GlobalAPIRateLimit(), middleware.HeaderNavModuleAuth("pricing"), controller.GetAITransitDiscovery)
+
 	apiRouter := router.Group("/api")
 	apiRouter.Use(middleware.RouteTag("api"))
 	apiRouter.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -34,6 +36,8 @@ func SetApiRouter(router *gin.Engine) {
 		//apiRouter.GET("/midjourney", controller.GetMidjourney)
 		apiRouter.GET("/home_page_content", controller.GetHomePageContent)
 		apiRouter.GET("/pricing", middleware.HeaderNavModuleAuth("pricing"), controller.GetPricing)
+		apiRouter.GET("/public/transit/v1/discovery", middleware.HeaderNavModuleAuth("pricing"), controller.GetAITransitDiscovery)
+		apiRouter.GET("/public/transit/v1/snapshot", middleware.HeaderNavModuleAuth("pricing"), controller.GetPublicTransitSnapshot)
 		perfMetricsRoute := apiRouter.Group("/perf-metrics")
 		perfMetricsRoute.Use(middleware.HeaderNavModulePublicOrUserAuth("pricing"))
 		{

@@ -107,6 +107,12 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 	if claudeResponse.Type == "message_stop" {
 		info.StreamStatus.MarkCompleted()
 	}
+	if info.ClaudeStreamDrain.Disconnected() {
+		// Keep billing independent of client delivery and format conversion.
+		FormatClaudeResponseInfo(&claudeResponse, nil, claudeInfo)
+		countClaudeStreamBillableTools(c, info, &claudeResponse)
+		return nil
+	}
 	if info.RelayFormat == types.RelayFormatClaude {
 		FormatClaudeResponseInfo(&claudeResponse, nil, claudeInfo)
 
@@ -160,7 +166,7 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 			return nil
 		}
 		countClaudeStreamBillableTools(c, info, &claudeResponse)
-		if sendErr := sendGeminiStreamResults(c, results); sendErr != nil {
+		if sendErr := sendGeminiStreamResults(c, results); sendErr != nil && !info.ClaudeStreamDrain.Disconnected() {
 			return sendErr
 		}
 	}
@@ -261,6 +267,9 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 		claudeInfo.Usage.UsageSemantic = "anthropic"
 	}
 	relayconvert.FinalizeClaudeStreamBillingUsage(claudeInfo)
+	if info.ClaudeStreamDrain.Disconnected() {
+		return
+	}
 
 	if info.RelayFormat == types.RelayFormatClaude {
 		//
@@ -304,10 +313,19 @@ func ClaudeStreamHandler(c *gin.Context, resp *http.Response, info *relaycommon.
 		err = HandleStreamResponseData(c, info, claudeInfo, data)
 		if err != nil {
 			sr.Stop(err)
+		} else if info.ClaudeStreamDrain != nil && info.StreamStatus.ResponseOutcome() == string(relaycommon.ResponseOutcomeCompleted) {
+			sr.Done()
 		}
 	})
 	info.StreamStatus.RequireTerminal()
+	if info.ClaudeStreamDrain != nil && err == nil && info.StreamStatus.ResponseOutcome() != string(relaycommon.ResponseOutcomeCompleted) {
+		err = types.NewError(fmt.Errorf("Claude stream ended without message_stop (%s)", info.StreamStatus.EndReason), types.ErrorCodeBadResponse, types.ErrOptionWithSkipRetry())
+	}
 	if err != nil {
+		if info.ClaudeStreamDrain != nil && (dto.HasOpenAIUsageTokens(claudeInfo.Usage) || claudeInfo.ResponseText.Len() > 0) {
+			HandleStreamFinalResponse(c, info, claudeInfo)
+			return claudeInfo.Usage, err
+		}
 		return nil, err
 	}
 

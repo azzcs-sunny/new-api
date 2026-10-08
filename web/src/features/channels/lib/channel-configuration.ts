@@ -26,6 +26,7 @@ import {
 } from '../constants'
 import { CHANNEL_TYPE_ADVANCED_CUSTOM } from './advanced-custom'
 import { channelFormSchema, type ChannelFormValues } from './channel-form'
+import { supportsClaudeStreamDrain } from './claude-stream-drain'
 import { supportsResponsesWebSocket } from './responses-websocket'
 
 export type ChannelProviderTarget =
@@ -61,6 +62,8 @@ const CONFIGURATION_BLOCKS = {
       'thinking_to_content',
       'pass_through_body_enabled',
       'responses_websocket_enabled',
+      'claude_stream_drain_enabled',
+      'claude_stream_drain_timeout',
       'ollama_openai_chat',
       'system_prompt',
       'system_prompt_override',
@@ -154,6 +157,8 @@ export function getChannelConfigurationState(
       values.thinking_to_content ||
       (values.type !== CHANNEL_TYPE_ADVANCED_CUSTOM &&
         values.pass_through_body_enabled) ||
+      (supportsClaudeStreamDrain(values.type) &&
+        values.claude_stream_drain_enabled) ||
       (supportsResponsesWebSocket(values.type) &&
         values.responses_websocket_enabled) ||
       (values.type === CHANNEL_TYPE_OLLAMA && values.ollama_openai_chat) ||
