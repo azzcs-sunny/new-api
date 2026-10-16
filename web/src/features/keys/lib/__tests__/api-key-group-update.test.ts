@@ -51,6 +51,7 @@ const apiKey: ApiKey = {
   model_limits_enabled: true,
   model_limits: 'gpt-4o,claude-3-5-sonnet',
   allow_ips: '192.0.2.1',
+  allow_user_quota_query: true,
 }
 
 describe('updateApiKeyGroup', () => {
@@ -75,6 +76,7 @@ describe('updateApiKeyGroup', () => {
       model_limits_enabled: apiKey.model_limits_enabled,
       model_limits: apiKey.model_limits,
       allow_ips: apiKey.allow_ips,
+      allow_user_quota_query: apiKey.allow_user_quota_query,
       group: 'auto',
       auto_groups: [],
       cross_group_retry: true,

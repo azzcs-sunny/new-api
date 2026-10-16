@@ -109,6 +109,7 @@ export async function updateApiKeyGroup(
     model_limits_enabled: apiKey.model_limits_enabled,
     model_limits: apiKey.model_limits ?? '',
     allow_ips: apiKey.allow_ips ?? '',
+    allow_user_quota_query: apiKey.allow_user_quota_query,
     group,
     auto_groups: remainsAuto ? (apiKey.auto_groups ?? []) : [],
     cross_group_retry: crossGroupRetry,

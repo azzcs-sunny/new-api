@@ -60,8 +60,27 @@ beforeEach(() => {
       usdExchangeRate: 7,
     },
   })
-  vi.spyOn(api, 'get').mockResolvedValue({
-    data: { success: true, data: [], vendors: [] },
+  vi.spyOn(api, 'get').mockImplementation(async (url) => {
+    if (url === '/api/status') {
+      const currency = useSystemConfigStore.getState().config.currency
+      const usdExchangeRate =
+        typeof currency.usdExchangeRate === 'number' &&
+        !Number.isNaN(currency.usdExchangeRate)
+          ? currency.usdExchangeRate
+          : Number.POSITIVE_INFINITY
+      return {
+        data: {
+          success: true,
+          data: {
+            quota_display_type: currency.quotaDisplayType,
+            usd_exchange_rate: usdExchangeRate,
+            custom_currency_symbol: currency.customCurrencySymbol,
+            custom_currency_exchange_rate: currency.customCurrencyExchangeRate,
+          },
+        },
+      }
+    }
+    return { data: { success: true, data: [], vendors: [] } }
   })
 })
 

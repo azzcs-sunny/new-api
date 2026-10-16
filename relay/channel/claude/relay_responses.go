@@ -40,7 +40,7 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 	var streamErr *types.NewAPIError
 
 	sendResponsesEvent := func(eventType string, payload dto.ResponsesStreamResponse) bool {
-		if info.ClaudeStreamDrain.Disconnected() {
+		if info.ClaudeStreamDrain != nil && info.ClaudeStreamDrain.Disconnected() {
 			return true
 		}
 		payload.Type = eventType
@@ -50,7 +50,7 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 			return false
 		}
 		if err := helper.ResponseChunkData(c, dto.ResponsesStreamResponse{Type: eventType}, string(data)); err != nil {
-			if info.ClaudeStreamDrain.Disconnected() {
+			if info.ClaudeStreamDrain != nil && info.ClaudeStreamDrain.Disconnected() {
 				return true
 			}
 			streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
@@ -88,7 +88,7 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
 		var claudeResponse dto.ClaudeResponse
 		if err := common.UnmarshalJsonStr(data, &claudeResponse); err != nil {
-			logger.LogError(c, "failed to unmarshal Claude stream event: "+err.Error())
+			logger.LogError(c, common.LogText("failed to unmarshal Claude stream event: %s", err.Error()))
 			if failResponsesStream(err) {
 				sr.Stop(streamErr)
 				return
@@ -121,7 +121,7 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 			info.UpstreamModelName = claudeResponse.Message.Model
 		}
 		FormatClaudeResponseInfo(&claudeResponse, nil, claudeInfo)
-		countClaudeStreamBillableTools(c, info, &claudeResponse)
+		countClaudeStreamBillableTools(info, &claudeResponse)
 		if info.ClaudeStreamDrain != nil && claudeResponse.Type == "message_stop" {
 			defer func() {
 				if !sr.IsStopped() {
@@ -129,7 +129,7 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 				}
 			}()
 		}
-		if info.ClaudeStreamDrain.Disconnected() {
+		if info.ClaudeStreamDrain != nil && info.ClaudeStreamDrain.Disconnected() {
 			return
 		}
 		hostedEvents, consumed, err := hostedBridge.Convert(&claudeResponse, state)
@@ -193,7 +193,7 @@ func ClaudeResponsesStreamHandler(c *gin.Context, resp *http.Response, info *rel
 		return usage, streamErr
 	}
 
-	if info.ClaudeStreamDrain.Disconnected() {
+	if info.ClaudeStreamDrain != nil && info.ClaudeStreamDrain.Disconnected() {
 		return claudeInfo.Usage, nil
 	}
 	openAIUsage := buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)

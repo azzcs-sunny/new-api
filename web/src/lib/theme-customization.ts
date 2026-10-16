@@ -88,15 +88,11 @@ export type ContentLayout = 'full' | 'centered'
 /**
  * Font axis for the theme.
  *
- * - `default` — resolve at runtime from the active preset
- *   (see `PRESET_DEFAULT_FONT`). The shipped `default` and `anthropic`
- *   presets resolve to serif; other named color presets fall back to
- *   sans unless they list a different choice. Mirrors how
- *   `radius: 'default'` defers to a per-preset hint.
- * - `sans` — humanist sans (Public Sans), the project's UI fallback.
- * - `serif` — editorial serif (Lora + CJK fallbacks), the project's
- *   "soul" typography. Inherits across the whole UI; monospace contexts
- *   keep their own family via Tailwind preflight and `.font-mono`.
+ * - `default` — use the browser's sans-serif unless the active preset
+ *   specifies its own font (Anthropic uses serif).
+ * - `sans` — explicitly use Public Sans.
+ * - `serif` — use Lora + CJK fallbacks. Monospace contexts keep their
+ *   own family via Tailwind preflight and `.font-mono`.
  */
 export type ThemeFont = 'default' | 'sans' | 'serif'
 
@@ -106,7 +102,7 @@ export type ThemeFont = 'default' | 'sans' | 'serif'
  * needs simple attribute selectors (no `:not()` gymnastics, no per-preset
  * font branches).
  */
-export type ResolvedThemeFont = Exclude<ThemeFont, 'default'>
+export type ResolvedThemeFont = 'system' | Exclude<ThemeFont, 'default'>
 
 export type ThemeCustomization = {
   preset: ThemePreset
@@ -160,16 +156,12 @@ export const CONTENT_LAYOUT_VALUES: ReadonlySet<ContentLayout> = new Set([
  * `font: 'default'` preference against the active preset.
  *
  * Co-located with the preset registry so a preset's signature typography
- * is declared in one place. Presets not listed here fall back to the
- * `resolveThemeFont` default of `sans`. The shipped lavender-dream preset
- * stays on the humanist sans so its palette reads cleanly; vivid color
- * presets stay on the humanist sans so their accents read clearly without
- * competing with the body type.
+ * is declared in one place. Presets without a font override use the system
+ * font stack; Public Sans is reserved for an explicit user choice.
  */
 export const PRESET_DEFAULT_FONT: Partial<
   Record<ThemePreset, ResolvedThemeFont>
 > = {
-  default: 'sans',
   anthropic: 'serif',
 }
 
@@ -184,7 +176,7 @@ export function resolveThemeFont(
   preset: ThemePreset
 ): ResolvedThemeFont {
   if (font === 'default') {
-    return PRESET_DEFAULT_FONT[preset] ?? 'sans'
+    return PRESET_DEFAULT_FONT[preset] ?? 'system'
   }
   return font
 }

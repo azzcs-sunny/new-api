@@ -201,6 +201,9 @@ describe('administrator update entry', () => {
 
   test('does not suggest a downgrade and updates every entry after a manual recheck', async () => {
     const user = userEvent.setup()
+    vi.mocked(api.get).mockResolvedValue({
+      data: { success: true, data: { version: 'v1.0.0-rc.37' } },
+    })
     client.setQueryData(STATUS_QUERY_KEY, { version: 'v1.0.0-rc.37' })
     render(
       <>
@@ -392,6 +395,9 @@ describe('version label presentation', () => {
         })
     )
     client.setQueryData(STATUS_QUERY_KEY, { version: release.tag_name })
+    vi.mocked(api.get).mockResolvedValue({
+      data: { success: true, data: { version: release.tag_name } },
+    })
     render(<SystemUpdateAction presentation='version' />, { wrapper: Wrapper })
     const trigger = screen.getByRole('button', {
       name: 'System updates, current version: v1.0.0-rc.36',

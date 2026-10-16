@@ -97,7 +97,7 @@ func TestProcessChannelErrorUsesSnapshotWithoutLeakingChannelMetadata(t *testing
 	require.True(t, ok)
 	assert.Equal(t, []any{"101"}, adminInfo["use_channel"])
 
-	logs, total, err := model.GetUserLogs(7, model.LogTypeError, 0, 0, "", "", 0, 10, "", "", "", nil)
+	logs, total, err := model.GetUserLogs(7, model.LogFilter{Type: model.LogTypeError}, 0, 10)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), total)
 	require.Len(t, logs, 1)
@@ -187,18 +187,18 @@ func TestClaudeResponsesInterruptedBilling(t *testing.T) {
 		{name: "drain advanced native Claude", drain: true, channelType: constant.ChannelTypeAdvancedCustom, format: types.RelayFormatClaude, marker: "Hello world.", body: start, afterDisconnect: finish, wantQuota: 219, wantOutput: 20, wantAttempts: 1, successful: true},
 		{name: "drain advanced Chat to Claude", drain: true, channelType: constant.ChannelTypeAdvancedCustom, format: types.RelayFormatOpenAI, marker: "Hello world.", body: start, afterDisconnect: finish, wantQuota: 219, wantOutput: 20, wantAttempts: 1, successful: true},
 		{name: "drain NewAPI Claude", drain: true, channelType: constant.ChannelTypeNewAPI, format: types.RelayFormatClaude, marker: "Hello world.", body: start, afterDisconnect: finish, wantQuota: 219, wantOutput: 20, wantAttempts: 1, successful: true},
-		{name: "drain error settles partial", drain: true, format: types.RelayFormatClaude, marker: "Hello world.", body: start, afterDisconnect: failure, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
-		{name: "drain Responses error settles partial", drain: true, marker: "event: response.output_text.delta", body: start, afterDisconnect: failure, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
-		{name: "drain timeout settles partial", drain: true, drainTimeout: true, format: types.RelayFormatClaude, marker: "Hello world.", body: start, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
-		{name: "drain truncated stream settles partial", drain: true, body: start, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
+		{name: "drain error settles partial", drain: true, format: types.RelayFormatClaude, marker: "Hello world.", body: start, afterDisconnect: failure, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
+		{name: "drain Responses error settles partial", drain: true, marker: "event: response.output_text.delta", body: start, afterDisconnect: failure, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
+		{name: "drain timeout settles partial", drain: true, drainTimeout: true, format: types.RelayFormatClaude, marker: "Hello world.", body: start, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
+		{name: "drain truncated stream settles partial", drain: true, body: start, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
 		{name: "drain empty error refunds", drain: true, body: failure, wantAttempts: 1},
 		{name: "drain already canceled never submits", drain: true},
 		{name: "normal completion", body: start + finish, wantQuota: 219, wantOutput: 20, wantAttempts: 1, successful: true},
 		{name: "retry before response", body: start + finish, wantQuota: 219, wantOutput: 20, wantAttempts: 2, successful: true},
-		{name: "cancel during output", marker: "event: response.output_text.delta", body: start, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
+		{name: "cancel during output", marker: "event: response.output_text.delta", body: start, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
 		{name: "cancel after complete usage", marker: "event: response.completed", body: start + finish, wantQuota: 219, wantOutput: 20, wantAttempts: 1},
-		{name: "upstream error after output", body: start + failure, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
-		{name: "truncated upstream after output", body: start, wantQuota: 187, wantOutput: 4, wantAttempts: 1},
+		{name: "upstream error after output", body: start + failure, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
+		{name: "truncated upstream after output", body: start, wantQuota: 189, wantOutput: 5, wantAttempts: 1},
 		{name: "error without usage refunds", body: failure, wantAttempts: 1},
 		{name: "cancel before response headers refunds", cancelBeforeHeaders: true, wantAttempts: 1},
 		{name: "already canceled never submits"},
@@ -418,7 +418,7 @@ func TestClaudeResponsesInterruptedBilling(t *testing.T) {
 				last := audit.Admin.Events[len(audit.Admin.Events)-1]
 				assert.Equal(t, "client", last.ErrorSource)
 				assert.Equal(t, "unchanged", last.Health)
-				visible, total, err := model.GetUserLogs(user.Id, model.LogTypeUnknown, 0, 0, "", "", 0, 10, "", requestID, "", nil)
+				visible, total, err := model.GetUserLogs(user.Id, model.LogFilter{RequestId: requestID}, 0, 10)
 				require.NoError(t, err)
 				assert.EqualValues(t, len(logs)+1, total)
 				assert.Len(t, visible, len(logs)+1)
@@ -439,7 +439,7 @@ func TestClaudeResponsesInterruptedBilling(t *testing.T) {
 			assert.Equal(t, float64(20), other["cache_creation_tokens"])
 			adminInfo, ok := other["admin_info"].(map[string]any)
 			require.True(t, ok)
-			if tc.wantOutput == 4 {
+			if tc.wantOutput == 5 {
 				assert.Equal(t, "billing-usage-anthropic-estimated", adminInfo["usage_billing_path"])
 			} else {
 				assert.Equal(t, "billing-usage-anthropic", adminInfo["usage_billing_path"])
@@ -459,7 +459,7 @@ func TestClaudeResponsesInterruptedBilling(t *testing.T) {
 				assert.Equal(t, "ok", stream["status"])
 			} else {
 				assert.Equal(t, "error", stream["status"])
-				assert.Contains(t, logs[0].Content, "流式响应中断")
+				assert.Contains(t, logs[0].Content, "Stream interrupted")
 			}
 			if tc.name == "upstream error after output" || tc.name == "truncated upstream after output" {
 				assert.Contains(t, rec.Body.String(), "event: response.failed")

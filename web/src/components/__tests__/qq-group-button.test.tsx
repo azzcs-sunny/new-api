@@ -16,15 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { describe, expect, test } from 'vitest'
 
 import { QqGroupButton } from '../qq-group-button'
 
+function Wrapper(props: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      {props.children}
+    </QueryClientProvider>
+  )
+}
+
 describe('QqGroupButton', () => {
   test('renders the QQ group link as an external link', () => {
-    render(<QqGroupButton />)
+    render(<QqGroupButton />, { wrapper: Wrapper })
 
     const link = screen.getByRole('button', { name: 'Join QQ Group' })
     expect(link).toHaveAttribute('href', 'https://qm.qq.com/q/FSYcQbGngA')
@@ -34,7 +44,7 @@ describe('QqGroupButton', () => {
 
   test('shows the group details and QR code when the link is hovered', async () => {
     const user = userEvent.setup()
-    render(<QqGroupButton />)
+    render(<QqGroupButton />, { wrapper: Wrapper })
 
     await user.hover(screen.getByRole('button', { name: 'Join QQ Group' }))
 

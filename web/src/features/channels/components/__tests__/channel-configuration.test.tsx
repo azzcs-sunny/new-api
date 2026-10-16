@@ -446,7 +446,7 @@ test('selecting a plugin opens a prefilled channel and creates its explicit bind
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() => expect(post).toHaveBeenCalled())
   const [url, payload] = post.mock.calls[0]
-  expect(url).toBe('/api/channel')
+  expect(url).toBe('/api/channel/')
   expect(payload).toMatchObject({
     mode: 'single',
     channel: {
@@ -663,7 +663,7 @@ test('creating a migrated provider uses its plugin binding instead of the legacy
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
-      '/api/channel',
+      '/api/channel/',
       expect.objectContaining({
         channel: expect.objectContaining({ type: 61 }),
       }),
@@ -778,7 +778,7 @@ test.each(['create', 'edit'])(
     if (mode === 'create') {
       await waitFor(() =>
         expect(post).toHaveBeenCalledWith(
-          '/api/channel',
+          '/api/channel/',
           expect.objectContaining({
             channel: expect.objectContaining({
               type: 1,
@@ -976,7 +976,7 @@ test('loading a replacement plugin preserves an already selected legacy creation
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
-      '/api/channel',
+      '/api/channel/',
       expect.objectContaining({
         channel: expect.objectContaining({ type: 55, name: 'Legacy draft' }),
       }),
@@ -1033,7 +1033,7 @@ test.each([
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
-      '/api/channel',
+      '/api/channel/',
       expect.objectContaining({
         mode,
         channel: expect.objectContaining({
@@ -1608,6 +1608,56 @@ test('an Ollama channel marks a saved OpenAI-compatible chat setting in Request 
   const payload = put.mock.calls[0]?.[1] as { settings: string }
   expect(JSON.parse(payload.settings)).toMatchObject({
     ollama_openai_chat: false,
+  })
+})
+
+test('a saved upstream TLS verification skip marks Other Settings and turning it off saves the setting without it', async () => {
+  editingChannel = {
+    ...editingChannel,
+    setting: '{"tls_insecure_skip_verify":true}',
+  }
+  const put = vi
+    .spyOn(api, 'put')
+    .mockResolvedValue({ data: { success: true } })
+  const user = userEvent.setup()
+  render(<ConfigurationHarness currentRow={editingChannel} />)
+  await screen.findByDisplayValue('Existing channel')
+  const otherTab = screen.getByRole('tab', { name: /Other Settings/ })
+  expect(otherTab).toHaveAccessibleName(/Configured/)
+  await user.click(otherTab)
+  const toggle = screen.getByRole('switch', {
+    name: 'Skip Upstream TLS Verification',
+  })
+  expect(toggle).toBeChecked()
+  await user.click(toggle)
+  expect(toggle).not.toBeChecked()
+  expect(otherTab).not.toHaveAccessibleName(/Configured/)
+  await user.click(screen.getByRole('button', { name: 'Update Channel' }))
+  await waitFor(() => expect(put).toHaveBeenCalled())
+  const payload = put.mock.calls[0]?.[1] as { setting: string }
+  expect(JSON.parse(payload.setting)).not.toHaveProperty(
+    'tls_insecure_skip_verify'
+  )
+})
+
+test('turning on the upstream TLS verification skip saves it in the channel setting', async () => {
+  const put = vi
+    .spyOn(api, 'put')
+    .mockResolvedValue({ data: { success: true } })
+  const user = userEvent.setup()
+  render(<ConfigurationHarness currentRow={editingChannel} />)
+  await screen.findByDisplayValue('Existing channel')
+  await user.click(screen.getByRole('tab', { name: /Other Settings/ }))
+  const toggle = screen.getByRole('switch', {
+    name: 'Skip Upstream TLS Verification',
+  })
+  expect(toggle).not.toBeChecked()
+  await user.click(toggle)
+  await user.click(screen.getByRole('button', { name: 'Update Channel' }))
+  await waitFor(() => expect(put).toHaveBeenCalled())
+  const payload = put.mock.calls[0]?.[1] as { setting: string }
+  expect(JSON.parse(payload.setting)).toMatchObject({
+    tls_insecure_skip_verify: true,
   })
 })
 
@@ -2811,4 +2861,75 @@ test('a New API channel binds upstream task plugins and publishes their models',
   expect(setting).toMatchObject({ task_extend_plugin_keys: ['video-b'] })
   expect(setting).not.toHaveProperty('task_plugin_key')
   expect(payload.models?.split(',').sort()).toEqual(['gpt-5', 'video-b-1'])
+})
+
+test.each([
+  {
+    saved: undefined,
+    shown: 'InvokeModel (legacy)',
+    next: 'Mantle (Messages API)',
+    value: 'mantle',
+  },
+  {
+    saved: 'mantle',
+    shown: 'Mantle (Messages API)',
+    next: 'InvokeModel (legacy)',
+    value: 'invoke_model',
+  },
+])(
+  'AWS API defaults or restores $shown and saves the selected interface',
+  async ({ saved, shown, next, value }) => {
+    editingChannel = {
+      ...editingChannel,
+      type: 33,
+      base_url: '',
+      models: 'claude-opus-4-7',
+      settings: JSON.stringify({
+        aws_key_type: 'api_key',
+        aws_api_type: saved,
+      }),
+    }
+    const put = vi
+      .spyOn(api, 'put')
+      .mockResolvedValue({ data: { success: true } })
+    const user = userEvent.setup()
+    render(<ConfigurationHarness currentRow={editingChannel} />)
+    const selector = await screen.findByRole('combobox', { name: 'AWS API' })
+    await waitFor(() => expect(selector).toHaveTextContent(shown))
+    await user.click(selector)
+    await user.click(screen.getByRole('option', { name: next }))
+    expect(selector).toHaveTextContent(next)
+    await user.click(screen.getByRole('button', { name: 'Update Channel' }))
+    await waitFor(() => expect(put).toHaveBeenCalled())
+    const payload = put.mock.calls[0]?.[1] as { settings: string }
+    expect(JSON.parse(payload.settings)).toMatchObject({
+      aws_key_type: 'api_key',
+      aws_api_type: value,
+    })
+  }
+)
+
+test('AWS interface selection is disabled without sensitive channel write permission', async () => {
+  editingChannel = {
+    ...editingChannel,
+    type: 33,
+    settings: '{"aws_api_type":"mantle"}',
+  }
+  useAuthStore.setState({
+    auth: {
+      ...originalAuth,
+      user: {
+        id: 10,
+        username: 'operator',
+        role: ROLE.ADMIN,
+        permissions: {
+          admin_permissions: { channel: { read: true, write: true } },
+        },
+      },
+    },
+  })
+  render(<ConfigurationHarness currentRow={editingChannel} />)
+  expect(
+    await screen.findByRole('combobox', { name: 'AWS API' })
+  ).toBeDisabled()
 })

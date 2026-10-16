@@ -105,9 +105,9 @@ func TestTaskLogDetailsAcrossDatabases(t *testing.T) {
 							var err error
 							switch audience {
 							case "admin":
-								logs, _, err = GetAllLogs(LogTypeConsume, 0, 0, "", "", "", 0, 20, 0, "", "", "", nil)
+								logs, _, err = GetAllLogs(LogFilter{Type: LogTypeConsume}, 0, 20)
 							case "user":
-								logs, _, err = GetUserLogs(7, LogTypeConsume, 0, 0, "", "", 0, 20, "", "", "", nil)
+								logs, _, err = GetUserLogs(7, LogFilter{Type: LogTypeConsume}, 0, 20)
 							case "token":
 								logs, err = GetLogByTokenId(70)
 							}

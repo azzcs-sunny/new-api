@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/QuantumNous/new-api/common"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
@@ -77,7 +78,9 @@ func ResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 		// Settle it before returning the error; the billing session prevents
 		// the outer failure cleanup from refunding the settled charge.
 		if usageDto, ok := usage.(*dto.Usage); info.IsStream && info.GetFinalRequestRelayFormat() == types.RelayFormatClaude && ok && usageDto != nil {
-			service.PostTextConsumeQuota(c, info, usageDto, []string{"流式响应中断，按已接收用量结算"})
+			service.PostTextConsumeQuota(c, info, usageDto, []*common.Message{
+				common.NewMessage("Stream interrupted; settled using received usage"),
+			})
 			types.ErrOptionWithSkipRetry()(newAPIError)
 		}
 		// reset status code 重置状态码
@@ -111,7 +114,7 @@ func ResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 // WebSocket Responses usage. Compact requests keep their separate repricing.
 func ConsumeResponsesQuota(c *gin.Context, info *relaycommon.RelayInfo, usage *dto.Usage) {
 	if strings.HasPrefix(info.OriginModelName, "gpt-4o-audio") {
-		service.PostAudioConsumeQuota(c, info, usage, "")
+		service.PostAudioConsumeQuota(c, info, usage, nil)
 		return
 	}
 	service.PostTextConsumeQuota(c, info, usage, nil)

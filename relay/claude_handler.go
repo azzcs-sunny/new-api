@@ -166,6 +166,8 @@ func settleInterruptedClaudeStream(c *gin.Context, info *relaycommon.RelayInfo, 
 	}
 	types.ErrOptionWithSkipRetry()(apiErr)
 	if tokens, ok := usage.(*dto.Usage); ok && tokens != nil {
-		service.PostTextConsumeQuota(c, info, tokens, []string{"流式响应中断，按已接收的 Claude 用量结算"})
+		service.PostTextConsumeQuota(c, info, tokens, []*common.Message{
+			common.NewMessage("Stream interrupted; settled using received Claude usage"),
+		})
 	}
 }
