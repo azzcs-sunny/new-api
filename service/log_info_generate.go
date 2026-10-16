@@ -177,8 +177,21 @@ func appendStreamStatus(relayInfo *relaycommon.RelayInfo, other *model.LogOther)
 			streamInfo["drain_duration_ms"] = waited.Milliseconds()
 		}
 	}
-	if outcome := ss.ResponseOutcome(); outcome != "" {
-		streamInfo["response_status"] = outcome
+	outcome := ss.OutcomeSnapshot()
+	if outcome.Response != "" {
+		streamInfo["response_status"] = string(outcome.Response)
+	}
+	if outcome.ErrorCode != "" {
+		streamInfo["error_code"] = outcome.ErrorCode
+	}
+	if outcome.ErrorType != "" {
+		streamInfo["error_type"] = outcome.ErrorType
+	}
+	if outcome.ErrorStatus != 0 {
+		streamInfo["error_status"] = outcome.ErrorStatus
+	}
+	if outcome.IncompleteReason != "" {
+		streamInfo["incomplete_reason"] = outcome.IncompleteReason
 	}
 	if ss.EndError != nil {
 		streamInfo["end_error"] = ss.EndError.Error()
