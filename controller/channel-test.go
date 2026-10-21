@@ -1112,8 +1112,9 @@ func runChannelTestTask(ctx context.Context, mode string, notify bool, report fu
 	concurrency := operation_setting.GetMonitorSetting().ChannelTestConcurrency
 	summary := performChannelTests(ctx, selected, testUserID, allowDisable, concurrency, report)
 	if notify && (ctx == nil || ctx.Err() == nil) {
-		lang := service.RootUserLanguage()
-		service.NotifyRootUser(dto.NotifyTypeChannelTest, i18n.Translate(lang, i18n.MsgChannelTestCompletedSubject), i18n.Translate(lang, i18n.MsgChannelTestCompletedContent))
+		service.NotifyChannelWatchers(dto.NotifyTypeChannelTest, func(lang string) (string, string) {
+			return i18n.Translate(lang, i18n.MsgChannelTestCompletedSubject), i18n.Translate(lang, i18n.MsgChannelTestCompletedContent)
+		})
 	}
 	return summary, nil
 }
