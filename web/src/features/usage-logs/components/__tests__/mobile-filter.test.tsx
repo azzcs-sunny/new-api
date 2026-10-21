@@ -41,6 +41,7 @@ import zhTW from '@/i18n/locales/zh-TW.json'
 import zh from '@/i18n/locales/zh.json'
 import { api } from '@/lib/api'
 
+import { buildApiParams, buildBaseParams } from '../../lib/utils'
 import { CommonLogsFilterBar } from '../common-logs-filter-bar'
 import { CompactDateTimeRangePicker } from '../compact-date-time-range-picker'
 import { LogsFilterToolbar } from '../logs-filter-toolbar'
@@ -122,6 +123,77 @@ afterEach(async () => {
   vi.restoreAllMocks()
   vi.useRealTimers()
   await i18next.changeLanguage('en')
+})
+
+it('rounds default log range ends up to the hour, including across midnight', () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 8, 8, 0, 30))
+
+  expect(
+    buildApiParams({ page: 1, pageSize: 100, searchParams: {}, isAdmin: true })
+  ).toMatchObject({
+    start_timestamp: new Date(2026, 8, 7, 22, 30).getTime() / 1000,
+    end_timestamp: new Date(2026, 8, 8, 1).getTime() / 1000,
+  })
+  expect(
+    buildBaseParams({ page: 1, pageSize: 100, searchParams: {} })
+  ).toMatchObject({
+    start_timestamp: new Date(2026, 8, 8).getTime() / 1000,
+    end_timestamp: new Date(2026, 8, 8, 1).getTime() / 1000,
+  })
+})
+
+it('rounds a 12:01 default end time to 13:00 without shifting the start time', () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 8, 8, 12, 1))
+
+  expect(
+    buildApiParams({ page: 1, pageSize: 100, searchParams: {}, isAdmin: true })
+  ).toMatchObject({
+    start_timestamp: new Date(2026, 8, 8, 10, 1).getTime() / 1000,
+    end_timestamp: new Date(2026, 8, 8, 13).getTime() / 1000,
+  })
+})
+
+it('preserves an explicitly selected common-log query range', () => {
+  expect(
+    buildApiParams({
+      page: 1,
+      pageSize: 100,
+      searchParams: { startTime: 1788825600000, endTime: 1788912000000 },
+      isAdmin: false,
+    })
+  ).toMatchObject({
+    start_timestamp: 1788825600,
+    end_timestamp: 1788912000,
+  })
+})
+
+it('shows the last two hours with a rounded end on the common-log page and in the default export range', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 8, 8, 1, 30))
+  await renderMobileFilter()
+  const rangeLabel = '2026-09-07 23:30:00 ~ 2026-09-08 02:00:00'
+  expect(screen.getByRole('button', { name: rangeLabel })).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Export' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Export logs' })
+  expect(within(dialog).getByRole('button', { name: rangeLabel })).toBeVisible()
+})
+
+it('resets the common-log query to the last two hours with a rounded end', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 8, 8, 1, 30))
+  const router = await renderMobileFilter()
+  await userEvent.click(screen.getByRole('button', { name: 'Filter' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Filter' })
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Reset' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({
+      startTime: new Date(2026, 8, 7, 23, 30).getTime(),
+      endTime: new Date(2026, 8, 8, 2).getTime(),
+      page: 1,
+    })
+  )
 })
 
 it('applies the selected mobile date range directly and resets pagination while retaining filters', async () => {

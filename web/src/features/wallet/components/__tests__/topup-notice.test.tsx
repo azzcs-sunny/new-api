@@ -12,6 +12,21 @@ import { describe, expect, test } from 'vitest'
 import { TopupNotice } from '../topup-notice'
 
 describe('wallet top-up notice', () => {
+  test.each([undefined, '', ' \t '])(
+    'hides all top-up instructions when the group-filtered link is %j',
+    (topupLink) => {
+      const { container } = render(
+        <TopupNotice
+          topupGroupRatio={1.03}
+          topupLink={topupLink}
+          paymentMethods={[{ name: 'Alipay', type: 'alipay' }]}
+        />
+      )
+
+      expect(container).toBeEmptyDOMElement()
+    }
+  )
+
   test('shows card-store invoice limits and online invoice support without a fee for rate 1', () => {
     render(
       <TopupNotice
@@ -43,6 +58,7 @@ describe('wallet top-up notice', () => {
     render(
       <TopupNotice
         topupGroupRatio={1.03}
+        topupLink='https://store.example.com/card-codes'
         paymentMethods={[{ name: 'Alipay', type: 'alipay' }]}
       />
     )
@@ -53,7 +69,19 @@ describe('wallet top-up notice', () => {
       )
     ).toBeInTheDocument()
     expect(screen.queryByText(/WeChat/)).not.toBeInTheDocument()
-    expect(screen.queryByText('Card-code store:')).not.toBeInTheDocument()
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  test('hides previously visible instructions when the filtered link is removed', () => {
+    const { container, rerender } = render(
+      <TopupNotice
+        topupGroupRatio={1}
+        topupLink='https://store.example.com/card-codes'
+      />
+    )
+    expect(screen.getByText('Top-up Instructions')).toBeInTheDocument()
+
+    rerender(<TopupNotice topupGroupRatio={1} />)
+
+    expect(container).toBeEmptyDOMElement()
   })
 })

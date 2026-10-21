@@ -183,17 +183,15 @@ it('loads configured token groups in the administrator view', async () => {
   expect(api.get).not.toHaveBeenCalledWith('/api/user/self/groups')
 })
 
-it('shows only globally enabled token groups in administrator choices', async () => {
+it('lets administrators filter image and special-access groups outside globally usable groups', async () => {
   useAuthStore.getState().auth.setUser({ id: 1, username: 'admin', role: 10 })
-  await renderFilter(
+  const router = await renderFilter(
     '/usage-logs/common',
     {
       'openai-team': { desc: '', ratio: 1 },
       'special-openai': { desc: '', ratio: 1 },
-      hidden: { desc: '', ratio: 1 },
+      'image-generation': { desc: '', ratio: 1 },
       default: { desc: '', ratio: 1 },
-      vip: { desc: '', ratio: 1 },
-      svip: { desc: '', ratio: 1 },
     },
     [
       {
@@ -205,7 +203,7 @@ it('shows only globally enabled token groups in administrator choices', async ()
         value: JSON.stringify({
           vip: {
             '+:special-openai': 'Special access',
-            '-:hidden': 'remove',
+            '-:image-generation': 'remove',
           },
         }),
       },
@@ -222,17 +220,45 @@ it('shows only globally enabled token groups in administrator choices', async ()
   await userEvent.clear(searchInput)
   await userEvent.type(searchInput, 'special-openai')
   expect(
-    screen.queryByRole('option', { name: 'special-openai' })
+    await screen.findByRole('option', { name: 'special-openai' })
+  ).toBeVisible()
+
+  await userEvent.clear(searchInput)
+  await userEvent.type(searchInput, 'default')
+  expect(
+    screen.queryByRole('option', { name: 'default' })
   ).not.toBeInTheDocument()
 
-  for (const group of ['hidden', 'default', 'vip', 'svip']) {
-    await userEvent.clear(searchInput)
-    await userEvent.type(searchInput, group)
-    expect(
-      screen.queryByRole('option', { name: group })
-    ).not.toBeInTheDocument()
-  }
+  await userEvent.clear(searchInput)
+  await userEvent.type(searchInput, 'image-generation')
+  await userEvent.click(
+    await screen.findByRole('option', { name: 'image-generation' })
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() =>
+    expect(router.state.location.search).toMatchObject({
+      group: 'image-generation',
+      page: 1,
+    })
+  )
 })
+
+it.each(['{}', 'invalid-json'])(
+  'keeps configured groups selectable when usable-group settings are %s',
+  async (usableGroups) => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'admin', role: 10 })
+    await renderFilter(
+      '/usage-logs/common',
+      { 'image-generation': { desc: '', ratio: 1 } },
+      [{ key: 'UserUsableGroups', value: usableGroups }]
+    )
+    await userEvent.click(screen.getByRole('combobox', { name: 'Group' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Other' }))
+    expect(
+      await screen.findByRole('option', { name: 'image-generation' })
+    ).toBeVisible()
+  }
+)
 
 it('confirms a keyboard choice without submitting the selected group', async () => {
   const router = await renderFilter()

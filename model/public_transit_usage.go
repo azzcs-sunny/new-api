@@ -14,7 +14,7 @@ import (
 
 const (
 	publicTransitUsageBatchSize     = 500
-	publicTransitUsageRollupVersion = 2
+	publicTransitUsageRollupVersion = 3
 )
 
 var (
@@ -174,8 +174,9 @@ func GetPublicTransitCacheUsage(ctx context.Context, now time.Time, groups []str
 	}
 	var logs []Log
 	query := LOG_DB.WithContext(ctx).Model(&Log{}).
-		Select("id, created_at, type, "+logGroupCol+", prompt_tokens, request_id, other").
-		Where("created_at >= ? AND created_at < ?", start, state.Target)
+		Select("id, created_at, "+logGroupCol+", prompt_tokens, request_id, other").
+		Where("created_at >= ? AND created_at < ?", start, state.Target).
+		Where("type = ? AND completion_tokens > ?", LogTypeConsume, 1)
 	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
 		// WITH TIES keeps duplicate request IDs together (including historical
 		// empty IDs). Oversized ties fail instead of silently skipping records.
@@ -203,10 +204,8 @@ func GetPublicTransitCacheUsage(ctx context.Context, now time.Time, groups []str
 	}
 	hours := make(map[int64][]Log)
 	for _, log := range logs {
-		if log.Type == LogTypeConsume {
-			hour := log.CreatedAt / 3600 * 3600
-			hours[hour] = append(hours[hour], log)
-		}
+		hour := log.CreatedAt / 3600 * 3600
+		hours[hour] = append(hours[hour], log)
 	}
 	if len(logs) > 0 {
 		last := logs[len(logs)-1]

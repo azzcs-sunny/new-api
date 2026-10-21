@@ -264,16 +264,19 @@ func TestGetPublicTransitCacheUsageAcrossDatabases(t *testing.T) {
 
 			now := time.Date(2026, time.October, 2, 12, 0, 0, 0, time.UTC)
 			logs := []Log{
-				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 50, Other: `{"claude":true,"cache_tokens":40,"cache_creation_tokens":10}`},
-				{CreatedAt: now.Add(-2 * time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 5, Other: `not-json`},
-				{CreatedAt: now.Add(-8 * 24 * time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 500, Other: `{"usage_semantic":"anthropic","cache_tokens":400,"cache_creation_tokens":100}`},
-				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeError, Group: "public", PromptTokens: 999, Other: `{"cache_tokens":999}`},
-				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "private", PromptTokens: 999, Other: `{"cache_tokens":999}`},
+				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 50, CompletionTokens: 2, Other: `{"claude":true,"cache_tokens":40,"cache_creation_tokens":10}`},
+				{CreatedAt: now.Add(-2 * time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 5, CompletionTokens: 2, Other: `not-json`},
+				{CreatedAt: now.Add(-8 * 24 * time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 500, CompletionTokens: 2, Other: `{"usage_semantic":"anthropic","cache_tokens":400,"cache_creation_tokens":100}`},
+				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeError, Group: "public", PromptTokens: 999, CompletionTokens: 999, Other: `{"cache_tokens":999}`},
+				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "private", PromptTokens: 999, CompletionTokens: 2, Other: `{"cache_tokens":999}`},
+				// Failed-looking consume rows with no meaningful output must not affect public statistics.
+				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 700, CompletionTokens: 0, Other: `{"usage_semantic":"openai","cache_tokens":600}`},
+				{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "public", PromptTokens: 800, CompletionTokens: 1, Other: `{"usage_semantic":"openai","cache_tokens":700}`},
 			}
 			// A shared rollup/publication can exceed MySQL TEXT's 64 KiB limit
 			// when many groups are configured; keep that real storage boundary covered.
 			for i := range 400 {
-				logs = append(logs, Log{CreatedAt: now.Add(-3 * time.Hour).Unix(), Type: LogTypeConsume, Group: fmt.Sprintf("large-rollup-%03d", i), PromptTokens: 1, Other: `{"usage_semantic":"openai"}`})
+				logs = append(logs, Log{CreatedAt: now.Add(-3 * time.Hour).Unix(), Type: LogTypeConsume, Group: fmt.Sprintf("large-rollup-%03d", i), PromptTokens: 1, CompletionTokens: 2, Other: `{"usage_semantic":"openai"}`})
 			}
 			require.NoError(t, db.Create(&logs).Error)
 			for range 2 {
@@ -342,11 +345,11 @@ func TestGetPublicTransitCacheUsageAcrossDatabases(t *testing.T) {
 			fixtures := make([]Log, 0, len(cases)+2)
 			for _, tc := range cases {
 				groups = append(groups, tc.name)
-				fixtures = append(fixtures, Log{CreatedAt: now.Add(-time.Second).Unix(), Type: LogTypeConsume, Group: tc.name, PromptTokens: tc.prompt, Other: tc.other})
+				fixtures = append(fixtures, Log{CreatedAt: now.Add(-time.Second).Unix(), Type: LogTypeConsume, Group: tc.name, PromptTokens: tc.prompt, CompletionTokens: 2, Other: tc.other})
 			}
 			fixtures = append(fixtures,
-				Log{CreatedAt: now.Add(-time.Second).Unix(), Type: LogTypeConsume, Group: "mixed", PromptTokens: 100, Other: `{"usage_semantic":"openai","cache_tokens":80}`},
-				Log{CreatedAt: now.Add(-time.Second).Unix(), Type: LogTypeConsume, Group: "mixed", PromptTokens: 20, Other: `{"claude":true,"cache_tokens":80}`})
+				Log{CreatedAt: now.Add(-time.Second).Unix(), Type: LogTypeConsume, Group: "mixed", PromptTokens: 100, CompletionTokens: 2, Other: `{"usage_semantic":"openai","cache_tokens":80}`},
+				Log{CreatedAt: now.Add(-time.Second).Unix(), Type: LogTypeConsume, Group: "mixed", PromptTokens: 20, CompletionTokens: 2, Other: `{"claude":true,"cache_tokens":80}`})
 			for _, boundary := range []struct {
 				at     time.Time
 				tokens int
@@ -361,11 +364,11 @@ func TestGetPublicTransitCacheUsageAcrossDatabases(t *testing.T) {
 				{now.Add(-30*24*time.Hour - time.Second), 128},
 				{now.Add(-30*24*time.Hour + time.Second), 256},
 			} {
-				fixtures = append(fixtures, Log{CreatedAt: boundary.at.Unix(), Type: LogTypeConsume, Group: "windows", PromptTokens: boundary.tokens, Other: common.MapToJsonStr(map[string]any{"usage_semantic": "openai", "cache_tokens": boundary.tokens})})
+				fixtures = append(fixtures, Log{CreatedAt: boundary.at.Unix(), Type: LogTypeConsume, Group: "windows", PromptTokens: boundary.tokens, CompletionTokens: 2, Other: common.MapToJsonStr(map[string]any{"usage_semantic": "openai", "cache_tokens": boundary.tokens})})
 			}
 			fixtures = append(fixtures,
-				Log{CreatedAt: now.Add(-31 * 24 * time.Hour).Unix(), Type: LogTypeConsume, Group: "windows", PromptTokens: 512, Other: `{"cache_creation_tokens":512}`},
-				Log{CreatedAt: now.Add(-31 * 24 * time.Hour).Unix(), Type: LogTypeConsume, Group: "expired", PromptTokens: 512, Other: `{"usage_semantic":"openai","cache_tokens":512}`})
+				Log{CreatedAt: now.Add(-31 * 24 * time.Hour).Unix(), Type: LogTypeConsume, Group: "windows", PromptTokens: 512, CompletionTokens: 2, Other: `{"cache_creation_tokens":512}`},
+				Log{CreatedAt: now.Add(-31 * 24 * time.Hour).Unix(), Type: LogTypeConsume, Group: "expired", PromptTokens: 512, CompletionTokens: 2, Other: `{"usage_semantic":"openai","cache_tokens":512}`})
 			require.NoError(t, db.Create(&fixtures).Error)
 			require.NoError(t, DB.Where("id = ?", 1).Delete(&PublicTransitUsageState{}).Error)
 			snapshot = collectPublicTransitUsage(t, now, groups)
@@ -421,10 +424,13 @@ func TestGetPublicTransitCacheUsageAcrossDatabases(t *testing.T) {
 			require.NoError(t, DB.Where("id = ?", 1).Delete(&PublicTransitUsageState{}).Error)
 			batchLogs := make([]Log, publicTransitUsageBatchSize+3)
 			for i := range batchLogs {
-				batchLogs[i] = Log{CreatedAt: now.Add(-time.Minute).Unix(), Type: LogTypeConsume, Group: "resume", RequestId: fmt.Sprintf("resume-%04d", i), PromptTokens: 1, Other: `{"usage_semantic":"openai","cache_tokens":1}`}
+				batchLogs[i] = Log{CreatedAt: now.Add(-time.Minute).Unix(), Type: LogTypeConsume, Group: "resume", RequestId: fmt.Sprintf("resume-%04d", i), PromptTokens: 1, CompletionTokens: 2, Other: `{"usage_semantic":"openai","cache_tokens":1}`}
 			}
 			var preceding int64
-			require.NoError(t, db.Model(&Log{}).Where("created_at >= ? AND created_at < ?", now.Add(-30*24*time.Hour).Unix(), now.Add(-time.Minute).Unix()).Count(&preceding).Error)
+			require.NoError(t, db.Model(&Log{}).
+				Where("created_at >= ? AND created_at < ?", now.Add(-30*24*time.Hour).Unix(), now.Add(-time.Minute).Unix()).
+				Where("type = ? AND completion_tokens > ?", LogTypeConsume, 1).
+				Count(&preceding).Error)
 			boundary := publicTransitUsageBatchSize - int(preceding)%publicTransitUsageBatchSize
 			batchLogs[boundary].RequestId = batchLogs[boundary-1].RequestId
 			require.NoError(t, db.Create(&batchLogs).Error)
@@ -504,7 +510,7 @@ func TestGetPublicTransitCacheUsageAcrossDatabases(t *testing.T) {
 			require.NoError(t, db.Callback().Row().Remove("transit_no_log_read"))
 
 			// Advance an hour and include a late log in the repair window.
-			late := Log{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "resume", RequestId: "late", PromptTokens: 7, Other: `{"usage_semantic":"openai"}`}
+			late := Log{CreatedAt: now.Add(-time.Hour).Unix(), Type: LogTypeConsume, Group: "resume", RequestId: "late", PromptTokens: 7, CompletionTokens: 2, Other: `{"usage_semantic":"openai"}`}
 			require.NoError(t, db.Create(&late).Error)
 			rebuildGroups := []string{"resume", "windows", "legacy-oai-responses", "legacy-deepseek"}
 			advanced := collectPublicTransitUsage(t, now.Add(time.Hour), rebuildGroups)
@@ -520,12 +526,12 @@ func TestGetPublicTransitCacheUsageAcrossDatabases(t *testing.T) {
 			afterMigration, err := GetPublicTransitCacheUsage(context.Background(), now.Add(time.Hour+5*time.Minute), rebuildGroups)
 			require.NoError(t, err)
 			assert.Equal(t, advanced, afterMigration, "repeated startup migration must preserve published statistics")
-			// Rebuild both pre-filtering and pre-protocol-inference publications,
+			// Rebuild pre-output-filtering and pre-protocol-inference publications,
 			// including partially completed backfills, from the unchanged raw logs.
 			for _, old := range []struct {
 				version  int
 				complete bool
-			}{{0, true}, {0, false}, {1, true}, {1, false}} {
+			}{{0, true}, {0, false}, {1, true}, {1, false}, {2, true}, {2, false}} {
 				legacy := advanced
 				legacy.RollupVersion = old.version
 				encoded, err := common.Marshal(legacy)

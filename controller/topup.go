@@ -6,7 +6,9 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +26,10 @@ import (
 )
 
 func GetTopUpInfo(c *gin.Context) {
+	topupLink := ""
+	if group := c.GetString("group"); group != "" && slices.Contains(operation_setting.GetGeneralSetting().TopUpLinkGroups, group) {
+		topupLink = strings.TrimSpace(common.TopUpLink)
+	}
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
 	topupGroupRatio := 1.0
 	if group := c.GetString("group"); group != "" {
@@ -127,7 +133,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
-		"topup_link":              common.TopUpLink,
+		"topup_link":              topupLink,
 		"topup_group_ratio":       topupGroupRatio,
 	}
 	common.ApiSuccess(c, data)

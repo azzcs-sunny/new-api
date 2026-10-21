@@ -35,6 +35,8 @@ interface TopupNoticeProps {
 export function TopupNotice(props: TopupNoticeProps) {
   const { t } = useTranslation()
   const topupLink = props.topupLink?.trim()
+  if (!topupLink) return null
+
   const paymentMethods = [
     ...new Set(
       (props.paymentMethods ?? [])
@@ -68,30 +70,28 @@ export function TopupNotice(props: TopupNoticeProps) {
             }
           )}
         </p>
-        {topupLink ? (
-          <p>
-            {t('Card-code store:')}{' '}
-            <a
-              href={topupLink}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary inline-flex max-w-full items-center gap-1 font-medium break-all'
-            >
-              {topupLink}
-              <ExternalLink className='size-3 shrink-0' aria-hidden='true' />
-            </a>
-            <span>
-              {' '}
-              <Trans
-                i18nKey='Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.'
-                components={{
-                  fee: <span className='text-destructive font-medium' />,
-                  invoice: <span className='text-destructive font-medium' />,
-                }}
-              />
-            </span>
-          </p>
-        ) : null}
+        <p>
+          {t('Card-code store:')}{' '}
+          <a
+            href={topupLink}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary inline-flex max-w-full items-center gap-1 font-medium break-all'
+          >
+            {topupLink}
+            <ExternalLink className='size-3 shrink-0' aria-hidden='true' />
+          </a>
+          <span>
+            {' '}
+            <Trans
+              i18nKey='Card-code purchases have <fee>no service fee</fee>; <invoice>invoices are not supported</invoice>.'
+              components={{
+                fee: <span className='text-destructive font-medium' />,
+                invoice: <span className='text-destructive font-medium' />,
+              }}
+            />
+          </span>
+        </p>
         {showOnlineFee ? (
           <p>
             {t(

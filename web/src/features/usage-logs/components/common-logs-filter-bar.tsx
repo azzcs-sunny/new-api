@@ -48,7 +48,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
-import { getDefaultTimeRange } from '../lib/utils'
+import { getDefaultCommonLogTimeRange } from '../lib/utils'
 import type { CommonLogFilters } from '../types'
 import { CommonLogsStats } from './common-logs-stats'
 import { CompactDateTimeRangePicker } from './compact-date-time-range-picker'
@@ -153,7 +153,7 @@ export function CommonLogsFilterBar<TData>(
       const optionValues = new Map(
         (systemOptions?.data ?? []).map((option) => [option.key, option.value])
       )
-      const tokenGroups = new Map<string, string>()
+      const groupDescriptions = new Map<string, string>()
 
       try {
         const userUsableGroups: unknown = JSON.parse(
@@ -165,20 +165,18 @@ export function CommonLogsFilterBar<TData>(
           !Array.isArray(userUsableGroups)
         ) {
           Object.entries(userUsableGroups).forEach(([group, desc]) => {
-            if (typeof desc === 'string') tokenGroups.set(group, desc)
+            if (typeof desc === 'string') groupDescriptions.set(group, desc)
           })
         }
       } catch {
-        // Invalid settings should not expose unrelated user groups.
+        // Group descriptions are optional for log filtering.
       }
 
-      return (adminGroups?.data ?? [])
-        .filter((group) => tokenGroups.has(group))
-        .map((group) => ({
-          label: group,
-          value: group,
-          desc: tokenGroups.get(group),
-        }))
+      return (adminGroups?.data ?? []).map((group) => ({
+        label: group,
+        value: group,
+        desc: groupDescriptions.get(group),
+      }))
     }
 
     return Object.entries(userGroups?.data ?? {}).map(([group, info]) => ({
@@ -189,18 +187,9 @@ export function CommonLogsFilterBar<TData>(
     }))
   }, [isAdmin, adminGroups, systemOptions, userGroups])
   const groupOptions = useGroupModelOptions(rawGroupOptions)
-  const excludedGroupValues = useMemo(() => {
-    if (!isAdmin) return excludedLogGroupValues
-
-    const tokenGroups = new Set(rawGroupOptions.map((option) => option.value))
-    return [
-      ...excludedLogGroupValues,
-      ...(adminGroups?.data ?? []).filter((group) => !tokenGroups.has(group)),
-    ]
-  }, [adminGroups, isAdmin, rawGroupOptions])
 
   const searchState = useMemo<CommonLogDraft>(() => {
-    const { start, end } = getDefaultTimeRange()
+    const { start, end } = getDefaultCommonLogTimeRange()
     const sourceValues = {
       startTime: searchParams.startTime,
       endTime: searchParams.endTime,
@@ -286,7 +275,7 @@ export function CommonLogsFilterBar<TData>(
   )
 
   const handleReset = useCallback(() => {
-    const { start, end } = getDefaultTimeRange()
+    const { start, end } = getDefaultCommonLogTimeRange()
     const resetFilters: CommonLogFilters = { startTime: start, endTime: end }
     const resetSearch = {
       type: [LOG_TYPE_ALL_VALUE],
@@ -415,7 +404,7 @@ export function CommonLogsFilterBar<TData>(
         options={groupOptions}
         allowCustomValue
         clearable
-        excludeValues={excludedGroupValues}
+        excludeValues={excludedLogGroupValues}
         aria-label={t('Group')}
         emptyText={t('No group found.')}
         placeholder={t('Group')}

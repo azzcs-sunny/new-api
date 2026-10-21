@@ -35,7 +35,7 @@ import {
   getLogCsvRow,
   toCsvLine,
 } from '../../lib/export'
-import { buildApiParams, getDefaultTimeRange } from '../../lib/utils'
+import { buildApiParams, getDefaultCommonLogTimeRange } from '../../lib/utils'
 import { CompactDateTimeRangePicker } from '../compact-date-time-range-picker'
 import { useLogsViewScope } from '../usage-logs-provider'
 
@@ -79,7 +79,7 @@ export function ExportLogsDialog() {
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
-      const defaults = getDefaultTimeRange()
+      const defaults = getDefaultCommonLogTimeRange()
       setRange({
         start: searchParams.startTime
           ? new Date(searchParams.startTime)

@@ -20,6 +20,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '@/lib/api'
+import {
+  DEFAULT_CURRENCY_CONFIG,
+  useSystemConfigStore,
+} from '@/stores/system-config-store'
 
 import { updateUserSettings } from '../api'
 import { NotificationTab } from '../components/tabs/notification-tab'
@@ -55,7 +59,10 @@ const settings = {
   upstream_model_update_notify_enabled: true,
 }
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.restoreAllMocks()
+  useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
+})
 
 describe('user settings saves across profile and security', () => {
   it('disabling IP recording sends the latest complete notification settings', async () => {
@@ -190,5 +197,33 @@ describe('user settings saves across profile and security', () => {
       quota_warning_threshold: 2700,
       record_ip_log: false,
     })
+  })
+
+  it('shows the configured-currency value of the quota warning threshold', () => {
+    useSystemConfigStore
+      .getState()
+      .setConfig({ currency: { ...DEFAULT_CURRENCY_CONFIG } })
+
+    render(
+      <NotificationTab
+        profile={{ ...profile, setting: JSON.stringify(settings) }}
+        onUpdate={vi.fn()}
+      />
+    )
+
+    expect(
+      screen.getByText(
+        'Get notified when balance falls below this value ($0.0024)'
+      )
+    ).toBeInTheDocument()
+
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Quota Warning Threshold' }),
+      { target: { value: '500000' } }
+    )
+
+    expect(
+      screen.getByText('Get notified when balance falls below this value ($1)')
+    ).toBeInTheDocument()
   })
 })

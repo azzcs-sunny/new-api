@@ -17,12 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import i18next from 'i18next'
 import type { ChangeEvent } from 'react'
 import type { Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import * as z from 'zod'
 
+import { MultiSelect } from '@/components/multi-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Form,
@@ -35,7 +37,9 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { getGroups } from '@/features/users/api'
 import { formatQuota } from '@/lib/format'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
@@ -57,6 +61,9 @@ const quotaSchema = z.object({
   QuotaForInvitee: z.coerce.number().min(0),
   AffiliateRewardRatio: z.coerce.number().min(0).max(1),
   TopUpLink: z.string(),
+  general_setting: z.object({
+    topup_link_groups: z.array(z.string()),
+  }),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
     trust_quota_usd: z.preprocess(
@@ -91,6 +98,14 @@ export function QuotaSettingsSection({
 }: QuotaSettingsSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const { data: groupsData, isPending: groupsLoading } = useQuery({
+    queryKey: ['groups'],
+    queryFn: async () => requireServerSuccess(await getGroups()),
+  })
+  const groupOptions = (groupsData?.data ?? []).map((group) => ({
+    value: group,
+    label: group,
+  }))
   const handleNumberChange =
     (onChange: (value: QuotaInputValue) => void) =>
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +125,9 @@ export function QuotaSettingsSection({
         for (const [key, value] of Object.entries(changedFields)) {
           await updateOption.mutateAsync({
             key,
-            value: value as string | number | boolean,
+            value: Array.isArray(value)
+              ? JSON.stringify(value)
+              : (value as string | number | boolean),
           })
         }
       },
@@ -352,6 +369,30 @@ export function QuotaSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t('External link for users to purchase quota')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='general_setting.topup_link_groups'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Card-code purchase user groups')}</FormLabel>
+                  <FormControl>
+                    <MultiSelect
+                      options={groupOptions}
+                      selected={field.value}
+                      onChange={field.onChange}
+                      placeholder={t('Select user groups')}
+                      disabled={groupsLoading || updateOption.isPending}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.'
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

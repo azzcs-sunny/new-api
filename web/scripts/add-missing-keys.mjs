@@ -1954,6 +1954,51 @@ const referralKeys = {
   },
 }
 
+const cardCodeGroupKeys = {
+  en: {
+    'Card-code purchase user groups': 'Card-code purchase user groups',
+    'Select user groups': 'Select user groups',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.',
+  },
+  zh: {
+    'Card-code purchase user groups': '购卡可见用户分组',
+    'Select user groups': '选择用户分组',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      '仅所选分组的用户可见购卡菜单和链接，同时需要配置充值链接。不选择分组则对所有用户隐藏。',
+  },
+  'zh-TW': {
+    'Card-code purchase user groups': '購卡可見用戶分組',
+    'Select user groups': '選擇用戶分組',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      '僅所選分組的用戶可見購卡選單和連結，同時需要設定儲值連結。不選擇分組則對所有用戶隱藏。',
+  },
+  fr: {
+    'Card-code purchase user groups': 'Groupes autorisés à acheter des codes',
+    'Select user groups': 'Sélectionner des groupes d’utilisateurs',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      'Seuls les utilisateurs des groupes sélectionnés voient le menu et le lien d’achat de codes. Un lien de rechargement doit aussi être configuré. Sans sélection, ils sont masqués pour tous.',
+  },
+  ja: {
+    'Card-code purchase user groups': 'コード購入を表示するユーザーグループ',
+    'Select user groups': 'ユーザーグループを選択',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      '選択したグループのユーザーにのみコード購入メニューとリンクを表示します。チャージ用リンクの設定も必要です。未選択の場合は全ユーザーに対して非表示になります。',
+  },
+  ru: {
+    'Card-code purchase user groups': 'Группы с доступом к покупке кодов',
+    'Select user groups': 'Выберите группы пользователей',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      'Меню и ссылка покупки кодов видны только пользователям выбранных групп. Также необходимо настроить ссылку пополнения. Если группы не выбраны, меню и ссылка скрыты для всех.',
+  },
+  vi: {
+    'Card-code purchase user groups': 'Nhóm được hiển thị mục mua mã',
+    'Select user groups': 'Chọn nhóm người dùng',
+    'Only users in selected groups can see the card-code purchase menu and link. A top-up link must also be configured. Leave empty to hide them for everyone.':
+      'Chỉ người dùng thuộc các nhóm đã chọn mới thấy menu và liên kết mua mã. Cần cấu hình cả liên kết nạp tiền. Không chọn nhóm nào sẽ ẩn với tất cả người dùng.',
+  },
+}
+
 async function main() {
   let totalAdded = 0
 
@@ -1965,6 +2010,7 @@ async function main() {
     for (const [key, value] of Object.entries({
       ...trans,
       ...referralKeys[locale],
+      ...cardCodeGroupKeys[locale],
     })) {
       if (!Object.prototype.hasOwnProperty.call(json.translation, key)) {
         json.translation[key] = value

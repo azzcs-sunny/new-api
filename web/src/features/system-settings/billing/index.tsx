@@ -30,6 +30,7 @@ const defaultBillingSettings: BillingSettings = {
   QuotaForInvitee: 0,
   AffiliateRewardRatio: 0.03,
   TopUpLink: '',
+  'general_setting.topup_link_groups': [],
   'quota_setting.enable_free_model_pre_consume': true,
   'quota_setting.trust_quota_usd': 10,
   'quota_setting.pre_consume_multiplier': 1,

@@ -75,14 +75,39 @@ export function isPerCallBilling(modelPrice?: number): boolean {
 }
 
 /**
- * Get default time range (today 00:00:00 to now + 1 hour)
+ * Round a time up to the next hour boundary.
+ */
+function roundUpToHour(date: Date): Date {
+  const rounded = new Date(date)
+  if (
+    rounded.getMinutes() ||
+    rounded.getSeconds() ||
+    rounded.getMilliseconds()
+  ) {
+    rounded.setHours(rounded.getHours() + 1, 0, 0, 0)
+  }
+  return rounded
+}
+
+/**
+ * Get default time range (today 00:00:00 to the next hour)
  */
 export function getDefaultTimeRange(): { start: Date; end: Date } {
   const now = new Date()
   const start = new Date(now)
   start.setHours(0, 0, 0, 0)
-  const end = new Date(now.getTime() + 3600 * 1000) // +1 hour
+  const end = roundUpToHour(now)
 
+  return { start, end }
+}
+
+/**
+ * Common logs default to the last two hours, with the end rounded up.
+ */
+export function getDefaultCommonLogTimeRange(): { start: Date; end: Date } {
+  const now = new Date()
+  const start = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+  const end = roundUpToHour(now)
   return { start, end }
 }
 
@@ -99,10 +124,11 @@ function timestampToSeconds(ms: number): number {
  */
 function buildTimeRangeParams(
   searchParams: Record<string, unknown>,
-  useMilliseconds: boolean
+  useMilliseconds: boolean,
+  getDefaultRange = getDefaultTimeRange
 ): { start_timestamp?: number; end_timestamp?: number } {
   const hasTimeParams = searchParams.startTime ?? searchParams.endTime
-  const defaultTimeRange = !hasTimeParams ? getDefaultTimeRange() : null
+  const defaultTimeRange = !hasTimeParams ? getDefaultRange() : null
 
   const convertTimestamp = (timestamp: number) =>
     useMilliseconds ? timestamp : timestampToSeconds(timestamp)
@@ -180,12 +206,12 @@ export function buildApiParams(config: {
   }
 
   // Build base params from search params
-  const stream =
-    searchParams.stream === 'true'
-      ? true
-      : searchParams.stream === 'false'
-        ? false
-        : undefined
+  let stream: boolean | undefined
+  if (searchParams.stream === 'true') {
+    stream = true
+  } else if (searchParams.stream === 'false') {
+    stream = false
+  }
   const params: GetLogsParams = {
     p: page,
     page_size: pageSize,
@@ -206,7 +232,7 @@ export function buildApiParams(config: {
     ...(searchParams.upstreamRequestId
       ? { upstream_request_id: String(searchParams.upstreamRequestId) }
       : {}),
-    ...buildTimeRangeParams(searchParams, false),
+    ...buildTimeRangeParams(searchParams, false, getDefaultCommonLogTimeRange),
   }
 
   // Override with column filters if present

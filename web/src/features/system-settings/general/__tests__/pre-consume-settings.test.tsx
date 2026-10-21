@@ -46,6 +46,7 @@ function Fixture() {
             QuotaForInvitee: 0,
             AffiliateRewardRatio: 0,
             TopUpLink: '',
+            general_setting: { topup_link_groups: [] },
             quota_setting: {
               enable_free_model_pre_consume: true,
               trust_quota_usd: 10,
@@ -77,6 +78,9 @@ async function renderSettings() {
 }
 
 beforeEach(() => {
+  vi.spyOn(api, 'get').mockResolvedValue({
+    data: { success: true, data: ['default', 'vip'] },
+  })
   vi.spyOn(api, 'put').mockResolvedValue({ data: { success: true } })
 })
 
