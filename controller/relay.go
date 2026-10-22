@@ -24,7 +24,7 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
-	kitdto "github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -97,11 +97,30 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			logger.LogError(c, common.LogText("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
 			// A stream may already contain a protocol-native error, or its client
 			// may be gone. Never append an HTTP JSON error to that response.
-			if relayFormat != types.RelayFormatOpenAIRealtime && (c.Writer.Written() || c.Request.Context().Err() != nil) {
+			if relayFormat != types.RelayFormatOpenAIRealtime && c.Request.Context().Err() != nil {
 				return
 			}
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
 			upstreamURLs := common.UpstreamAddresses(c)
+			if relayFormat != types.RelayFormatOpenAIRealtime && c.Writer.Written() &&
+				strings.HasPrefix(c.Writer.Header().Get("Content-Type"), "text/event-stream") {
+				writeRelayStreamError(c, relayFormat, newAPIError)
+				return
+			}
+			if relayFormat != types.RelayFormatOpenAIRealtime && c.Writer.Written() {
+				return
+			}
+			if relayFormat != types.RelayFormatOpenAIRealtime {
+				c.Header("Content-Type", "application/json; charset=utf-8")
+			}
+			if relayFormat != types.RelayFormatOpenAIRealtime && c.Writer.Written() &&
+				strings.HasPrefix(c.Writer.Header().Get("Content-Type"), "text/event-stream") {
+				writeRelayStreamError(c, relayFormat, newAPIError)
+				return
+			}
+			if relayFormat != types.RelayFormatOpenAIRealtime {
+				c.Header("Content-Type", "application/json; charset=utf-8")
+			}
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
 				helper.WssError(c, ws, newAPIError.ToOpenAIError(upstreamURLs...))
@@ -149,7 +168,13 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}()
 
-	if imageRequest, ok := request.(*kitdto.ImageRequest); ok &&
+	generalSettings := operation_setting.GetGeneralSetting()
+	if relayFormat == types.RelayFormatClaude && relayInfo.IsStream && generalSettings.PingIntervalEnabled {
+		stopKeepAlive := helper.StartStreamKeepAlive(c, time.Duration(generalSettings.PingIntervalSeconds)*time.Second)
+		defer stopKeepAlive()
+	}
+
+	if imageRequest, ok := request.(*dto.ImageRequest); ok &&
 		relayInfo.RelayMode == relayconstant.RelayModeImagesGenerations &&
 		imageRequest.Async != nil && *imageRequest.Async {
 		relayInfo.TaskRelayInfo = &relaycommon.TaskRelayInfo{}
@@ -255,6 +280,24 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		retryLogStr := common.LogText("retry: %s", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(useChannel)), "->"), "[]"))
 		logger.LogInfo(c, retryLogStr)
 	}
+}
+
+func writeRelayStreamError(c *gin.Context, format types.RelayFormat, apiError *types.NewAPIError) {
+	// 心跳提交响应头后，最终错误继续通过同一个流返回。
+	status, _ := common.GetContextKeyType[*relaycommon.StreamStatus](c, constant.ContextKeyResponseStreamStatus)
+	if status == nil {
+		status = relaycommon.NewStreamStatus()
+		common.SetContextKey(c, constant.ContextKeyResponseStreamStatus, status)
+	}
+	status.MarkFailed(string(apiError.GetErrorCode()), string(apiError.GetErrorType()), apiError.StatusCode)
+	upstreamURLs := common.UpstreamAddresses(c)
+	helper.ExtendWriteDeadline(c)
+	if format == types.RelayFormatClaude {
+		_ = helper.ClaudeData(c, dto.ClaudeResponse{Type: "error", Error: apiError.ToClaudeError(upstreamURLs...)})
+		return
+	}
+	_ = helper.ObjectData(c, gin.H{"error": apiError.ToOpenAIError(upstreamURLs...)})
+	helper.Done(c)
 }
 
 // CountClaudeTokens implements Anthropic's token-counting utility endpoint.

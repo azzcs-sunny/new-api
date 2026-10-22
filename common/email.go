@@ -79,7 +79,7 @@ func newSMTPClient(addr string) (*smtp.Client, error) {
 }
 
 func SendEmail(subject string, receiver string, content string) error {
-	return sendEmail(subject, receiver, content, "", nil)
+	return sendEmailWithProvider(subject, receiver, content, "", nil)
 }
 
 // SendEmailWithAttachment sends an HTML email with one binary attachment.
@@ -89,10 +89,27 @@ func SendEmailWithAttachment(subject string, receiver string, content string, fi
 	if filename == "" || len(attachment) == 0 {
 		return fmt.Errorf("email attachment is empty")
 	}
-	return sendEmail(subject, receiver, content, filename, attachment)
+	return sendEmailWithProvider(subject, receiver, content, filename, attachment)
 }
 
-func sendEmail(subject string, receiver string, content string, attachmentName string, attachment []byte) error {
+func sendEmailWithProvider(subject string, receiver string, content string, attachmentName string, attachment []byte) error {
+	OptionMapRWMutex.RLock()
+	provider := OptionMap["EmailProvider"]
+	resendKey := OptionMap["ResendApiKey"]
+	resendFrom := OptionMap["ResendFrom"]
+	OptionMapRWMutex.RUnlock()
+	// One selector controls delivery. Never fall back to a second provider:
+	// a failed response does not prove that the first provider did not send.
+	switch provider {
+	case "resend":
+		if len(attachment) > 0 {
+			return sendResendEmailWithAttachment(resendKey, resendFrom, subject, receiver, content, attachmentName, attachment)
+		}
+		return sendResendEmail(resendKey, resendFrom, subject, receiver, content)
+	case "", "smtp": // Preserve existing installations without a selector.
+	default:
+		return NewMessage("Email sending method must be SMTP or Resend")
+	}
 	if SMTPFrom == "" { // for compatibility
 		SMTPFrom = SMTPAccount
 	}
