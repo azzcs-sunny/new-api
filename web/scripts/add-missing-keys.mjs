@@ -430,7 +430,7 @@ const newKeys = {
     'Last 60 tests': '最近 60 次测速',
     GPT: 'GPT',
     'Chinese Models': '国模',
-    'Pay {{amount}}': '实付 {{amount}}',
+    'Pay {{amount}}': '支付 {{amount}}',
     'Pay {{discountRate}}/10 of the original price': '{{discountRate}}折',
     'Save {{amount}}': '省 {{amount}}',
     '{{discount}}% OFF': '立减 {{discount}}%',
@@ -1194,7 +1194,7 @@ const newKeys = {
     'Last 60 tests': '直近60回のテスト',
     GPT: 'GPT',
     'Chinese Models': '中国系モデル',
-    'Pay {{amount}}': 'お支払い {{amount}}',
+    'Pay {{amount}}': '支払額 {{amount}}',
     'Pay {{discountRate}}/10 of the original price':
       '元値の{{discountRate}}/10を支払う',
     'Save {{amount}}': '{{amount}} お得',
