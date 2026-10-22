@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/shopspring/decimal"
@@ -46,61 +47,74 @@ func GetWalletTransactions(userId int, pageInfo *common.PageInfo) (transactions 
 		fetchLimit = walletTransactionQueryHardLimit
 	}
 
-	var topUpCount int64
-	if err = DB.Model(&TopUp{}).
-		Where("user_id = ? AND amount > ? AND status = ?", userId, 0, common.TopUpStatusSuccess).
-		Count(&topUpCount).Error; err != nil {
-		return nil, 0, err
-	}
-	redemptionWithoutTopUp := DB.Model(&TopUp{}).Select("1").Where("top_ups.redemption_id = redemptions.id")
-	var redemptionCount int64
-	if err = DB.Unscoped().Model(&Redemption{}).
-		Where("used_user_id = ? AND status = ?", userId, common.RedemptionCodeStatusUsed).
-		Where("NOT EXISTS (?)", redemptionWithoutTopUp).
-		Count(&redemptionCount).Error; err != nil {
-		return nil, 0, err
-	}
-	var adjustmentCount int64
-	if err = LOG_DB.Model(&Log{}).
-		Where("user_id = ? AND type = ?", userId, LogTypeWalletAdjustment).
-		Count(&adjustmentCount).Error; err != nil {
-		return nil, 0, err
-	}
-	var affiliateCount int64
-	if err = DB.Model(&AffiliateReward{}).
-		Where("inviter_id = ? AND status = ?", userId, AffiliateRewardGranted).
-		Count(&affiliateCount).Error; err != nil {
-		return nil, 0, err
-	}
-	total = topUpCount + redemptionCount + adjustmentCount + affiliateCount
-	if fetchLimit == 0 {
-		return []*WalletTransaction{}, total, nil
-	}
-
-	var topUps []*TopUp
-	if err = DB.Where("user_id = ? AND amount > ? AND status = ?", userId, 0, common.TopUpStatusSuccess).
-		Order("create_time desc, id desc").Limit(fetchLimit).Find(&topUps).Error; err != nil {
-		return nil, 0, err
-	}
-	var redemptions []*Redemption
-	if err = DB.Unscoped().Where("used_user_id = ? AND status = ?", userId, common.RedemptionCodeStatusUsed).
-		Where("NOT EXISTS (?)", redemptionWithoutTopUp).
-		Order("redeemed_time desc, id desc").Limit(fetchLimit).Find(&redemptions).Error; err != nil {
-		return nil, 0, err
-	}
-	var adjustments []*Log
+	var (
+		topUpCount       int64
+		redemptionCount  int64
+		adjustmentCount  int64
+		affiliateCount   int64
+		topUps           []*TopUp
+		redemptions      []*Redemption
+		adjustments      []*Log
+		affiliateRewards []*AffiliateReward
+		topUpErr         error
+		redemptionErr    error
+		adjustmentErr    error
+		affiliateErr     error
+	)
 	adjustmentOrder := "created_at desc, id desc"
 	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
 		adjustmentOrder = clickHouseLogOrder("")
 	}
-	if err = LOG_DB.Where("user_id = ? AND type = ?", userId, LogTypeWalletAdjustment).
-		Order(adjustmentOrder).Limit(fetchLimit).Find(&adjustments).Error; err != nil {
-		return nil, 0, err
+	var workers sync.WaitGroup
+	workers.Go(func() {
+		topUpErr = DB.Model(&TopUp{}).
+			Where("user_id = ? AND amount > ? AND status = ?", userId, 0, common.TopUpStatusSuccess).
+			Count(&topUpCount).Error
+		if topUpErr == nil && fetchLimit > 0 {
+			topUpErr = DB.Where("user_id = ? AND amount > ? AND status = ?", userId, 0, common.TopUpStatusSuccess).
+				Order("create_time desc, id desc").Limit(fetchLimit).Find(&topUps).Error
+		}
+	})
+	workers.Go(func() {
+		redemptionWithoutTopUp := DB.Model(&TopUp{}).Select("1").Where("top_ups.redemption_id = redemptions.id")
+		query := DB.Unscoped().Model(&Redemption{}).
+			Where("used_user_id = ? AND status = ?", userId, common.RedemptionCodeStatusUsed).
+			Where("NOT EXISTS (?)", redemptionWithoutTopUp)
+		redemptionErr = query.Count(&redemptionCount).Error
+		if redemptionErr == nil && fetchLimit > 0 {
+			redemptionWithoutTopUp = DB.Model(&TopUp{}).Select("1").Where("top_ups.redemption_id = redemptions.id")
+			redemptionErr = DB.Unscoped().Where("used_user_id = ? AND status = ?", userId, common.RedemptionCodeStatusUsed).
+				Where("NOT EXISTS (?)", redemptionWithoutTopUp).
+				Order("redeemed_time desc, id desc").Limit(fetchLimit).Find(&redemptions).Error
+		}
+	})
+	workers.Go(func() {
+		adjustmentErr = LOG_DB.Model(&Log{}).
+			Where("user_id = ? AND type = ?", userId, LogTypeWalletAdjustment).
+			Count(&adjustmentCount).Error
+		if adjustmentErr == nil && fetchLimit > 0 {
+			adjustmentErr = LOG_DB.Where("user_id = ? AND type = ?", userId, LogTypeWalletAdjustment).
+				Order(adjustmentOrder).Limit(fetchLimit).Find(&adjustments).Error
+		}
+	})
+	workers.Go(func() {
+		affiliateErr = DB.Model(&AffiliateReward{}).
+			Where("inviter_id = ? AND status = ?", userId, AffiliateRewardGranted).
+			Count(&affiliateCount).Error
+		if affiliateErr == nil && fetchLimit > 0 {
+			affiliateErr = DB.Where("inviter_id = ? AND status = ?", userId, AffiliateRewardGranted).
+				Order("created_at desc, id desc").Limit(fetchLimit).Find(&affiliateRewards).Error
+		}
+	})
+	workers.Wait()
+	for _, queryErr := range []error{topUpErr, redemptionErr, adjustmentErr, affiliateErr} {
+		if queryErr != nil {
+			return nil, 0, queryErr
+		}
 	}
-	var affiliateRewards []*AffiliateReward
-	if err = DB.Where("inviter_id = ? AND status = ?", userId, AffiliateRewardGranted).
-		Order("created_at desc, id desc").Limit(fetchLimit).Find(&affiliateRewards).Error; err != nil {
-		return nil, 0, err
+	total = topUpCount + redemptionCount + adjustmentCount + affiliateCount
+	if fetchLimit == 0 {
+		return []*WalletTransaction{}, total, nil
 	}
 
 	transactions = make([]*WalletTransaction, 0, len(topUps)+len(redemptions)+len(adjustments)+len(affiliateRewards))
