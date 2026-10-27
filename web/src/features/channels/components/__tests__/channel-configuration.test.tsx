@@ -1581,6 +1581,42 @@ test('configuration from fields unsupported by the selected provider stays unmar
   ).not.toBeInTheDocument()
 })
 
+test.each([false, true])(
+  'JSON/SSE compatibility defaults off or restores saved %s and saves a keyboard toggle',
+  async (enabled) => {
+    editingChannel = {
+      ...editingChannel,
+      setting: enabled ? '{"nonstream_json_sse_compat":true}' : '{}',
+    }
+    const put = vi
+      .spyOn(api, 'put')
+      .mockResolvedValue({ data: { success: true } })
+    const user = userEvent.setup()
+    render(<ConfigurationHarness currentRow={editingChannel} />)
+    await screen.findByDisplayValue('Existing channel')
+    const requestTab = screen.getByRole('tab', { name: /Request & Response/ })
+    await user.click(requestTab)
+    const toggle = screen.getByRole('switch', {
+      name: 'Handle JSON responses mislabeled as SSE',
+    })
+    expect(toggle).toHaveAttribute('aria-checked', String(enabled))
+    toggle.focus()
+    await user.keyboard(' ')
+    expect(toggle).toHaveAttribute('aria-checked', String(!enabled))
+    if (enabled) {
+      expect(requestTab).not.toHaveAccessibleName(/Configured/)
+    } else {
+      expect(requestTab).toHaveAccessibleName(/Configured/)
+    }
+    await user.click(screen.getByRole('button', { name: 'Update Channel' }))
+    await waitFor(() => expect(put).toHaveBeenCalled())
+    const payload = put.mock.calls[0]?.[1] as { setting: string }
+    expect(JSON.parse(payload.setting).nonstream_json_sse_compat ?? false).toBe(
+      !enabled
+    )
+  }
+)
+
 test('an Ollama channel marks a saved OpenAI-compatible chat setting in Request & Response and saves the toggled value', async () => {
   editingChannel = {
     ...editingChannel,

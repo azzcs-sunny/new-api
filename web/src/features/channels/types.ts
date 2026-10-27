@@ -83,6 +83,7 @@ export interface ChannelSettings {
   task_plugin_key?: string
   task_extend_plugin_keys?: string[]
   force_format?: boolean
+  nonstream_json_sse_compat?: boolean
   thinking_to_content?: boolean
   proxy?: string
   pass_through_body_enabled?: boolean

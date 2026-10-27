@@ -22,6 +22,9 @@ type ChannelSettings struct {
 	ClaudeStreamDrainTimeout  int    `json:"claude_stream_drain_timeout,omitempty"`
 	SystemPrompt              string `json:"system_prompt,omitempty"`
 	SystemPromptOverride      bool   `json:"system_prompt_override,omitempty"`
+	// NonStreamJSONSSECompat accepts Chat Completions JSON mislabeled as SSE,
+	// only when the client requested a non-streaming response.
+	NonStreamJSONSSECompat bool `json:"nonstream_json_sse_compat,omitempty"`
 	// TaskExtendPluginKeys lists the task plugins a New API channel (type 60)
 	// is extended with. The upstream gateway may host many plugins, so the
 	// channel serves every listed plugin's models while the request still pins

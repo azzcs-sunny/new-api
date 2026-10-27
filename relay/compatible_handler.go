@@ -1,6 +1,8 @@
 package relay
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -159,7 +161,11 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 
 	if resp != nil {
 		httpResp = resp.(*http.Response)
-		info.IsStream = info.IsStream || strings.HasPrefix(httpResp.Header.Get("Content-Type"), "text/event-stream")
+		if apiErr := prepareChatResponse(info, httpResp, textReq.IsStream(c.Request)); apiErr != nil {
+			service.CloseResponseBodyGracefully(httpResp)
+			service.ResetStatusCode(apiErr, statusCodeMappingStr)
+			return apiErr
+		}
 		if httpResp.StatusCode != http.StatusOK {
 			newApiErr := service.RelayErrorHandler(c.Request.Context(), httpResp, false)
 			// reset status code 重置状态码
@@ -183,6 +189,63 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		service.PostAudioConsumeQuota(c, info, usage.(*dto.Usage), nil)
 	} else {
 		service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), nil)
+	}
+	return nil
+}
+
+func prepareChatResponse(info *relaycommon.RelayInfo, resp *http.Response, clientStream bool) *types.NewAPIError {
+	upstreamStream := strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream")
+	info.IsStream = info.IsStream || upstreamStream
+	if clientStream || !upstreamStream || !info.ChannelSetting.NonStreamJSONSSECompat ||
+		info.RelayMode != relayconstant.RelayModeChatCompletions || info.RelayFormat != types.RelayFormatOpenAI ||
+		resp.StatusCode != http.StatusOK || resp.Body == nil {
+		return nil
+	}
+
+	// Peek only far enough to distinguish JSON from SSE. Keep the original
+	// closer and replay every byte, including comments and whitespace, for SSE.
+	body := resp.Body
+	reader := bufio.NewReader(body)
+	resp.Body = struct {
+		io.Reader
+		io.Closer
+	}{reader, body}
+	for n := 1; n <= 512; n++ {
+		prefix, err := reader.Peek(n)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusBadGateway)
+		}
+		switch prefix[n-1] {
+		case ' ', '\t', '\r', '\n':
+			continue
+		case '{':
+			data, err := io.ReadAll(reader)
+			if err != nil {
+				return types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusBadGateway)
+			}
+			var response dto.OpenAITextResponse
+			if err := common.Unmarshal(data, &response); err != nil {
+				return types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusBadGateway)
+			}
+			// Preserve structured upstream errors for the normal JSON handler.
+			upstreamError := response.GetOpenAIError()
+			if (upstreamError == nil || upstreamError.Type == "") &&
+				(response.Object != "chat.completion" || response.Choices == nil) {
+				return types.NewOpenAIError(fmt.Errorf("invalid JSON Chat Completions response labeled as SSE"), types.ErrorCodeBadResponseBody, http.StatusBadGateway)
+			}
+			resp.Body = struct {
+				io.Reader
+				io.Closer
+			}{bytes.NewReader(data), body}
+			resp.Header.Set("Content-Type", "application/json")
+			info.IsStream = false
+			return nil
+		default:
+			return nil
+		}
 	}
 	return nil
 }

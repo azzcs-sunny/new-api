@@ -105,6 +105,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { SecureVerificationDialog } from '@/features/auth/secure-verification'
+import { SettingsSwitchField } from '@/features/system-settings/components/settings-form-layout'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
@@ -298,6 +299,7 @@ const SENSITIVE_FORM_FIELDS = [
   'aws_api_type',
   'azure_responses_version',
   'force_format',
+  'nonstream_json_sse_compat',
   'thinking_to_content',
   'proxy',
   'http_protocol',
@@ -4763,6 +4765,23 @@ export function ChannelMutateDrawer({
                   disabled={sensitiveLocked || isSubmitting}
                 />
                 {formatFields}
+                <FormField
+                  control={form.control}
+                  name='nonstream_json_sse_compat'
+                  render={({ field }) => (
+                    <SettingsSwitchField
+                      controlId='channel-nonstream-json-sse-compat'
+                      className='px-4 py-3'
+                      label={t('Handle JSON responses mislabeled as SSE')}
+                      description={t(
+                        'For non-streaming Chat Completions requests only, accept JSON responses incorrectly labeled as text/event-stream. Streaming requests are unchanged.'
+                      )}
+                      checked={field.value === true}
+                      onCheckedChange={field.onChange}
+                      disabled={sensitiveLocked || isSubmitting}
+                    />
+                  )}
+                />
                 {ollamaOpenAIChatFields}
                 {thinkingFields}
                 {currentType !== CHANNEL_TYPE_ADVANCED_CUSTOM &&
