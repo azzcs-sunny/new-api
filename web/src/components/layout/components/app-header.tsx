@@ -1,3 +1,4 @@
+import { CommunityGroupButton } from '@/components/community-group-button'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -21,7 +22,6 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { NotificationDialog } from '@/components/notification-dialog'
 import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
-import { QqGroupButton } from '@/components/qq-group-button'
 import { Search } from '@/components/search'
 import { SystemUpdateAction } from '@/features/system-update/system-update-action'
 import { useNotifications } from '@/hooks/use-notifications'
@@ -146,7 +146,8 @@ export function AppHeader({
                 onAnnouncementOpen={notifications.openAnnouncementDetail}
               />
             )}
-            <QqGroupButton />
+            <CommunityGroupButton platform='qq' />
+            <CommunityGroupButton platform='telegram' />
             <LanguageSwitcher />
             {showConfigDrawer && <ConfigDrawer />}
             {showProfileDropdown && <ProfileDropdown />}

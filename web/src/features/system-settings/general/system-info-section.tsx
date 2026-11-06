@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMemo } from 'react'
 import type { Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import * as z from 'zod'
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { isCommunityLink } from '@/lib/community-link'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
@@ -56,6 +58,7 @@ const _systemInfoSchema = z.object({
   HomePageContent: z.string().optional(),
   general_setting: z.object({
     docs_link: z.string(),
+    infinite_canvas_url: z.string(),
   }),
   legal: z.object({
     user_agreement: z.string().optional(),
@@ -78,22 +81,28 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
 
-  const normalizedDefaults: SystemInfoFormValues = {
-    SystemName: normalizeValue(defaultValues.SystemName),
-    ServerAddress: normalizeValue(defaultValues.ServerAddress),
-    TaskPublicAddress: normalizeValue(defaultValues.TaskPublicAddress),
-    Logo: normalizeValue(defaultValues.Logo),
-    Footer: normalizeValue(defaultValues.Footer),
-    About: normalizeValue(defaultValues.About),
-    HomePageContent: normalizeValue(defaultValues.HomePageContent),
-    general_setting: {
-      docs_link: normalizeValue(defaultValues.general_setting?.docs_link),
-    },
-    legal: {
-      user_agreement: normalizeValue(defaultValues.legal?.user_agreement),
-      privacy_policy: normalizeValue(defaultValues.legal?.privacy_policy),
-    },
-  }
+  const normalizedDefaults = useMemo<SystemInfoFormValues>(
+    () => ({
+      SystemName: normalizeValue(defaultValues.SystemName),
+      ServerAddress: normalizeValue(defaultValues.ServerAddress),
+      TaskPublicAddress: normalizeValue(defaultValues.TaskPublicAddress),
+      Logo: normalizeValue(defaultValues.Logo),
+      Footer: normalizeValue(defaultValues.Footer),
+      About: normalizeValue(defaultValues.About),
+      HomePageContent: normalizeValue(defaultValues.HomePageContent),
+      general_setting: {
+        docs_link: normalizeValue(defaultValues.general_setting?.docs_link),
+        infinite_canvas_url: normalizeValue(
+          defaultValues.general_setting?.infinite_canvas_url
+        ),
+      },
+      legal: {
+        user_agreement: normalizeValue(defaultValues.legal?.user_agreement),
+        privacy_policy: normalizeValue(defaultValues.legal?.privacy_policy),
+      },
+    }),
+    [defaultValues]
+  )
 
   const systemInfoSchemaWithI18n = z.object({
     SystemName: z.string().min(1, {
@@ -112,6 +121,12 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     HomePageContent: z.string().optional(),
     general_setting: z.object({
       docs_link: z.string(),
+      infinite_canvas_url: z
+        .string()
+        .trim()
+        .refine(isCommunityLink, {
+          message: t('Enter a valid HTTP(S) link without credentials'),
+        }),
     }),
     legal: z.object({
       user_agreement: z.string().optional(),
@@ -248,6 +263,26 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     </FormControl>
                     <FormDescription>
                       {t('Link to your documentation site')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='general_setting.infinite_canvas_url'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Infinite Canvas Link')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='https://canvas.example.com'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Leave empty to hide Infinite Canvas.')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

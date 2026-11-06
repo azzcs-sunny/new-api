@@ -30,6 +30,7 @@ import {
 import {
   STATUS_QUERY_KEY,
   ensureStatus,
+  mapStatusDataToConfig,
   statusQueryOptions,
 } from '@/lib/status-query'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -90,6 +91,52 @@ afterEach(() => {
 })
 
 describe('shared status query deduplication', () => {
+  test('normalizes the canvas link and clears stale configuration when status omits it', () => {
+    const store = useSystemConfigStore.getState()
+    store.setConfig(
+      mapStatusDataToConfig({
+        infinite_canvas_url: ' https://canvas.example.com/ ',
+      })
+    )
+    expect(useSystemConfigStore.getState().config.infiniteCanvasUrl).toBe(
+      'https://canvas.example.com/'
+    )
+    store.setConfig(mapStatusDataToConfig({}))
+    expect(useSystemConfigStore.getState().config.infiniteCanvasUrl).toBe('')
+  })
+
+  test('replaces saved community contacts with empty values when status clears or omits them', () => {
+    const store = useSystemConfigStore.getState()
+    store.setConfig(
+      mapStatusDataToConfig({
+        qq_group_url: ' https://qm.qq.com/q/example ',
+        qq_group_name: ' Example QQ ',
+        qq_group_number: ' 123456789 ',
+        telegram_url: ' https://t.me/example ',
+        telegram_name: ' Example Telegram ',
+        customer_service_qq: ' 987654321 ',
+      })
+    )
+    expect(useSystemConfigStore.getState().config).toMatchObject({
+      qqGroupUrl: 'https://qm.qq.com/q/example',
+      qqGroupName: 'Example QQ',
+      qqGroupNumber: '123456789',
+      telegramUrl: 'https://t.me/example',
+      telegramName: 'Example Telegram',
+      customerServiceQQ: '987654321',
+    })
+    store.setConfig(
+      mapStatusDataToConfig({ qq_group_url: '', telegram_url: '   ' })
+    )
+    expect(useSystemConfigStore.getState().config).toMatchObject({
+      qqGroupUrl: '',
+      qqGroupName: '',
+      qqGroupNumber: '',
+      telegramUrl: '',
+      telegramName: '',
+      customerServiceQQ: '',
+    })
+  })
   test.each(['cold', 'stale'] as const)(
     'deduplicates %s cache requests across guards and hook consumers',
     async (cacheState) => {

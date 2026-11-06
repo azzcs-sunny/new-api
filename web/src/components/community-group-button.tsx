@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { QRCodeSVG } from 'qrcode.react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SiQq } from 'react-icons/si'
+import { SiQq, SiTelegram } from 'react-icons/si'
 
 import { CopyButton } from '@/components/copy-button'
 import { Button } from '@/components/ui/button'
@@ -30,17 +30,25 @@ import {
 } from '@/components/ui/hover-card'
 import { Separator } from '@/components/ui/separator'
 import { useSystemConfig } from '@/hooks/use-system-config'
+import { isCommunityLink } from '@/lib/community-link'
 import { cn } from '@/lib/utils'
 
-const QQ_GROUP_URL = 'https://qm.qq.com/q/FSYcQbGngA'
-const QQ_GROUP_NAME = 'WC API'
-const QQ_GROUP_NUMBER = '907379317'
-
-export function QqGroupButton(props: { className?: string }) {
+export function CommunityGroupButton(props: {
+  platform: 'qq' | 'telegram'
+  className?: string
+}) {
   const { t } = useTranslation()
-  const { logo } = useSystemConfig()
-  const gradientId = `qq-qr-gradient-${useId().replaceAll(':', '')}`
-  const label = t('Join QQ Group')
+  const config = useSystemConfig()
+  const { logo } = config
+  const gradientId = `community-qr-gradient-${useId().replaceAll(':', '')}`
+  const isQQ = props.platform === 'qq'
+  const url = (isQQ ? config.qqGroupUrl : config.telegramUrl)?.trim() ?? ''
+  const name = (isQQ ? config.qqGroupName : config.telegramName)?.trim()
+  const number = isQQ ? config.qqGroupNumber?.trim() : ''
+  const label = isQQ ? t('Join QQ Group') : t('Join Telegram')
+  const Icon = isQQ ? SiQq : SiTelegram
+
+  if (!url || !isCommunityLink(url)) return null
 
   return (
     <HoverCard>
@@ -51,22 +59,19 @@ export function QqGroupButton(props: { className?: string }) {
           <Button
             size='sm'
             className={cn(
-              'bg-[#12b7f5]! px-2 text-xs text-white hover:bg-[#0da8e3]! sm:px-2.5',
+              'shrink-0 px-2 text-xs text-white sm:px-2.5',
+              isQQ
+                ? 'bg-[#12b7f5]! hover:bg-[#0da8e3]!'
+                : 'bg-[#0088cc]! hover:bg-[#0077b5]!',
               props.className
             )}
             aria-label={label}
             nativeButton={false}
-            render={
-              <a
-                href={QQ_GROUP_URL}
-                target='_blank'
-                rel='noopener noreferrer'
-              />
-            }
+            render={<a href={url} target='_blank' rel='noopener noreferrer' />}
           />
         }
       >
-        <SiQq aria-hidden='true' data-icon='inline-start' />
+        <Icon aria-hidden='true' data-icon='inline-start' />
         <span className='hidden sm:inline'>{label}</span>
       </HoverCardTrigger>
 
@@ -83,26 +88,32 @@ export function QqGroupButton(props: { className?: string }) {
             className='size-12 shrink-0 rounded-full bg-white object-cover ring-2 ring-white/20'
           />
           <div className='min-w-0 flex-1'>
-            <p className='truncate text-base font-semibold'>{QQ_GROUP_NAME}</p>
-            <div className='text-background/65 flex items-center gap-1 text-sm'>
-              <span>
-                {t('QQ Group Number')}: {QQ_GROUP_NUMBER}
-              </span>
-              <CopyButton
-                value={QQ_GROUP_NUMBER}
-                className='text-background/65 hover:bg-background/10 hover:text-background size-6'
-                iconClassName='size-3.5'
-                tooltip={t('Copy to clipboard')}
-                successTooltip={t('Copied!')}
-              />
-            </div>
+            {name && (
+              <p className='text-base font-semibold [overflow-wrap:anywhere] break-words'>
+                {name}
+              </p>
+            )}
+            {number && (
+              <div className='text-background/65 flex items-center gap-1 text-sm'>
+                <span className='min-w-0 [overflow-wrap:anywhere] break-words'>
+                  {t('QQ Group Number')}: {number}
+                </span>
+                <CopyButton
+                  value={number}
+                  className='text-background/65 hover:bg-background/10 hover:text-background size-6'
+                  iconClassName='size-3.5'
+                  tooltip={t('Copy to clipboard')}
+                  successTooltip={t('Copied!')}
+                />
+              </div>
+            )}
           </div>
         </div>
 
         <Separator className='bg-background/15 my-3' />
 
         <a
-          href={QQ_GROUP_URL}
+          href={url}
           target='_blank'
           rel='noopener noreferrer'
           aria-label={label}
@@ -127,7 +138,7 @@ export function QqGroupButton(props: { className?: string }) {
             </defs>
           </svg>
           <QRCodeSVG
-            value={QQ_GROUP_URL}
+            value={url}
             level='H'
             marginSize={1}
             bgColor='transparent'

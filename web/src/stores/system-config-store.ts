@@ -39,6 +39,13 @@ export interface CurrencyConfig {
 }
 
 export interface SystemConfig {
+  infiniteCanvasUrl?: string
+  qqGroupUrl?: string
+  qqGroupName?: string
+  qqGroupNumber?: string
+  telegramUrl?: string
+  telegramName?: string
+  customerServiceQQ?: string
   systemName: string
   logo: string
   footerHtml?: string

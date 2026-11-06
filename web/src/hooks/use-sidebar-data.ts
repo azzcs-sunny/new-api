@@ -47,6 +47,7 @@ import type { SidebarData } from '@/components/layout/types'
 import { useTopupInfo } from '@/features/wallet/hooks/use-topup-info'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -57,7 +58,8 @@ import { useAuthStore } from '@/stores/auth-store'
 export function buildSidebarData(
   t: TFunction,
   role: number = ROLE.USER,
-  topupLink?: string
+  topupLink?: string,
+  infiniteCanvasUrl?: string
 ): SidebarData {
   return {
     navGroups: [
@@ -70,11 +72,15 @@ export function buildSidebarData(
             url: '/playground',
             icon: FlaskConical,
           },
-          {
-            title: t('Infinite Canvas'),
-            url: '/canvas',
-            icon: PanelsTopLeft,
-          },
+          ...(infiniteCanvasUrl?.trim()
+            ? [
+                {
+                  title: t('Infinite Canvas'),
+                  url: '/canvas',
+                  icon: PanelsTopLeft,
+                },
+              ]
+            : []),
           {
             title: t('Chat'),
             icon: MessageSquare,
@@ -243,5 +249,8 @@ export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
   const role = useAuthStore((state) => state.auth.user?.role ?? ROLE.GUEST)
   const { topupInfo } = useTopupInfo()
-  return buildSidebarData(t, role, topupInfo?.topup_link)
+  const canvasUrl = useSystemConfigStore(
+    (state) => state.config.infiniteCanvasUrl
+  )
+  return buildSidebarData(t, role, topupInfo?.topup_link, canvasUrl)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"sort"
 	"strconv"
@@ -217,6 +218,20 @@ func UpdateOption(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
+	}
+	switch option.Key {
+	case "general_setting.qq_group_url", "general_setting.telegram_url", "general_setting.infinite_canvas_url":
+		value := strings.TrimSpace(option.Value.(string))
+		if value != "" {
+			link, err := url.Parse(value)
+			if err != nil || (link.Scheme != "https" && link.Scheme != "http") || link.Hostname() == "" || link.User != nil {
+				common.ApiErrorT(c, "Enter a valid HTTP(S) link without credentials")
+				return
+			}
+		}
+		option.Value = value
+	case "general_setting.qq_group_name", "general_setting.qq_group_number", "general_setting.telegram_name", "general_setting.customer_service_qq":
+		option.Value = strings.TrimSpace(option.Value.(string))
 	}
 	switch option.Key {
 	case "GitHubOAuthEnabled":

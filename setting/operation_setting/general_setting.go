@@ -11,6 +11,13 @@ const (
 )
 
 type GeneralSetting struct {
+	QQGroupURL          string   `json:"qq_group_url"`
+	QQGroupName         string   `json:"qq_group_name"`
+	QQGroupNumber       string   `json:"qq_group_number"`
+	TelegramURL         string   `json:"telegram_url"`
+	TelegramName        string   `json:"telegram_name"`
+	CustomerServiceQQ   string   `json:"customer_service_qq"`
+	InfiniteCanvasURL   string   `json:"infinite_canvas_url"`
 	DocsLink            string   `json:"docs_link"`
 	TopUpLinkGroups     []string `json:"topup_link_groups"`
 	PingIntervalEnabled bool     `json:"ping_interval_enabled"`

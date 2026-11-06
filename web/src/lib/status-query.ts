@@ -92,7 +92,27 @@ export function mapStatusDataToConfig(
   }
 
   return {
+    infiniteCanvasUrl:
+      typeof data.infinite_canvas_url === 'string'
+        ? data.infinite_canvas_url.trim()
+        : '',
     systemName: (data.system_name as string | undefined) || DEFAULT_SYSTEM_NAME,
+    qqGroupUrl:
+      typeof data.qq_group_url === 'string' ? data.qq_group_url.trim() : '',
+    qqGroupName:
+      typeof data.qq_group_name === 'string' ? data.qq_group_name.trim() : '',
+    qqGroupNumber:
+      typeof data.qq_group_number === 'string'
+        ? data.qq_group_number.trim()
+        : '',
+    telegramUrl:
+      typeof data.telegram_url === 'string' ? data.telegram_url.trim() : '',
+    telegramName:
+      typeof data.telegram_name === 'string' ? data.telegram_name.trim() : '',
+    customerServiceQQ:
+      typeof data.customer_service_qq === 'string'
+        ? data.customer_service_qq.trim()
+        : '',
     logo: (data.logo as string | undefined) || DEFAULT_LOGO,
     footerHtml: data.footer_html as string | undefined,
     demoSiteEnabled: data.demo_site_enabled as boolean | undefined,

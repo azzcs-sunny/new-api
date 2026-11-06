@@ -141,6 +141,12 @@ export type SystemTaskFilters = {
 }
 
 export type SiteSettings = {
+  'general_setting.qq_group_url': string
+  'general_setting.qq_group_name': string
+  'general_setting.qq_group_number': string
+  'general_setting.telegram_url': string
+  'general_setting.telegram_name': string
+  'general_setting.customer_service_qq': string
   Notice: string
   SystemName: string
   Logo: string
@@ -150,6 +156,7 @@ export type SiteSettings = {
   ServerAddress: string
   TaskPublicAddress: string
   'general_setting.docs_link': string
+  'general_setting.infinite_canvas_url': string
   'legal.user_agreement': string
   'legal.privacy_policy': string
   'legal.terms_of_service': string

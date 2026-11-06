@@ -28,9 +28,29 @@ import { NoticeSection } from '../maintenance/notice-section'
 import { SidebarModulesSection } from '../maintenance/sidebar-modules-section'
 import type { SiteSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { CommunitySettingsSection } from './community-settings-section'
 import { LegalDocumentsSection } from './legal-documents-section'
 
 const SITE_SECTIONS = [
+  {
+    id: 'community',
+    titleKey: 'Community and Support',
+    build: (settings: SiteSettings) => (
+      <CommunitySettingsSection
+        defaultValues={{
+          general_setting: {
+            qq_group_url: settings['general_setting.qq_group_url'],
+            qq_group_name: settings['general_setting.qq_group_name'],
+            qq_group_number: settings['general_setting.qq_group_number'],
+            telegram_url: settings['general_setting.telegram_url'],
+            telegram_name: settings['general_setting.telegram_name'],
+            customer_service_qq:
+              settings['general_setting.customer_service_qq'],
+          },
+        }}
+      />
+    ),
+  },
   {
     id: 'system-info',
     titleKey: 'System Information',
@@ -46,6 +66,8 @@ const SITE_SECTIONS = [
           TaskPublicAddress: settings.TaskPublicAddress,
           general_setting: {
             docs_link: settings['general_setting.docs_link'],
+            infinite_canvas_url:
+              settings['general_setting.infinite_canvas_url'],
           },
           legal: {
             user_agreement: settings['legal.user_agreement'],

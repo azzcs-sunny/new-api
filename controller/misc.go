@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -75,7 +76,14 @@ func GetStatus(c *gin.Context) {
 		"server_address":              system_setting.ServerAddress,
 		"turnstile_check":             common.TurnstileCheckEnabled,
 		"turnstile_site_key":          common.TurnstileSiteKey,
+		"infinite_canvas_url":         strings.TrimSpace(operation_setting.GetGeneralSetting().InfiniteCanvasURL),
 		"docs_link":                   operation_setting.GetGeneralSetting().DocsLink,
+		"qq_group_url":                strings.TrimSpace(operation_setting.GetGeneralSetting().QQGroupURL),
+		"qq_group_name":               strings.TrimSpace(operation_setting.GetGeneralSetting().QQGroupName),
+		"qq_group_number":             strings.TrimSpace(operation_setting.GetGeneralSetting().QQGroupNumber),
+		"telegram_url":                strings.TrimSpace(operation_setting.GetGeneralSetting().TelegramURL),
+		"telegram_name":               strings.TrimSpace(operation_setting.GetGeneralSetting().TelegramName),
+		"customer_service_qq":         strings.TrimSpace(operation_setting.GetGeneralSetting().CustomerServiceQQ),
 		"quota_per_unit":              common.QuotaPerUnit,
 		// 兼容旧前端：保留 display_in_currency，同时提供新的 quota_display_type
 		"display_in_currency":           operation_setting.IsCurrencyDisplay(),

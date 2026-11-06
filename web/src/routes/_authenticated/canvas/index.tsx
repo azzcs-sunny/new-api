@@ -25,6 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 const INFINITE_CANVAS_SANDBOX = [
   'allow-downloads',
@@ -45,12 +46,14 @@ export const Route = createFileRoute('/_authenticated/canvas/')({
 
 function InfiniteCanvasPage() {
   const { t } = useTranslation()
-  const canvasUrl = import.meta.env.VITE_INFINITE_CANVAS_URL
+  const canvasUrl = useSystemConfigStore(
+    (state) => state.config.infiniteCanvasUrl
+  )?.trim()
 
   if (!canvasUrl) {
     return (
       <Main className='items-center justify-center'>
-        <p>{t('Infinite Canvas')}</p>
+        <p>{t('Infinite Canvas link is not configured')}</p>
       </Main>
     )
   }

@@ -1,0 +1,77 @@
+# New API Docker Compose demo (New API + PostgreSQL + Redis)
+#
+# 1. Replace the placeholder secrets in .env.demo.
+# 2. Start: docker compose --env-file .env.demo -f docker-compose.demo.yml up -d
+# 3. Open:  http://localhost:3000
+# 4. Stop:  docker compose --env-file .env.demo -f docker-compose.demo.yml down
+
+services:
+  new-api:
+    image: ${NEW_API_IMAGE:-calciumion/new-api:latest}
+    restart: unless-stopped
+    command: ["--log-dir", "/app/logs"]
+    ports:
+      - "${NEW_API_PORT:-3000}:3000"
+    env_file:
+      - .env.demo
+    environment:
+      SQL_DSN: postgresql://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
+    volumes:
+      - ./data/demo:/data
+      - ./logs/demo:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -q '\"success\":true'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - new-api-demo
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.demo
+    volumes:
+      - demo_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - new-api-demo
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.demo
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"
+    volumes:
+      - demo_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping 2>/dev/null | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - new-api-demo
+
+volumes:
+  demo_postgres_data:
+  demo_redis_data:
+
+networks:
+  new-api-demo:
+    driver: bridge

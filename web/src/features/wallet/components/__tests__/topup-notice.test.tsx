@@ -6,12 +6,34 @@ it under the terms of the GNU Affero General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 */
-import { render, screen } from '@testing-library/react'
-import { describe, expect, test } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, test } from 'vitest'
+
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { TopupNotice } from '../topup-notice'
 
+beforeEach(() => {
+  useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
+  useSystemConfigStore.getState().setConfig({ customerServiceQQ: '987654321' })
+})
+
 describe('wallet top-up notice', () => {
+  test('hides only the contact text when the configured customer service QQ is cleared', () => {
+    render(
+      <TopupNotice topupGroupRatio={1} topupLink='https://store.example.com' />
+    )
+    expect(screen.getByText(/987654321/)).toBeInTheDocument()
+    act(() =>
+      useSystemConfigStore.getState().setConfig({ customerServiceQQ: '  ' })
+    )
+    expect(
+      screen.queryByText(/contact customer service/)
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'https://store.example.com' })
+    ).toBeVisible()
+  })
   test.each([undefined, '', ' \t '])(
     'hides all top-up instructions when the group-filtered link is %j',
     (topupLink) => {
@@ -36,7 +58,7 @@ describe('wallet top-up notice', () => {
     )
 
     expect(screen.getByText('Top-up Instructions')).toBeInTheDocument()
-    expect(screen.getByText(/321479046/)).toBeInTheDocument()
+    expect(screen.getByText(/987654321/)).toBeInTheDocument()
     expect(
       screen.getByRole('link', {
         name: 'https://store.example.com/card-codes',

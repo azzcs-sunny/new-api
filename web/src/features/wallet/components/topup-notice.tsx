@@ -21,10 +21,9 @@ import { Trans, useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { formatNumber } from '@/lib/format'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import type { PaymentMethod } from '../types'
-
-const CUSTOMER_SERVICE_QQ = '321479046'
 
 interface TopupNoticeProps {
   topupGroupRatio: number
@@ -34,6 +33,9 @@ interface TopupNoticeProps {
 
 export function TopupNotice(props: TopupNoticeProps) {
   const { t } = useTranslation()
+  const customerServiceQQ = useSystemConfigStore(
+    (state) => state.config.customerServiceQQ
+  )?.trim()
   const topupLink = props.topupLink?.trim()
   if (!topupLink) return null
 
@@ -62,14 +64,16 @@ export function TopupNotice(props: TopupNoticeProps) {
         {t('Top-up Instructions')}
       </AlertTitle>
       <AlertDescription className='col-start-2 text-pretty [&_p:not(:last-child)]:mb-1'>
-        <p>
-          {t(
-            'For top-up assistance, contact customer service via QQ: {{qq}}.',
-            {
-              qq: CUSTOMER_SERVICE_QQ,
-            }
-          )}
-        </p>
+        {customerServiceQQ && (
+          <p className='[overflow-wrap:anywhere] break-words'>
+            {t(
+              'For top-up assistance, contact customer service via QQ: {{qq}}.',
+              {
+                qq: customerServiceQQ,
+              }
+            )}
+          </p>
+        )}
         <p>
           {t('Card-code store:')}{' '}
           <a

@@ -25,6 +25,12 @@ import {
 } from './section-registry.tsx'
 
 const defaultSiteSettings: SiteSettings = {
+  'general_setting.qq_group_url': '',
+  'general_setting.qq_group_name': '',
+  'general_setting.qq_group_number': '',
+  'general_setting.telegram_url': '',
+  'general_setting.telegram_name': '',
+  'general_setting.customer_service_qq': '',
   Notice: '',
   SystemName: 'New API',
   Logo: '',
@@ -34,6 +40,7 @@ const defaultSiteSettings: SiteSettings = {
   ServerAddress: '',
   TaskPublicAddress: '',
   'general_setting.docs_link': '',
+  'general_setting.infinite_canvas_url': '',
   'legal.user_agreement': '',
   'legal.privacy_policy': '',
   'legal.terms_of_service': '',

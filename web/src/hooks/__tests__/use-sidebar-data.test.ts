@@ -78,6 +78,30 @@ describe('sidebar data', () => {
     )
   })
 
+  test.each([undefined, '', '   '])(
+    'hides infinite canvas when its link is %s',
+    (link) => {
+      const data = buildSidebarData(t, ROLE.USER, undefined, link)
+      expect(
+        data.navGroups.find((group) => group.id === 'chat')?.items
+      ).not.toContainEqual(expect.objectContaining({ url: '/canvas' }))
+    }
+  )
+
+  test('shows infinite canvas when its link is configured', () => {
+    const data = buildSidebarData(
+      t,
+      ROLE.USER,
+      undefined,
+      'https://canvas.example.com'
+    )
+    expect(
+      data.navGroups.find((group) => group.id === 'chat')?.items
+    ).toContainEqual(
+      expect.objectContaining({ title: 'Infinite Canvas', url: '/canvas' })
+    )
+  })
+
   test('splits admin invoice management from personal invoice requests', () => {
     const sidebarData = buildSidebarData(t, ROLE.ADMIN)
     const personalGroup = sidebarData.navGroups.find(

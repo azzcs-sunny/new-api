@@ -22,9 +22,19 @@ import { toast } from 'sonner'
 
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { statusQueryOptions } from '@/lib/status-query'
 
 import { updatePasskeyDomains, updateSystemOption } from '../api'
 import type { UpdateOptionRequest, UpdatePasskeyDomainsRequest } from '../types'
+
+const COMMUNITY_OPTION_KEYS = new Set([
+  'general_setting.qq_group_url',
+  'general_setting.qq_group_name',
+  'general_setting.qq_group_number',
+  'general_setting.telegram_url',
+  'general_setting.telegram_name',
+  'general_setting.customer_service_qq',
+])
 
 // Configuration keys that require status refresh
 const STATUS_RELATED_KEYS = new Set([
@@ -61,10 +71,22 @@ export function useUpdateOption() {
   return useMutation({
     mutationFn: async (request: UpdateOptionRequest) =>
       requireServerSuccess(await updateSystemOption(request)),
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       if (data.success) {
         // Always refresh system-options
         queryClient.invalidateQueries({ queryKey: ['system-options'] })
+
+        if (
+          COMMUNITY_OPTION_KEYS.has(variables.key) ||
+          variables.key === 'general_setting.infinite_canvas_url'
+        ) {
+          await queryClient.invalidateQueries({
+            queryKey: ['status'],
+            refetchType: 'none',
+          })
+          // Refresh even when status has no active query observers.
+          await queryClient.fetchQuery(statusQueryOptions)
+        }
 
         // If updating frontend-display-related config, also refresh status
         if (STATUS_RELATED_KEYS.has(variables.key)) {
