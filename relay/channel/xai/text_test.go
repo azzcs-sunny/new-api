@@ -17,6 +17,9 @@ func TestMergeXAIStreamUsagePreservesCachedTokens(t *testing.T) {
 		PromptTokensDetails: dto.InputTokenDetails{
 			CachedTokens: 80,
 		},
+		CompletionTokenDetails: dto.OutputTokenDetails{
+			ReasoningTokens: 12,
+		},
 	}
 
 	mergeXAIStreamUsage(usage, upstreamUsage)
@@ -27,4 +30,5 @@ func TestMergeXAIStreamUsagePreservesCachedTokens(t *testing.T) {
 	assert.Equal(t, 120, usage.TotalTokens)
 	assert.Equal(t, 80, usage.PromptTokensDetails.CachedTokens)
 	assert.Equal(t, 80, usage.PromptCacheHitTokens)
+	assert.Equal(t, 12, usage.CompletionTokenDetails.ReasoningTokens)
 }

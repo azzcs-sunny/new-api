@@ -43,7 +43,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { SidebarData } from '@/components/layout/types'
+import type { SidebarBadges, SidebarData } from '@/components/layout/types'
 import { useTopupInfo } from '@/features/wallet/hooks/use-topup-info'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
@@ -59,7 +59,8 @@ export function buildSidebarData(
   t: TFunction,
   role: number = ROLE.USER,
   topupLink?: string,
-  infiniteCanvasUrl?: string
+  infiniteCanvasUrl?: string,
+  badges: SidebarBadges = {}
 ): SidebarData {
   return {
     navGroups: [
@@ -238,6 +239,8 @@ export function buildSidebarData(
             activeUrls: ['/system-settings'],
             icon: Settings,
             requiredRole: ROLE.SUPER_ADMIN,
+            // Model pricing lives in System Settings.
+            badge: badges.modelPricing,
           },
         ],
       },
@@ -245,12 +248,12 @@ export function buildSidebarData(
   }
 }
 
-export function useSidebarData(): SidebarData {
+export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
   const { t } = useTranslation()
   const role = useAuthStore((state) => state.auth.user?.role ?? ROLE.GUEST)
   const { topupInfo } = useTopupInfo()
   const canvasUrl = useSystemConfigStore(
     (state) => state.config.infiniteCanvasUrl
   )
-  return buildSidebarData(t, role, topupInfo?.topup_link, canvasUrl)
+  return buildSidebarData(t, role, topupInfo?.topup_link, canvasUrl, badges)
 }

@@ -26,6 +26,33 @@ import { buildSidebarData } from '../use-sidebar-data'
 describe('sidebar data', () => {
   const t = ((key: string) => key) as unknown as TFunction
 
+  test('keeps pricing alerts alongside custom navigation entries', () => {
+    const data = buildSidebarData(
+      t,
+      ROLE.SUPER_ADMIN,
+      'https://example.com/topup',
+      'https://canvas.example.com',
+      { modelPricing: '3' }
+    )
+    const items = data.navGroups.flatMap((group) => group.items)
+
+    expect(items).toContainEqual(
+      expect.objectContaining({ title: 'System Settings', badge: '3' })
+    )
+    for (const url of [
+      '/canvas',
+      '/channel-status',
+      '/channel-monitor',
+      '/affiliate',
+      '/affiliate-admin',
+      '/wallet/card-codes',
+      '/invoices?tab=mine',
+      '/invoices?tab=management',
+    ]) {
+      expect(items).toContainEqual(expect.objectContaining({ url }))
+    }
+  })
+
   test('puts channel status between dashboard and api keys', () => {
     const sidebarData = buildSidebarData(t)
     const generalGroup = sidebarData.navGroups.find(

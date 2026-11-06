@@ -44,6 +44,7 @@ func mergeXAIStreamUsage(usage *dto.Usage, upstreamUsage *dto.Usage) {
 	usage.TotalTokens = upstreamUsage.TotalTokens
 	usage.CompletionTokens = usage.TotalTokens - usage.PromptTokens
 	usage.PromptTokensDetails = upstreamUsage.PromptTokensDetails
+	usage.CompletionTokenDetails = upstreamUsage.CompletionTokenDetails
 	usage.PromptCacheHitTokens = upstreamUsage.PromptCacheHitTokens
 	usage.InputTokensDetails = upstreamUsage.InputTokensDetails
 }
